@@ -5,6 +5,7 @@ function AddMed({ patient, onBack }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [medicines, setMedicines] = useState([]);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     // Dummy logic to simulate scanner adding item
     const handleScanComplete = () => {
@@ -20,11 +21,6 @@ function AddMed({ patient, onBack }) {
     };
 
     const handleScannerClick = () => {
-        // Check if device is likely a mobile (width < 768px)
-        if (window.innerWidth > 768) {
-            alert("Use mobile");
-            return;
-        }
         setIsScannerOpen(true);
     };
 
@@ -47,8 +43,9 @@ function AddMed({ patient, onBack }) {
     };
 
     const handleSave = () => {
-        alert("Medicines Saved!");
-        onBack();
+        setShowSuccessModal(true);
+        // Automatically hide after 2 seconds or let user close? 
+        // User just said "Give Alert", usually requires dismissal.
     };
 
     if (!patient) return null;
@@ -151,6 +148,18 @@ function AddMed({ patient, onBack }) {
                                 <p className="qr-hint">Tap QR to Simulate Scan</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content success-modal">
+                        <div className="success-icon">✅</div>
+                        <h3 className="modal-title">Success</h3>
+                        <p className="success-message">Medicines Save sucess fully</p>
+                        <button className="modal-close-button-primary" onClick={() => setShowSuccessModal(false)}>OK</button>
                     </div>
                 </div>
             )}

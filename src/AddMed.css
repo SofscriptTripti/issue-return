@@ -91,9 +91,6 @@
 }
 
 .medicine-card {
-    background: #f8fafc;
-    /* Keep light for contrast like image or modify to dark? Let's use light card inside dark theme for prescriptions to pop, or light-dark. */
-    /* Reverting to Dark theme card for consistency */
     background: #1e293b;
     border: 1px solid #334155;
     border-radius: 12px;
@@ -292,4 +289,39 @@
     100% {
         opacity: 0.5;
     }
+}
+
+/* Success Modal Styles */
+.success-modal {
+    text-align: center;
+    background: #1e293b;
+    border: 1px solid #4ade80;
+    /* Green border */
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.2);
+}
+
+.success-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.success-message {
+    color: #f1f5f9;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.modal-close-button-primary {
+    background: #4ade80;
+    color: #0f172a;
+    border: none;
+    padding: 10px 30px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.modal-close-button-primary:hover {
+    background: #22c55e;
 }
