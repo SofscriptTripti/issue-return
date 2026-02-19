@@ -1,0 +1,155 @@
+/* Full Screen Background */
+.login-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  background-image: url("https://image.slidesdocs.com/responsive-images/background/some-pills-are-sitting-on-the-floor-in-a-black-powerpoint-background_6edb69b16a__960_540.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 20px;
+}
+
+/* Card */
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 40px 30px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+/* Logo */
+.login-logo {
+  font-size: 40px;
+  color: #38bdf8;
+  margin-bottom: 10px;
+}
+
+/* Pulsing Logo */
+.logo-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pulse-circle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid #00f3ff;
+  box-shadow: 0 0 15px #00f3ff, inset 0 0 15px #00f3ff;
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+.plus-icon {
+  font-size: 50px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 0 0 10px #00f3ff, 0 0 20px #00f3ff;
+  z-index: 1;
+  position: relative;
+  top: -4px;
+  /* Slight adjustment for visual centering */
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 10px #00f3ff, inset 0 0 10px #00f3ff;
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  50% {
+    box-shadow: 0 0 25px #00f3ff, inset 0 0 25px #00f3ff;
+    transform: scale(1.05);
+    opacity: 1;
+  }
+
+  100% {
+    box-shadow: 0 0 10px #00f3ff, inset 0 0 10px #00f3ff;
+    transform: scale(1);
+    opacity: 0.8;
+  }
+}
+
+.login-title {
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  /* Neon Text Shadow */
+  text-shadow:
+    0 0 10px rgba(0, 243, 255, 0.7),
+    0 0 20px rgba(0, 243, 255, 0.5),
+    0 0 30px rgba(0, 243, 255, 0.3);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  white-space: nowrap;
+}
+
+.login-subtitle {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+/* Inputs */
+.login-input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  background: #334155;
+  color: white;
+  font-size: 14px;
+}
+
+.login-input::placeholder {
+  color: #cbd5e1;
+}
+
+/* Button */
+.login-button {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: #38bdf8;
+  /* Solid blue to match theme */
+  color: #0f172a;
+  /* Dark text for contrast on bright button */
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.login-button:hover {
+  background: #0ea5e9;
+  /* Slightly darker on hover */
+  transform: translateY(-1px);
+}
+
+/* Forgot */
+.forgot-text {
+  margin-top: 15px;
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: pointer;
+}

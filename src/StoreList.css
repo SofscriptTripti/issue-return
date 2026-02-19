@@ -1,0 +1,187 @@
+/* Reuse login container for background */
+.store-list-container {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* Align to top */
+    align-items: center;
+    background-color: #0f172a;
+    /* Solid dark background */
+    padding: 20px;
+}
+
+.store-header {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+    margin-top: 40px;
+    background: #334155;
+    /* Header background color */
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.store-list-title {
+    color: #f1f5f9;
+    font-size: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+    margin: 0;
+}
+
+.store-card-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.store-button {
+    background: #1e293b;
+    /* Solid dark color */
+    border: 1px solid #334155;
+    /* Subtle border */
+    padding: 20px;
+    border-radius: 12px;
+    color: #f8fafc;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Removed strong shadows and glass effect */
+}
+
+.store-button:hover {
+    background: #334155;
+    /* Slightly lighter on hover */
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+    /* Removed neon glow */
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 20px;
+    padding: 30px;
+    width: 90%;
+    max-width: 350px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    animation: scaleIn 0.2s ease-out;
+    position: relative;
+    /* For absolute positioning of close icon */
+}
+
+.modal-title {
+    color: #f1f5f9;
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+}
+
+.modal-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.modal-option-button {
+    background: #334155;
+    border: none;
+    padding: 12px;
+    border-radius: 10px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.modal-option-button:hover {
+    background: #475569;
+}
+
+.modal-close-icon {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    width: 35px;
+    height: 35px;
+    background: #ef4444;
+    /* Red close button */
+    color: white;
+    border: 2px solid #1e293b;
+    /* Match modal background for border overlap effect */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    line-height: 1;
+}
+
+.modal-close-icon:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.store-icon {
+    font-size: 24px;
+    color: #00f3ff;
+}
