@@ -54,7 +54,8 @@ function AddMed({ patient, onBack }) {
     return (
         <div className="add-med-container">
             {/* Header */}
-            <div className="add-med-header">
+            {/* Header */}
+            <div className="app-header">
                 <button className="back-button" onClick={onBack}>←</button>
                 <h2 className="header-title">Add Medicines</h2>
             </div>
@@ -128,7 +129,11 @@ function AddMed({ patient, onBack }) {
                     <span className="total-label">Total Amount</span>
                     <span className="total-value">₹{calculateTotal().toFixed(2)}</span>
                 </div>
-                <button className="process-button" onClick={handleSave}>
+                <button
+                    className="process-button"
+                    onClick={handleSave}
+                    disabled={medicines.length === 0}
+                >
                     Process & Save
                 </button>
             </div>

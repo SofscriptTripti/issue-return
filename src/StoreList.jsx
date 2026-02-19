@@ -36,8 +36,9 @@ function StoreList({ onBack, onSelectCostCenter }) {
 
     return (
         <div className="store-list-container">
-            <div className="store-header">
-                <h2 className="store-list-title">Select your store</h2>
+            {/* Header */}
+            <div className="app-header">
+                <h2 className="header-title">Select your store</h2>
             </div>
 
             <div className="store-card-container">

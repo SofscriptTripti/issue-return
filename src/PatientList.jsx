@@ -32,9 +32,10 @@ function PatientList({ onBack, onSelectPatient }) {
     return (
         <div className="patient-list-container">
             {/* Header */}
-            <div className="patient-header">
+            {/* Header */}
+            <div className="app-header">
                 <button className="back-button" onClick={onBack}>←</button>
-                <h2 className="patient-header-title">Patient</h2>
+                <h2 className="header-title">Patient</h2>
             </div>
 
             {/* Search Bar */}

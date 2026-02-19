@@ -8,29 +8,6 @@
 }
 
 /* Header */
-.patient-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #334155;
-}
-
-.patient-header .back-button {
-    background: none;
-    border: none;
-    color: #f8fafc;
-    font-size: 24px;
-    cursor: pointer;
-    margin-right: 15px;
-    padding: 5px;
-}
-
-.patient-header-title {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0;
-}
 
 /* Search Bar */
 .search-container {
