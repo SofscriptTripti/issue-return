@@ -44,8 +44,9 @@ function AddMed({ patient, onBack }) {
 
     const handleSave = () => {
         setShowSuccessModal(true);
-        // Automatically hide after 2 seconds or let user close? 
-        // User just said "Give Alert", usually requires dismissal.
+        setTimeout(() => {
+            setShowSuccessModal(false);
+        }, 2000); // Auto-hide after 2 seconds
     };
 
     if (!patient) return null;
@@ -158,8 +159,7 @@ function AddMed({ patient, onBack }) {
                     <div className="modal-content success-modal">
                         <div className="success-icon">✅</div>
                         <h3 className="modal-title">Success</h3>
-                        <p className="success-message">Medicines Save sucess fully</p>
-                        <button className="modal-close-button-primary" onClick={() => setShowSuccessModal(false)}>OK</button>
+                        <p className="success-message">Medicine Save</p>
                     </div>
                 </div>
             )}
