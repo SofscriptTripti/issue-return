@@ -26,27 +26,14 @@ const StoreIcon = ({ type }) => {
     );
 };
 
-function StoreList({ onBack, onSelectCostCenter }) {
+function StoreList({ onBack, onSelectCostCenter, stores }) {
     const [selectedStore, setSelectedStore] = useState(null);
-
-    const stores = [
-        { id: 1, name: 'Main Pharmacy', type: 'main', color: '#4f46e5' },
-        { id: 2, name: 'IPD Pharmacy', type: 'ipd', color: '#0ea5e9' },
-        { id: 3, name: 'OPD Pharmacy', type: 'opd', color: '#10b981' },
-        { id: 4, name: 'Emergency Store', type: 'emergency', color: '#ef4444' },
-        { id: 5, name: 'ICU Sub-Store', type: 'icu', color: '#f59e0b' },
-        { id: 6, name: 'OT Pharmacy', type: 'ot', color: '#8b5cf6' },
-        { id: 7, name: 'General Ward Supply', type: 'ward', color: '#ec4899' },
-        { id: 8, name: 'Private Wing Store', type: 'private', color: '#6366f1' },
-        { id: 9, name: 'Mother & Child Wing', type: 'child', color: '#14b8a6' },
-        { id: 10, name: 'Surgical Store', type: 'surgical', color: '#64748b' },
-    ];
 
     const costCenters = [
         "Out patient Cash",
-        "Out patient Credit",
-        "In patient Cash",
-        "OP Package patient"
+        // "Out patient Credit",
+        // "In patient Cash",
+        // "OP Package patient"
     ];
 
     const handleStoreClick = (store) => {
@@ -58,14 +45,24 @@ function StoreList({ onBack, onSelectCostCenter }) {
     };
 
     const handleCostCenterSelect = (option) => {
+        const storeName = selectedStore?.name || "";
         setSelectedStore(null);
         if (onSelectCostCenter) {
-            onSelectCostCenter(option);
+            onSelectCostCenter(storeName, option);
         }
     };
 
     return (
         <div className="store-list-container">
+            <button className="logout-button" onClick={onBack} title="Logout">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>Logout</span>
+            </button>
+
             {/* Header */}
             <div className="store-header">
                 <h2 className="header-title">Select Store</h2>
@@ -97,11 +94,7 @@ function StoreList({ onBack, onSelectCostCenter }) {
             {selectedStore && (
                 <div className="modal-overlay" onClick={handleCloseModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">Select Cost Center</h3>
-                            <button className="modal-close" onClick={handleCloseModal}>&times;</button>
-                        </div>
-                        <div className="modal-body">
+                        <div className="modal-body" style={{ padding: '30px' }}>
                             {costCenters.map((option, index) => (
                                 <button
                                     key={index}

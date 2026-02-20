@@ -5,19 +5,38 @@ function AddMed({ patient, onBack }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [medicines, setMedicines] = useState([]);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [lastScanned, setLastScanned] = useState(null);
 
     // Dummy logic to simulate scanner adding item
+    const MEDICINE_POOL = [
+        { name: 'Otrivin Oxy', sub: 'Oxymetazoline HCl', dose: '10 ml', price: 98, expiry: 'Feb 2027', batch: 1978 },
+        { name: 'Crocin Advance', sub: 'Paracetamol 500mg', dose: '500mg', price: 45, expiry: 'Mar 2026', batch: 4412 },
+        { name: 'Pan 40', sub: 'Pantoprazole Sodium', dose: '40mg', price: 120, expiry: 'Jan 2027', batch: 3301 },
+        { name: 'Azithral 500', sub: 'Azithromycin 500mg', dose: '500mg', price: 210, expiry: 'Jun 2026', batch: 7823 },
+        { name: 'Metformin SR', sub: 'Metformin Hydrochloride', dose: '500mg', price: 60, expiry: 'Nov 2026', batch: 5590 },
+        { name: 'Augmentin 625', sub: 'Amoxicillin + Clavulanate', dose: '625mg', price: 185, expiry: 'Apr 2027', batch: 2244 },
+        { name: 'Allegra 120', sub: 'Fexofenadine HCl', dose: '120mg', price: 95, expiry: 'Sep 2026', batch: 6671 },
+        { name: 'Rantac 150', sub: 'Ranitidine Hydrochloride', dose: '150mg', price: 38, expiry: 'Dec 2026', batch: 8830 },
+    ];
+
     const handleScanComplete = () => {
+        const med = MEDICINE_POOL[Math.floor(Math.random() * MEDICINE_POOL.length)];
         const newItem = {
             id: Date.now(),
-            name: `Otrivin Oxy ${medicines.length + 1}`,
-            dose: '10 ml',
-            price: 98,
+            name: med.name,
+            sub: med.sub,
+            dose: med.dose,
+            price: med.price,
+            expiry: med.expiry,
+            batch: med.batch,
             quantity: 1
         };
-        setMedicines([...medicines, newItem]);
-        setIsScannerOpen(false);
+        setMedicines([newItem, ...medicines]);
+        setLastScanned(med.name);
+
+        // Auto clear feedback after 2s
+        setTimeout(() => setLastScanned(null), 2000);
     };
 
     const handleScannerClick = () => {
@@ -43,10 +62,7 @@ function AddMed({ patient, onBack }) {
     };
 
     const handleSave = () => {
-        setShowSuccessModal(true);
-        setTimeout(() => {
-            setShowSuccessModal(false);
-        }, 2000); // Auto-hide after 2 seconds
+        setShowConfirmModal(true);
     };
 
     if (!patient) return null;
@@ -66,27 +82,17 @@ function AddMed({ patient, onBack }) {
                     <h3 className="patient-name">{patient.name}</h3>
                     <span className="status-badge">{patient.status || 'OPD'}</span>
                 </div>
-                <div className="patient-id">PTN NO - {patient.ptnNo}</div>
-
-                <div className="patient-details-row">
-                    <span className="detail-item">
-                        <span className="detail-icon">👤</span>
-                        {patient.age} Years • {patient.gender}
-                    </span>
-                    <span className="detail-item">
-                        <span className="detail-icon">📞</span>
-                        {patient.phone}
-                    </span>
+                <div className="am-patient-row">
+                    <span className="am-age-gender">👤 {patient.age} Yrs • {patient.gender}</span>
+                    <span className="am-ptn-no">PTN: <span className="am-ptn-val">#{patient.ptnNo}</span></span>
                 </div>
 
-                <div className="card-footer">
-                    <span className="doctor-name">👨‍⚕️ {patient.doctor}</span>
-                    <span className="last-visit">📅 Last: {patient.lastVisit}</span>
-                </div>
             </div>
 
             {/* Search and Scanner */}
-            <div className="section-title">Add Medicines</div>
+            <div className="section-title-row">
+                <span className="section-title">Add Medicines</span>
+            </div>
             <div className="search-scanner-row">
                 <div className="search-box">
                     <span className="search-icon">🔍</span>
@@ -98,33 +104,61 @@ function AddMed({ patient, onBack }) {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <button className="scanner-button" onClick={handleScannerClick}>
-                    📷
+                <button className="scanner-button" onClick={handleScannerClick} style={{ position: 'relative' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="5" height="5" rx="1" /><rect x="16" y="3" width="5" height="5" rx="1" />
+                        <rect x="3" y="16" width="5" height="5" rx="1" />
+                        <path d="M16 16h2v2h-2zM18 18h2v2h-2zM20 16h1v1h-1zM16 20h1v1h-1z" />
+                        <path d="M10 3h2v2h-2zM10 8h2v2h-2zM3 10h2v2H3zM8 10h2v2H8z" />
+                    </svg>
                 </button>
             </div>
 
-            {/* Prescribed Items List */}
-            <div className="section-title">📄 Prescribed Items</div>
+            {/* Summary card + Prescribed Items Header */}
+            {/* {medicines.length > 0 && (
+                <div className="med-summary-card">
+                    <span className="med-summary-icon">🛒</span>
+                    <span className="med-summary-text">Total Medicines</span>
+                    <span className="med-summary-count">{medicines.reduce((sum, m) => sum + m.quantity, 0)}</span>
+                </div>
+            )} */}
+            <div className="prescribed-header">
+                <span className="prescribed-title">📄 Prescribed Items</span>
+                {medicines.length > 0 && (
+                    <span className="added-badge">🛒 Added: {medicines.reduce((sum, m) => sum + m.quantity, 0)}</span>
+                )}
+            </div>
             <div className="medicines-list">
                 {medicines.length === 0 ? (
                     <div className="empty-state">No medicines added. Scan to add.</div>
                 ) : (
                     medicines.map((med) => (
                         <div key={med.id} className="medicine-card">
-                            <div className="medicine-header">
-                                <div>
-                                    <div className="medicine-name">{med.name}</div>
-                                    <div className="medicine-dose">{med.dose} • ₹{med.price}/unit</div>
+                            <div className="med-card-left">
+                                <div className="med-name">{med.name}</div>
+                                <div className="med-sub">{med.sub}</div>
+                                <div className="med-tags">
+                                    <span className="med-tag">{med.dose}</span>
                                 </div>
-                                <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
+                                <div className="med-meta">Expiry: {med.expiry} &nbsp;|&nbsp; Batch: {med.batch}</div>
                             </div>
-                            <div className="medicine-actions">
-                                <div className="qty-control">
-                                    <button className="qty-btn" onClick={() => updateQuantity(med.id, -1)}>−</button>
-                                    <span className="qty-value">{med.quantity}</span>
-                                    <button className="qty-btn" onClick={() => updateQuantity(med.id, 1)}>+</button>
+                            <div className="med-card-right">
+                                <span className="med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
+                                <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
+                                <div className="qty-dropdown-wrap">
+                                    <select
+                                        className="qty-select"
+                                        value={med.quantity}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setMedicines(medicines.map(m => m.id === med.id ? { ...m, quantity: val } : m));
+                                        }}
+                                    >
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                            <option key={n} value={n}>Qty {n}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                <div className="medicine-total">₹{(med.price * med.quantity).toFixed(2)}</div>
                             </div>
                         </div>
                     ))
@@ -152,27 +186,86 @@ function AddMed({ patient, onBack }) {
                     <div className="scanner-modal">
                         <button className="close-scanner" onClick={() => setIsScannerOpen(false)}>×</button>
                         <div className="scanner-view">
-                            <div className="qr-guide-box"></div>
-                            <div className="qr-placeholder" onClick={handleScanComplete}>
-                                <img
-                                    src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg"
-                                    alt="Dummy QR"
-                                    className="dummy-qr"
-                                />
-                                <p className="qr-hint">Tap QR to Simulate Scan</p>
+                            <h3 className="scanner-instructions">Tap on button to Scan</h3>
+
+                            <div className="scanner-box-container">
+                                <div className="qr-guide-box"></div>
+                                <div className="qr-placeholder">
+                                    <img
+                                        src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg"
+                                        alt="Dummy QR"
+                                        className="dummy-qr"
+                                    />
+                                </div>
                             </div>
+
+                            <div className="scanner-actions">
+                                <button className="scan-action-btn" onClick={handleScanComplete}>
+                                    <div className="scan-inner"></div>
+                                </button>
+                                <p className="scan-btn-hint">Tap to scan</p>
+                            </div>
+
+                            {/* Feedback Toast */}
+                            {lastScanned && (
+                                <div className="scan-feedback">
+                                    <span className="feedback-icon">✅</span>
+                                    <span className="feedback-text">{lastScanned} Added</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Success Modal */}
-            {showSuccessModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content success-modal">
-                        <div className="success-icon">✅</div>
-                        <h3 className="modal-title">Success</h3>
-                        <p className="success-message">Medicine Save</p>
+            {/* Confirm Modal */}
+            {showConfirmModal && (
+                <div className="confirm-overlay" onClick={() => setShowConfirmModal(false)}>
+                    <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+
+                        {/* Modal Header */}
+                        <div className="confirm-header">
+                            <span className="confirm-title">📋 Order Summary</span>
+                            <button className="confirm-close" onClick={() => setShowConfirmModal(false)}>✕</button>
+                        </div>
+
+                        {/* Patient info strip */}
+                        <div className="confirm-patient-strip">
+                            <span className="confirm-patient-name">{patient.name}</span>
+                            <span className="confirm-patient-ptn">PTN #{patient.ptnNo}</span>
+                        </div>
+
+                        {/* Medicine list — read-only */}
+                        <div className="confirm-med-list">
+                            {medicines.map((med, i) => (
+                                <div key={med.id} className="confirm-med-row">
+                                    <div className="confirm-med-left">
+                                        <span className="confirm-med-num">{i + 1}.</span>
+                                        <div>
+                                            <div className="confirm-med-name">{med.name}</div>
+                                            <div className="confirm-med-dose">{med.dose} &nbsp;|&nbsp; Qty: {med.quantity}</div>
+                                        </div>
+                                    </div>
+                                    <span className="confirm-med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Total */}
+                        <div className="confirm-total-row">
+                            <span className="confirm-total-label">Total Amount</span>
+                            <span className="confirm-total-value">₹{calculateTotal().toFixed(2)}</span>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="confirm-actions">
+                            <button className="confirm-btn-edit" onClick={() => setShowConfirmModal(false)}>
+                                EDIT
+                            </button>
+                            <button className="confirm-btn-confirm" onClick={() => { setShowConfirmModal(false); onBack(); }}>
+                                CONFIRM
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

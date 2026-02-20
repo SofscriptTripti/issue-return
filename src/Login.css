@@ -130,6 +130,7 @@ body {
 .highlight-text {
   background: linear-gradient(to right, #60a5fa, #c084fc);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -150,6 +151,8 @@ body {
 .login-input {
   width: 100%;
   padding: 16px;
+  padding-right: 50px;
+  /* Space for eye icon */
   margin-bottom: 15px;
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -157,6 +160,33 @@ body {
   font-size: 14px;
   color: #f1f5f9;
   transition: all 0.3s;
+}
+
+.password-field-container {
+  position: relative;
+  width: 100%;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 16px;
+  top: 18px;
+  /* Center with 16px padding input */
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  /* White with slight opacity */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s;
+}
+
+.password-toggle-btn:hover {
+  color: #ffffff;
+  transform: scale(1.1);
 }
 
 .login-input::placeholder {
@@ -208,6 +238,33 @@ body {
 .forgot-text:hover {
   color: #f1f5f9;
   text-decoration: underline;
+}
+
+.login-error {
+  color: #f87171;
+  font-size: 13px;
+  margin-bottom: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-6px);
+  }
+
+  75% {
+    transform: translateX(6px);
+  }
 }
 
 /* Background Blobs (Optional purely decorative elements) */
