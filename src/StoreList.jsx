@@ -5,10 +5,16 @@ function StoreList({ onBack, onSelectCostCenter }) {
     const [selectedStore, setSelectedStore] = useState(null);
 
     const stores = [
-        { id: 1, name: 'Main Store' },
-        { id: 2, name: 'A Wing' },
-        { id: 3, name: 'B Wing' },
-        { id: 4, name: 'C Wing' },
+        { id: 1, name: 'Main Pharmacy' },
+        { id: 2, name: 'IPD Pharmacy' },
+        { id: 3, name: 'OPD Pharmacy' },
+        { id: 4, name: 'Emergency Store' },
+        { id: 5, name: 'ICU Sub-Store' },
+        { id: 6, name: 'OT Pharmacy' },
+        { id: 7, name: 'General Ward Supply' },
+        { id: 8, name: 'Private Wing Store' },
+        { id: 9, name: 'Mother & Child Wing' },
+        { id: 10, name: 'Surgical Store' },
     ];
 
     const costCenters = [
@@ -37,19 +43,22 @@ function StoreList({ onBack, onSelectCostCenter }) {
     return (
         <div className="store-list-container">
             {/* Header */}
-            <div className="app-header">
-                <h2 className="header-title">Select your store</h2>
+            <div className="store-header">
+                <h2 className="header-title">Select Store</h2>
+                <p className="header-subtitle">Choose a store to proceed with inventory management</p>
             </div>
 
-            <div className="store-card-container">
+            <div className="store-grid">
                 {stores.map((store) => (
                     <button
                         key={store.id}
-                        className="store-button"
+                        className="store-card"
                         onClick={() => handleStoreClick(store)}
                     >
-                        {store.name}
-                        <span className="store-icon">→</span>
+                        <div className="store-info">
+                            <span className="store-name">{store.name}</span>
+                            <span className="store-arrow">&rarr;</span>
+                        </div>
                     </button>
                 ))}
             </div>
@@ -57,13 +66,15 @@ function StoreList({ onBack, onSelectCostCenter }) {
             {selectedStore && (
                 <div className="modal-overlay" onClick={handleCloseModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <button className="modal-close-icon" onClick={handleCloseModal}>×</button>
-                        <h3 className="modal-title">Cost Center</h3>
-                        <div className="modal-options">
+                        <div className="modal-header">
+                            <h3 className="modal-title">Select Cost Center</h3>
+                            <button className="modal-close" onClick={handleCloseModal}>&times;</button>
+                        </div>
+                        <div className="modal-body">
                             {costCenters.map((option, index) => (
                                 <button
                                     key={index}
-                                    className="modal-option-button"
+                                    className="cost-center-option"
                                     onClick={() => handleCostCenterSelect(option)}
                                 >
                                     {option}
