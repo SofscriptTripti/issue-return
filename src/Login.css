@@ -1,155 +1,202 @@
-/* Full Screen Background */
+/* Google Fonts Import (Simulated with standard fonts if not available) */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+body {
+  background-color: #ffffff;
+  color: #1e293b;
+}
+
 .login-container {
   min-height: 100vh;
   width: 100%;
+  background-color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.login-content {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  padding: 0;
+  /* Remove padding to wrap full screen */
+}
+
+/* Main Content Split */
+.login-main {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  /* Stretch to fill height */
+  position: relative;
+}
+
+.login-column-left {
+  width: 50%;
+  padding: 60px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
   justify-content: center;
-  align-items: center;
-  background-image: url("https://image.slidesdocs.com/responsive-images/background/some-pills-are-sitting-on-the-floor-in-a-black-powerpoint-background_6edb69b16a__960_540.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  padding: 20px;
+  z-index: 2;
+  background-color: #ffffff;
 }
 
-/* Card */
-.login-card {
-  width: 100%;
-  max-width: 420px;
-  background: rgba(30, 41, 59, 0.85);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 40px 30px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  text-align: center;
-}
-
-/* Logo */
-.login-logo {
-  font-size: 40px;
-  color: #38bdf8;
-  margin-bottom: 10px;
-}
-
-/* Pulsing Logo */
-.logo-container {
+.login-column-right {
+  width: 50%;
   position: relative;
-  width: 80px;
-  height: 80px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 10px;
+  background-color: #e0f2fe;
+  /* Light blue background for image area */
+  overflow: hidden;
 }
 
-.pulse-circle {
-  position: absolute;
+.image-container {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
-  border: 2px solid #00f3ff;
-  box-shadow: 0 0 15px #00f3ff, inset 0 0 15px #00f3ff;
-  animation: pulse-glow 2s infinite ease-in-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.plus-icon {
-  font-size: 50px;
-  font-weight: bold;
-  color: #ffffff;
-  text-shadow: 0 0 10px #00f3ff, 0 0 20px #00f3ff;
-  z-index: 1;
-  position: relative;
-  top: -4px;
-  /* Slight adjustment for visual centering */
-}
-
-@keyframes pulse-glow {
-  0% {
-    box-shadow: 0 0 10px #00f3ff, inset 0 0 10px #00f3ff;
-    transform: scale(1);
-    opacity: 0.8;
-  }
-
-  50% {
-    box-shadow: 0 0 25px #00f3ff, inset 0 0 25px #00f3ff;
-    transform: scale(1.05);
-    opacity: 1;
-  }
-
-  100% {
-    box-shadow: 0 0 10px #00f3ff, inset 0 0 10px #00f3ff;
-    transform: scale(1);
-    opacity: 0.8;
-  }
-}
-
-.login-title {
-  color: #ffffff;
-  font-size: 32px;
+/* Typography */
+.hero-title {
+  font-size: 48px;
+  line-height: 1.2;
   font-weight: 800;
-  margin-bottom: 5px;
+  color: #1e293b;
+  margin-bottom: 20px;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  /* Neon Text Shadow */
-  text-shadow:
-    0 0 10px rgba(0, 243, 255, 0.7),
-    0 0 20px rgba(0, 243, 255, 0.5),
-    0 0 30px rgba(0, 243, 255, 0.3);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  white-space: nowrap;
 }
 
-.login-subtitle {
+.highlight-text {
+  color: #4f46e5;
+}
+
+.hero-description {
   color: #94a3b8;
-  font-size: 14px;
-  margin-bottom: 25px;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 40px;
+  max-width: 450px;
 }
 
-/* Inputs */
+/* Form Styles */
+.login-form {
+  max-width: 400px;
+  width: 100%;
+}
+
 .login-input {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   margin-bottom: 15px;
-  border-radius: 10px;
-  border: none;
-  outline: none;
-  background: #334155;
-  color: white;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 14px;
+  color: #334155;
+  transition: all 0.3s;
 }
 
-.login-input::placeholder {
-  color: #cbd5e1;
+.login-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
-/* Button */
 .login-button {
-  width: 100%;
-  padding: 14px;
-  border-radius: 10px;
+  width: auto;
+  /* Or 100% depending on preference, "SEE MORE" implies auto, but "SIGN IN" usually typically block in forms */
+  min-width: 160px;
+  padding: 16px 32px;
+  background: #4f46e5;
+  color: white;
   border: none;
-  background: #38bdf8;
-  /* Solid blue to match theme */
-  color: #0f172a;
-  /* Dark text for contrast on bright button */
+  border-radius: 30px;
+  /* Pill shape */
   font-weight: 700;
+  font-size: 14px;
   cursor: pointer;
-  transition: 0.3s ease;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .login-button:hover {
-  background: #0ea5e9;
-  /* Slightly darker on hover */
-  transform: translateY(-1px);
+  background: #4338ca;
+  transform: translateY(-2px);
+  box-shadow: 0 15px 20px -5px rgba(79, 70, 229, 0.3);
 }
 
-/* Forgot */
 .forgot-text {
-  margin-top: 15px;
+  margin-top: 20px;
   color: #94a3b8;
   font-size: 13px;
   cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Right Side Image */
+.hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Cover full area if background-like, or contain if illustration */
+}
+
+/* User asked for image to be half width of screen and full height. 
+   If the image itself is an illustration, 'cover' might crop it awkwardly.
+   'contain' keeps it whole but might leave whitespace.
+   Given the request "Full Height", 'cover' is usually intended, or the container is full height and image is 'contain' inside it.
+   Let's stick to object-fit: cover for the "Full Height" effect, assuming the image is suitable background. 
+   If it's an illustration like the reference, maybe 'contain' with a background color is better. 
+   I used background-color: #e0f2fe; for the container. 
+*/
+.hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .login-main {
+    flex-direction: column-reverse;
+    /* Image on top? Or bottom? Standard is usually image top on mobile, or hidden. */
+  }
+
+  .login-column-left {
+    width: 100%;
+    padding: 30px;
+    height: auto;
+    flex: 1;
+  }
+
+  .login-column-right {
+    width: 100%;
+    height: 300px;
+    /* Fixed height for image on mobile */
+    flex: none;
+  }
+
+  .hero-title {
+    font-size: 32px;
+  }
 }

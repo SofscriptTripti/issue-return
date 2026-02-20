@@ -3,21 +3,37 @@ import "./Login.css";
 function Login({ onLogin }) {
   return (
     <div className="login-container">
-      <div className="logo-container">
-        <div className="pulse-circle"></div>
-        <div className="plus-icon">+</div>
-      </div>
-      <h2 className="login-title">Inventory Draft Bill</h2>
-      <div className="login-card">
-        <div className="login-logo"></div>
-        <p className="login-subtitle"></p>
+      <div className="login-content">
+        {/* Header removed as per request */}
 
-        <input className="login-input" type="email" placeholder="Email address" />
-        <input className="login-input" type="password" placeholder="Password" />
+        <div className="login-main">
+          <div className="login-column-left">
+            <h1 className="hero-title">INVENTORY <span className="highlight-text">DRAFT BILL</span></h1>
+            <p className="hero-description">
+              Your Digital Pharmacy Assistant
+            </p>
 
-        <button className="login-button" onClick={onLogin}>Login</button>
+            <div className="login-form">
+              <input className="login-input" type="email" placeholder="Email address" />
+              <input className="login-input" type="password" placeholder="Password" />
+              <button className="login-button" onClick={onLogin}>SIGN IN &rarr;</button>
+              <p className="forgot-text">Forgot password?</p>
+            </div>
+          </div>
 
-        <p className="forgot-text">Forgot password?</p>
+          <div className="login-column-right">
+            <div className="image-container">
+              <img
+                src="https://img.freepik.com/premium-vector/online-pharmacy-concept-showing-pharmacist-give-advice-counseling-medication-customer-vector_566886-810.jpg"
+                alt="Pharmacy Illustration"
+                className="hero-image"
+              />
+            </div>
+            {/* Background blobs for style */}
+            <div className="blob blob-1"></div>
+            <div className="blob blob-2"></div>
+          </div>
+        </div>
       </div>
     </div>
   );
