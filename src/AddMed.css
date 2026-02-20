@@ -11,36 +11,122 @@
 }
 
 
-/* Patient Card */
-.patient-detail-card {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+/* Patient Card Styles (Matched with PatientList) */
+.patient-card {
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 25px;
 }
 
-.detail-card-header {
+.patient-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, #60a5fa, #c084fc);
+    opacity: 0.7;
+}
+
+.card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    padding-left: 10px;
 }
 
-.section-title {
-    font-size: 16px;
+.patient-name {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    color: #f8fafc;
+    letter-spacing: 0.5px;
+}
+
+.status-badge {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.patient-id {
+    color: #94a3b8;
+    font-size: 13px;
     font-weight: 600;
-    margin-bottom: 10px;
-    color: #f1f5f9;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.detail-row {
+.patient-id::before {
+    content: '#';
+    color: #60a5fa;
+    font-weight: 800;
+}
+
+.patient-details-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+    color: #cbd5e1;
+    font-size: 14px;
+    background: rgba(15, 23, 42, 0.4);
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.detail-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+}
+
+.card-footer {
     display: flex;
     justify-content: space-between;
-    margin-top: 10px;
-    color: #cbd5e1;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
     font-size: 13px;
+    font-weight: 500;
+}
+
+.doctor-name {
+    color: #c084fc;
+    font-weight: 600;
 }
 
 /* Search Scanner Row */

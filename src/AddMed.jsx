@@ -61,19 +61,27 @@ function AddMed({ patient, onBack }) {
             </div>
 
             {/* Patient Details Card */}
-            <div className="patient-detail-card">
-                <div className="detail-card-header">
+            <div className="patient-card">
+                <div className="card-header">
                     <h3 className="patient-name">{patient.name}</h3>
                     <span className="status-badge">{patient.status || 'OPD'}</span>
                 </div>
                 <div className="patient-id">PTN NO - {patient.ptnNo}</div>
-                <div className="detail-row">
-                    <span>👤 {patient.age} Years • {patient.gender}</span>
-                    <span>📞 {patient.phone}</span>
+
+                <div className="patient-details-row">
+                    <span className="detail-item">
+                        <span className="detail-icon">👤</span>
+                        {patient.age} Years • {patient.gender}
+                    </span>
+                    <span className="detail-item">
+                        <span className="detail-icon">📞</span>
+                        {patient.phone}
+                    </span>
                 </div>
-                <div className="detail-row">
-                    <span>👨‍⚕️ {patient.doctor}</span>
-                    <span>📅 Last: {patient.lastVisit}</span>
+
+                <div className="card-footer">
+                    <span className="doctor-name">👨‍⚕️ {patient.doctor}</span>
+                    <span className="last-visit">📅 Last: {patient.lastVisit}</span>
                 </div>
             </div>
 

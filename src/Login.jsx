@@ -29,9 +29,6 @@ function Login({ onLogin }) {
                 className="hero-image"
               />
             </div>
-            {/* Background blobs for style */}
-            <div className="blob blob-1"></div>
-            <div className="blob blob-2"></div>
           </div>
         </div>
       </div>

@@ -251,7 +251,9 @@
 .modal-title {
     font-size: 24px;
     font-weight: 800;
-    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+    color: #ffffff;
+    /* fallback */
+    background: linear-gradient(to right, #60a5fa, #c084fc);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 0;

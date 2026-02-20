@@ -79,10 +79,12 @@ function PatientList({ onBack, onSelectPatient }) {
 
                         <div className="patient-details-row">
                             <span className="detail-item">
-                                👤 {patient.age} Years • {patient.gender}
+                                <span className="detail-icon">👤</span>
+                                {patient.age} Years • {patient.gender}
                             </span>
                             <span className="detail-item">
-                                📞 {patient.phone}
+                                <span className="detail-icon">📞</span>
+                                {patient.phone}
                             </span>
                         </div>
 
