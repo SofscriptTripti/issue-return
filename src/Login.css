@@ -1,4 +1,4 @@
-/* Google Fonts Import (Simulated with standard fonts if not available) */
+/* Google Fonts Import */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
 * {
@@ -9,26 +9,62 @@
 }
 
 body {
-  background-color: #ffffff;
-  color: #1e293b;
+  background-color: #0b1121;
+  color: #f1f5f9;
 }
 
 .login-container {
   min-height: 100vh;
   width: 100%;
-  background-color: #ffffff;
+  background-color: #0b1121;
+  /* Deep Dark Blue */
+  /* Shared animated gradient */
+  background-image:
+    radial-gradient(at 0% 0%, hsla(253, 16%, 15%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(225, 39%, 10%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(339, 49%, 15%, 1) 0, transparent 50%);
+  background-image:
+    radial-gradient(at 40% 20%, hsla(210, 80%, 20%, 0.5) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, hsla(190, 80%, 15%, 0.5) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsla(260, 80%, 20%, 0.5) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, hsla(240, 60%, 15%, 0.5) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(220, 80%, 20%, 0.5) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, hsla(242, 80%, 15%, 0.5) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, hsla(343, 80%, 15%, 0.5) 0px, transparent 50%);
+  background-size: 150% 150%;
+  animation: gradientBG 20s ease infinite;
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
 }
 
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .login-content {
-  width: 100%;
-  height: 100vh;
+  width: 90%;
+  max-width: 1200px;
+  height: 85vh;
   display: flex;
-  padding: 0;
-  /* Remove padding to wrap full screen */
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  background: rgba(30, 41, 59, 0.4);
+  /* Glass Container */
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Main Content Split */
@@ -36,7 +72,6 @@ body {
   width: 100%;
   display: flex;
   align-items: stretch;
-  /* Stretch to fill height */
   position: relative;
 }
 
@@ -47,7 +82,9 @@ body {
   flex-direction: column;
   justify-content: center;
   z-index: 2;
-  background-color: #ffffff;
+  background: rgba(15, 23, 42, 0.6);
+  /* Darker glass for form area */
+  position: relative;
 }
 
 .login-column-right {
@@ -56,8 +93,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #e0f2fe;
-  /* Light blue background for image area */
+  background-color: transparent;
   overflow: hidden;
 }
 
@@ -67,6 +103,22 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
+}
+
+/* Overlay to blend image with dark theme */
+.image-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(15, 23, 42, 0.8), transparent);
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.9;
 }
 
 /* Typography */
@@ -74,13 +126,16 @@ body {
   font-size: 48px;
   line-height: 1.2;
   font-weight: 800;
-  color: #1e293b;
+  color: #ffffff;
   margin-bottom: 20px;
   text-transform: uppercase;
+  letter-spacing: -1px;
 }
 
 .highlight-text {
-  color: #4f46e5;
+  background: linear-gradient(to right, #60a5fa, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .hero-description {
@@ -101,31 +156,33 @@ body {
   width: 100%;
   padding: 16px;
   margin-bottom: 15px;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   font-size: 14px;
-  color: #334155;
+  color: #f1f5f9;
   transition: all 0.3s;
+}
+
+.login-input::placeholder {
+  color: #64748b;
 }
 
 .login-input:focus {
   outline: none;
-  border-color: #4f46e5;
-  background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  border-color: #60a5fa;
+  background: rgba(30, 41, 59, 0.9);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
 }
 
 .login-button {
   width: auto;
-  /* Or 100% depending on preference, "SEE MORE" implies auto, but "SIGN IN" usually typically block in forms */
   min-width: 160px;
   padding: 16px 32px;
-  background: #4f46e5;
+  background: linear-gradient(to right, #4f46e5, #ec4899);
   color: white;
   border: none;
   border-radius: 30px;
-  /* Pill shape */
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
@@ -133,16 +190,16 @@ body {
   justify-content: center;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
   transition: all 0.3s;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .login-button:hover {
-  background: #4338ca;
   transform: translateY(-2px);
-  box-shadow: 0 15px 20px -5px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 15px 25px rgba(236, 72, 153, 0.4);
+  filter: brightness(1.1);
 }
 
 .forgot-text {
@@ -150,99 +207,99 @@ body {
   color: #94a3b8;
   font-size: 13px;
   cursor: pointer;
+  transition: color 0.2s;
+}
+
+.forgot-text:hover {
+  color: #f1f5f9;
   text-decoration: underline;
 }
 
-/* Right Side Image */
-.hero-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  /* Cover full area if background-like, or contain if illustration */
+/* Background Blobs (Optional purely decorative elements) */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  z-index: 1;
 }
 
-/* User asked for image to be half width of screen and full height. 
-   If the image itself is an illustration, 'cover' might crop it awkwardly.
-   'contain' keeps it whole but might leave whitespace.
-   Given the request "Full Height", 'cover' is usually intended, or the container is full height and image is 'contain' inside it.
-   Let's stick to object-fit: cover for the "Full Height" effect, assuming the image is suitable background. 
-   If it's an illustration like the reference, maybe 'contain' with a background color is better. 
-   I used background-color: #e0f2fe; for the container. 
-*/
-.hero-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.blob-1 {
+  width: 300px;
+  height: 300px;
+  background: #4f46e5;
+  top: -100px;
+  right: -100px;
+  animation: float 10s ease-in-out infinite;
+}
+
+.blob-2 {
+  width: 250px;
+  height: 250px;
+  background: #ec4899;
+  bottom: -50px;
+  left: -50px;
+  animation: float 12s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(20px, 40px);
+  }
+
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 /* Responsive */
 @media (max-width: 900px) {
-  body {
-    overflow: auto;
-    /* Allow scrolling on mobile */
-  }
-
-  .login-container {
-    height: auto;
-    min-height: 100vh;
-    display: block;
-    /* Stack naturally */
-  }
-
   .login-content {
-    height: auto;
-    min-height: 100vh;
-    padding: 0;
+    width: 100%;
+    height: 100vh;
+    border-radius: 0;
+    flex-direction: column;
+    border: none;
   }
 
-  /* Main Content Split */
   .login-main {
     flex-direction: column;
-    /* Image top, Content bottom */
-    height: auto;
-    min-height: 100vh;
+    height: 100%;
   }
 
   .login-column-right {
     width: 100%;
-    height: 45vh;
-    /* Image takes top 45% */
+    height: 40%;
     flex: none;
     order: 1;
-    /* Ensure Image is first */
+  }
+
+  .image-container::after {
+    background: linear-gradient(to bottom, rgba(15, 23, 42, 0.2), #0b1121);
+    /* Fade to dark at bottom */
   }
 
   .login-column-left {
     width: 100%;
     flex: 1;
     padding: 40px 30px;
-    background-color: #ffffff;
-    /* Enforce white background */
+    background: #0b1121;
+    /* Solid dark background for content on mobile */
     order: 2;
-    /* Content second */
-    display: flex;
-    flex-direction: column;
     justify-content: flex-start;
     border-top-left-radius: 30px;
     border-top-right-radius: 30px;
     margin-top: -30px;
-    /* Overlap slightly for sheet effect */
-    box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.05);
-    /* Subtle shadow for separation */
+    box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.2);
     z-index: 10;
-  }
-
-  .image-container {
-    background-color: #e0f2fe;
-  }
-
-  .hero-image {
-    object-position: center bottom;
   }
 
   .hero-title {
     font-size: 28px;
-    /* Slightly smaller for mobile */
     margin-top: 10px;
     text-align: center;
   }
@@ -256,12 +313,7 @@ body {
     margin: 0 auto;
   }
 
-  .login-input {
-    padding: 14px;
-  }
-
   .login-button {
     width: 100%;
-    /* Full width button on mobile */
   }
 }
