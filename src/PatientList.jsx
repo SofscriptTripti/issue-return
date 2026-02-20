@@ -138,8 +138,9 @@ function PatientList({
                         <button
                             className={`dropdown-trigger ${isDropdownOpen ? 'active' : ''}`}
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            title={selectedStore}
                         >
-                            <span>Switch Store</span>
+                            <span className="current-store-text">{selectedStore}</span>
                             <span className="chevron-icon">▼</span>
                         </button>
 
