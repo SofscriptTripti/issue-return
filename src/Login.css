@@ -177,26 +177,91 @@ body {
 
 /* Responsive */
 @media (max-width: 900px) {
-  .login-main {
-    flex-direction: column-reverse;
-    /* Image on top? Or bottom? Standard is usually image top on mobile, or hidden. */
+  body {
+    overflow: auto;
+    /* Allow scrolling on mobile */
   }
 
-  .login-column-left {
-    width: 100%;
-    padding: 30px;
+  .login-container {
     height: auto;
-    flex: 1;
+    min-height: 100vh;
+    display: block;
+    /* Stack naturally */
+  }
+
+  .login-content {
+    height: auto;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* Main Content Split */
+  .login-main {
+    flex-direction: column;
+    /* Image top, Content bottom */
+    height: auto;
+    min-height: 100vh;
   }
 
   .login-column-right {
     width: 100%;
-    height: 300px;
-    /* Fixed height for image on mobile */
+    height: 45vh;
+    /* Image takes top 45% */
     flex: none;
+    order: 1;
+    /* Ensure Image is first */
+  }
+
+  .login-column-left {
+    width: 100%;
+    flex: 1;
+    padding: 40px 30px;
+    background-color: #ffffff;
+    /* Enforce white background */
+    order: 2;
+    /* Content second */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    border-top-left-radius: 30px;
+    border-top-right-radius: 30px;
+    margin-top: -30px;
+    /* Overlap slightly for sheet effect */
+    box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.05);
+    /* Subtle shadow for separation */
+    z-index: 10;
+  }
+
+  .image-container {
+    background-color: #e0f2fe;
+  }
+
+  .hero-image {
+    object-position: center bottom;
   }
 
   .hero-title {
-    font-size: 32px;
+    font-size: 28px;
+    /* Slightly smaller for mobile */
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .hero-description {
+    text-align: center;
+    margin: 0 auto 30px auto;
+  }
+
+  .login-form {
+    margin: 0 auto;
+  }
+
+  .login-input {
+    padding: 14px;
+  }
+
+  .login-button {
+    width: 100%;
+    /* Full width button on mobile */
   }
 }
