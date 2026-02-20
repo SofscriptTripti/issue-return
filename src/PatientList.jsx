@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './PatientList.css';
 
 const DUMMY_PTNS = ['PTN-78234', 'PTN-45621', 'PTN-93104', 'PTN-11872', 'PTN-66530'];
@@ -39,6 +39,24 @@ function PatientList({
     const [searchTerm, setSearchTerm] = useState('');
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [scannerTarget, setScannerTarget] = useState('main'); // 'main' | 'filter'
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    // Close dropdown on click outside
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleStoreSelect = (name) => {
+        if (onStoreChange) onStoreChange(name);
+        setIsDropdownOpen(false);
+    };
 
     // Filter modal state
     const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -116,17 +134,30 @@ function PatientList({
             {(selectedStore || selectedCostCenter) && (
                 <div className="selection-info-bar">
                     <span className="selection-label">📍 {selectedStore}{selectedCostCenter ? `, ${selectedCostCenter}` : ''}</span>
-                    <div className="store-selector-container">
-                        <select
-                            className="store-select-white"
-                            value={selectedStore}
-                            onChange={(e) => onStoreChange && onStoreChange(e.target.value)}
+                    <div className="custom-store-dropdown" ref={dropdownRef}>
+                        <button
+                            className={`dropdown-trigger ${isDropdownOpen ? 'active' : ''}`}
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                         >
-                            {stores.map(store => (
-                                <option key={store.id} value={store.name}>{store.name}</option>
-                            ))}
-                        </select>
-                        <span className="dropdown-arrow-white">▼</span>
+                            <span>Switch Store</span>
+                            <span className="chevron-icon">▼</span>
+                        </button>
+
+                        {isDropdownOpen && (
+                            <div className="dropdown-menu-portal">
+                                {stores.map(store => (
+                                    <div
+                                        key={store.id}
+                                        className={`dropdown-item ${selectedStore === store.name ? 'selected' : ''}`}
+                                        onClick={() => handleStoreSelect(store.name)}
+                                    >
+                                        <span className="store-indicator" style={{ background: store.color }}></span>
+                                        <span className="store-option-name">{store.name}</span>
+                                        {selectedStore === store.name && <span className="check-icon">✓</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

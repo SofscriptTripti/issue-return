@@ -71,51 +71,112 @@
     margin-right: 15px;
 }
 
-.store-selector-container {
+/* Custom Stylish Dropdown */
+.custom-store-dropdown {
     position: relative;
-    display: flex;
-    align-items: center;
+    z-index: 1000;
 }
 
-.store-select-white {
-    appearance: none;
-    -webkit-appearance: none;
+.dropdown-trigger {
     background: rgba(255, 255, 255, 0.08);
-    /* More subtle */
+    backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #ffffff;
-    padding: 5px 26px 5px 12px;
-    /* Denser padding */
-    border-radius: 10px;
-    /* Slightly less rounded for professional look */
+    padding: 6px 14px;
+    border-radius: 12px;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    outline: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     transition: all 0.2s;
     letter-spacing: 0.3px;
     font-family: 'Poppins', sans-serif;
-    backdrop-filter: blur(10px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.store-select-white:hover {
+.dropdown-trigger:hover,
+.dropdown-trigger.active {
     background: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
 }
 
-.store-select-white option {
-    background: #0f172a;
-    color: white;
+.chevron-icon {
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    transition: transform 0.2s;
 }
 
-.dropdown-arrow-white {
+.dropdown-trigger.active .chevron-icon {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu-portal {
     position: absolute;
-    right: 8px;
-    font-size: 7px;
-    /* Smaller for chevron look */
-    color: rgba(255, 255, 255, 0.7);
-    pointer-events: none;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 200px;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    animation: dropdownPop 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2000;
+}
+
+@keyframes dropdownPop {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    gap: 12px;
+}
+
+.dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dropdown-item.selected {
+    background: rgba(96, 165, 250, 0.15);
+}
+
+.store-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px currentColor;
+}
+
+.store-option-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+    color: #f1f5f9;
+}
+
+.check-icon {
+    color: #60a5fa;
+    font-size: 12px;
+    font-weight: 900;
 }
 
 .back-button {
