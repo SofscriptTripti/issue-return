@@ -11,14 +11,14 @@ function AddMed({ patient, onBack }) {
 
     // Dummy logic to simulate scanner adding item
     const MEDICINE_POOL = [
-        { name: 'Otrivin Oxy', sub: 'Oxymetazoline HCl', dose: '10 ml', price: 98, expiry: 'Feb 2027', batch: 1978 },
-        { name: 'Crocin Advance', sub: 'Paracetamol 500mg', dose: '500mg', price: 45, expiry: 'Mar 2026', batch: 4412 },
-        { name: 'Pan 40', sub: 'Pantoprazole Sodium', dose: '40mg', price: 120, expiry: 'Jan 2027', batch: 3301 },
-        { name: 'Azithral 500', sub: 'Azithromycin 500mg', dose: '500mg', price: 210, expiry: 'Jun 2026', batch: 7823 },
-        { name: 'Metformin SR', sub: 'Metformin Hydrochloride', dose: '500mg', price: 60, expiry: 'Nov 2026', batch: 5590 },
-        { name: 'Augmentin 625', sub: 'Amoxicillin + Clavulanate', dose: '625mg', price: 185, expiry: 'Apr 2027', batch: 2244 },
-        { name: 'Allegra 120', sub: 'Fexofenadine HCl', dose: '120mg', price: 95, expiry: 'Sep 2026', batch: 6671 },
-        { name: 'Rantac 150', sub: 'Ranitidine Hydrochloride', dose: '150mg', price: 38, expiry: 'Dec 2026', batch: 8830 },
+        { name: 'Otrivin Oxy', sub: 'Oxymetazoline HCl', dose: '10 ml', price: 98, expiry: 'Feb 2027', batch: 1978, stockingUnit: 10 },
+        { name: 'Crocin Advance', sub: 'Paracetamol 500mg', dose: '500mg', price: 45, expiry: 'Mar 2026', batch: 4412, stockingUnit: 4 },
+        { name: 'Pan 40', sub: 'Pantoprazole Sodium', dose: '40mg', price: 120, expiry: 'Jan 2027', batch: 3301, stockingUnit: 15 },
+        { name: 'Azithral 500', sub: 'Azithromycin 500mg', dose: '500mg', price: 210, expiry: 'Jun 2026', batch: 7823, stockingUnit: 8 },
+        { name: 'Metformin SR', sub: 'Metformin Hydrochloride', dose: '500mg', price: 60, expiry: 'Nov 2026', batch: 5590, stockingUnit: 6 },
+        { name: 'Augmentin 625', sub: 'Amoxicillin + Clavulanate', dose: '625mg', price: 185, expiry: 'Apr 2027', batch: 2244, stockingUnit: 12 },
+        { name: 'Allegra 120', sub: 'Fexofenadine HCl', dose: '120mg', price: 95, expiry: 'Sep 2026', batch: 6671, stockingUnit: 20 },
+        { name: 'Rantac 150', sub: 'Ranitidine Hydrochloride', dose: '150mg', price: 38, expiry: 'Dec 2026', batch: 8830, stockingUnit: 10 },
     ];
 
     const handleScanComplete = () => {
@@ -31,6 +31,7 @@ function AddMed({ patient, onBack }) {
             price: med.price,
             expiry: med.expiry,
             batch: med.batch,
+            stockingUnit: med.stockingUnit,
             quantity: 1
         };
         setMedicines([newItem, ...medicines]);
@@ -49,6 +50,7 @@ function AddMed({ patient, onBack }) {
             price: med.price,
             expiry: med.expiry,
             batch: med.batch,
+            stockingUnit: med.stockingUnit,
             quantity: 1
         };
         setMedicines([newItem, ...medicines]);
@@ -183,7 +185,9 @@ function AddMed({ patient, onBack }) {
                                 <div className="med-tags">
                                     <span className="med-tag">{med.dose}</span>
                                 </div>
-                                <div className="med-meta">Expiry: {med.expiry} &nbsp;|&nbsp; Batch: {med.batch}</div>
+                                <div className="med-meta">
+                                    Expiry: {med.expiry} &nbsp;|&nbsp; Batch: {med.batch} &nbsp;|&nbsp; Stocking Unit: {med.stockingUnit}
+                                </div>
                             </div>
                             <div className="med-card-right">
                                 <span className="med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
@@ -277,7 +281,7 @@ function AddMed({ patient, onBack }) {
                                         <span className="confirm-med-num">{i + 1}.</span>
                                         <div>
                                             <div className="confirm-med-name">{med.name}</div>
-                                            <div className="confirm-med-dose">{med.dose} &nbsp;|&nbsp; Qty: {med.quantity}</div>
+                                            <div className="confirm-med-dose">{med.dose} &nbsp;|&nbsp; Qty: {med.quantity} &nbsp;|&nbsp; Unit: {med.stockingUnit}</div>
                                         </div>
                                     </div>
                                     <span className="confirm-med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
