@@ -40,6 +40,21 @@ function AddMed({ patient, onBack }) {
         setTimeout(() => setLastScanned(null), 2000);
     };
 
+    const handleAddMedicine = (med) => {
+        const newItem = {
+            id: Date.now(),
+            name: med.name,
+            sub: med.sub,
+            dose: med.dose,
+            price: med.price,
+            expiry: med.expiry,
+            batch: med.batch,
+            quantity: 1
+        };
+        setMedicines([newItem, ...medicines]);
+        setSearchTerm('');
+    };
+
     const handleScannerClick = () => {
         setIsScannerOpen(true);
     };
@@ -113,6 +128,33 @@ function AddMed({ patient, onBack }) {
                         <path d="M10 3h2v2h-2zM10 8h2v2h-2zM3 10h2v2H3zM8 10h2v2H8z" />
                     </svg>
                 </button>
+
+                {searchTerm && (
+                    <div className="search-results-dropdown">
+                        {MEDICINE_POOL.filter(m =>
+                            m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            m.sub.toLowerCase().includes(searchTerm.toLowerCase())
+                        ).length > 0 ? (
+                            MEDICINE_POOL.filter(m =>
+                                m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                m.sub.toLowerCase().includes(searchTerm.toLowerCase())
+                            ).map((med, idx) => (
+                                <div key={idx} className="search-result-item" onClick={() => handleAddMedicine(med)}>
+                                    <div className="res-info">
+                                        <div className="res-name">{med.name}</div>
+                                        <div className="res-sub">{med.sub}</div>
+                                    </div>
+                                    <div className="res-meta">
+                                        <div className="res-dose">{med.dose}</div>
+                                        <div className="res-price">₹{med.price}</div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="no-res">No medicines found</div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Summary card + Prescribed Items Header */}
