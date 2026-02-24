@@ -281,7 +281,7 @@ function AddMed({ patient, onBack }) {
                                         <span className="confirm-med-num">{i + 1}.</span>
                                         <div>
                                             <div className="confirm-med-name">{med.name}</div>
-                                            <div className="confirm-med-dose">{med.dose} &nbsp;|&nbsp; Qty: {med.quantity} &nbsp;|&nbsp; Unit: {med.stockingUnit}</div>
+                                            <div className="confirm-med-dose">{med.dose} &nbsp;|&nbsp; Qty: {med.quantity} &nbsp;|&nbsp; Unit: {med.stockingUnit * med.quantity}</div>
                                         </div>
                                     </div>
                                     <span className="confirm-med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
