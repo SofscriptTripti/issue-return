@@ -6,6 +6,7 @@ function AddMed({ patient, onBack }) {
     const [medicines, setMedicines] = useState([]);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [lastScanned, setLastScanned] = useState(null);
 
     // Dummy logic to simulate scanner adding item
@@ -145,19 +146,10 @@ function AddMed({ patient, onBack }) {
                             <div className="med-card-right">
                                 <span className="med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
                                 <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
-                                <div className="qty-dropdown-wrap">
-                                    <select
-                                        className="qty-select"
-                                        value={med.quantity}
-                                        onChange={(e) => {
-                                            const val = parseInt(e.target.value);
-                                            setMedicines(medicines.map(m => m.id === med.id ? { ...m, quantity: val } : m));
-                                        }}
-                                    >
-                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                                            <option key={n} value={n}>Qty {n}</option>
-                                        ))}
-                                    </select>
+                                <div className="qty-control">
+                                    <button className="qty-btn" onClick={() => updateQuantity(med.id, -1)}>−</button>
+                                    <span className="qty-value">{med.quantity}</span>
+                                    <button className="qty-btn" onClick={() => updateQuantity(med.id, 1)}>+</button>
                                 </div>
                             </div>
                         </div>
@@ -262,10 +254,27 @@ function AddMed({ patient, onBack }) {
                             <button className="confirm-btn-edit" onClick={() => setShowConfirmModal(false)}>
                                 EDIT
                             </button>
-                            <button className="confirm-btn-confirm" onClick={() => { setShowConfirmModal(false); onBack(); }}>
+                            <button className="confirm-btn-confirm" onClick={() => {
+                                setShowConfirmModal(false);
+                                setShowSuccessModal(true);
+                            }}>
                                 CONFIRM
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <div className="success-overlay">
+                    <div className="success-modal-small">
+                        <div className="success-icon-wrap">✅</div>
+                        <h3 className="success-msg-text">Medicine Confirm Successfully</h3>
+                        <button className="success-ok-btn" onClick={() => {
+                            setShowSuccessModal(false);
+                            onBack();
+                        }}>OK</button>
                     </div>
                 </div>
             )}

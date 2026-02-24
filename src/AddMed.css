@@ -762,33 +762,48 @@
     color: #34d399;
 }
 
-/* Qty dropdown */
-.qty-select {
-    background: rgba(15, 23, 42, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
+/* Qty Control */
+.qty-control {
+    display: flex;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 2px;
+    gap: 8px;
+}
+
+.qty-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
     color: #f1f5f9;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
-    padding: 6px 28px 6px 12px;
     cursor: pointer;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    transition: border-color 0.2s;
-    min-width: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
 }
 
-.qty-select:focus {
-    border-color: rgba(96, 165, 250, 0.5);
+.qty-btn:hover {
+    background: rgba(96, 165, 250, 0.2);
+    color: #60a5fa;
 }
 
-.qty-select option {
-    background: #1e293b;
+.qty-btn:active {
+    transform: scale(0.9);
+}
+
+.qty-value {
+    font-size: 14px;
+    font-weight: 700;
     color: #f1f5f9;
+    min-width: 20px;
+    text-align: center;
 }
 
 /* ── Confirmation Modal ───────────────────────── */
@@ -1003,5 +1018,70 @@
 
     to {
         opacity: 1;
+    }
+}
+
+/* Custom Success Modal Small */
+.success-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.success-modal-small {
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 28px;
+    padding: 32px;
+    width: 280px;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.success-icon-wrap {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.success-msg-text {
+    font-size: 17px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 24px 0;
+    line-height: 1.4;
+}
+
+.success-ok-btn {
+    background: linear-gradient(135deg, #0ea5e9, #2563eb);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.success-ok-btn:hover {
+    transform: translateY(-2px);
+}
+
+@keyframes modalPop {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
     }
 }
