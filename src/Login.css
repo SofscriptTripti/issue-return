@@ -200,19 +200,6 @@ body {
   box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
 }
 
-/* Remove native browser password icons (black one) */
-input[type="password"]::-ms-reveal,
-input[type="password"]::-ms-clear {
-  display: none !important;
-}
-
-input[type="password"]::-webkit-contacts-auto-fill-button,
-input[type="password"]::-webkit-credentials-auto-fill-button {
-  visibility: hidden;
-  display: none !important;
-  pointer-events: none;
-}
-
 .login-button {
   width: auto;
   min-width: 160px;
