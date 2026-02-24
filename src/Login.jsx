@@ -38,6 +38,7 @@ function Login({ onLogin }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                 autoComplete="username"
               />
               <div className="password-field-container">

@@ -335,7 +335,7 @@ body {
   .login-column-left {
     width: 100%;
     flex: 1;
-    padding: 30px 24px;
+    padding: 30px 24px 120px 24px;
     background: #0b1121;
     /* Solid dark background for content on mobile */
     order: 2;
