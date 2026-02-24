@@ -432,7 +432,7 @@
     align-items: center;
     justify-content: center;
     /* Center content vertically */
-    padding: 30px;
+    padding: 20px;
     position: relative;
 }
 
@@ -447,12 +447,12 @@
 
 .scanner-box-container {
     position: relative;
-    width: 260px;
-    height: 260px;
+    width: 240px;
+    height: 240px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .qr-guide-box {
@@ -516,7 +516,7 @@
 }
 
 .scan-btn-hint {
-    margin-top: 12px;
+    margin-top: 8px;
     color: white;
     font-size: 14px;
     font-weight: 700;
