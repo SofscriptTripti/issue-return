@@ -1,95 +1,175 @@
 import { useState } from "react";
 import "./Login.css";
 
-function Login({ onLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+function Login({ onSelectCostCenter, stores }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const handleLogin = () => {
-    if (username === 'Tripti' && password === 'Tripti@123') {
-      setError('');
-      onLogin();
+  // Modals
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showStoreModal, setShowStoreModal] = useState(false);
+  const [selectedStoreForCostCenter, setSelectedStoreForCostCenter] = useState(null);
+
+  const costCenters = [
+    "Out patient Cash",
+    // "Out patient Credit",
+    // "In patient Cash",
+    // "OP Package patient"
+  ];
+
+  const handleLoginSubmit = (e) => {
+    e.preventDefault();
+    if (username === "Tripti" && password === "Tripti@123") {
+      setError("");
+      setUsername("");
+      setPassword("");
+      setShowLoginModal(false);
+      setShowStoreModal(true); // Open the store modal after login
     } else {
-      setError('Invalid username or password. Please try again.');
+      setError("Invalid credentials");
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleLogin();
+  const handleStoreClick = (store) => {
+    setSelectedStoreForCostCenter(store);
+  };
+
+  const handleCostCenterSelect = (store, option) => {
+    setShowStoreModal(false);
+    if (onSelectCostCenter) {
+      onSelectCostCenter(store.name, option);
+    }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-content">
-        <div className="login-main">
-          <div className="login-column-left">
-            <h1 className="hero-title"><span className="highlight-text">INVENTORY</span> <span className="highlight-text">BASKET</span></h1>
-            <p className="hero-description">
-              Your Digital Pharmacy Assistant
-            </p>
+    <div className="landing-wrapper">
+      {/* NAVBAR */}
+      <nav className="navbar">
+        <div className="navbar-logo">
+          <img
+            className="logo-icon"
+            src="https://cdni.iconscout.com/illustration/premium/thumb/medicine-shopping-basket-illustration-svg-download-png-4391369.png"
+            alt="Inventory Basket"
+          />
+          <span className="logo-text">
+            <span className="logo-word-1">INVENTORY</span>
+            <span className="logo-word-2">BASKET</span>
+          </span>
+        </div>
+        <div className="navbar-links">
 
-            <div className="login-form">
-              <input
-                className="login-input"
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                autoComplete="username"
-              />
-              <div className="password-field-container">
+          <button className="btn-admin-login" onClick={() => setShowLoginModal(true)}>Login</button>
+        </div>
+      </nav>
+
+      {/* HERO SECTION */}
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">
+            Streamline Your<br />
+            <span className="hero-highlight">Pharmacy Billing!</span>
+          </h1>
+          <p className="hero-subtitle">Quickly <strong>Add Medicines</strong> to the Bill with Ease!</p>
+
+        </div>
+
+        <div className="hero-image-container">
+          <div className="hero-doctor-wrapper">
+            <img src="/Doctor.png" alt="Pharmacist" className="hero-doctor" />
+          </div>
+        </div>
+      </div>
+
+      {/* LOGIN OVERLAY MODAL */}
+      {showLoginModal && (
+        <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
+          <div className="login-modal-content" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleLoginSubmit} className="login-form">
+              <div className="input-group">
                 <input
-                  className="login-input"
+                  type="text"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="input-group password">
+                <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  autoComplete="current-password"
+                  required
                 />
-                <button
-                  type="button"
-                  className="password-toggle-btn"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                      <line x1="1" y1="1" x2="23" y2="23"></line>
-                    </svg>
-                  ) : (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  )}
-                </button>
+                <span className="toggle-pass" onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? "Hide" : "Show"}
+                </span>
               </div>
-              {error && <p className="login-error">{error}</p>}
-              <button className="login-button" onClick={handleLogin}>SIGN IN &rarr;</button>
-              {/* <p className="forgot-text">Forgot password?</p> */}
-            </div>
+              {error && <p className="error-text">{error}</p>}
+              <button type="submit" className="btn-submit">Login →</button>
+            </form>
           </div>
+        </div>
+      )}
 
-          <div className="login-column-right">
-            <div className="image-container">
-              <img
-                src="https://img.freepik.com/premium-vector/online-pharmacy-concept-showing-pharmacist-give-advice-counseling-medication-customer-vector_566886-810.jpg"
-                alt="Pharmacy Illustration"
-                className="hero-image"
-              />
+      {/* STORE SELECTION MODAL */}
+      {showStoreModal && (
+        <div className="modal-overlay" onClick={() => { setShowStoreModal(false); setSelectedStoreForCostCenter(null); }}>
+          <div className="store-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="store-modal-header">
+              <h2>{selectedStoreForCostCenter ? "Select Cost Center" : "Store Selection"}</h2>
+              <button className="modal-close-btn" onClick={() => { setShowStoreModal(false); setSelectedStoreForCostCenter(null); }}>✕</button>
+            </div>
+            <div className="store-modal-body">
+              {!selectedStoreForCostCenter ? (
+                stores.map((store) => (
+                  <div
+                    key={store.id}
+                    className="store-modal-item"
+                  >
+                    <div className="store-item-header" onClick={() => handleStoreClick(store)}>
+                      <span className="store-item-name">{store.name}</span>
+                      <span style={{ marginLeft: "auto", color: "#64748b" }}>→</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="cost-center-selection-view">
+                  <div style={{ marginBottom: '20px', color: '#cbd5e1', fontSize: '14px' }}>
+                    Store: <strong style={{ color: '#38bdf8' }}>{selectedStoreForCostCenter.name}</strong>
+                    {/* <button 
+                      onClick={() => setSelectedStoreForCostCenter(null)}
+                      style={{ marginLeft: '10px', background: 'transparent', border: '1px solid #38bdf8', color: '#38bdf8', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px' }}
+                    >
+                      Change
+                    </button> */}
+                  </div>
+                  <div className="store-item-body" style={{ borderTop: 'none', padding: 0, animation: 'fadeIn 0.3s ease-out' }}>
+                    {costCenters.map((option, index) => (
+                      <button
+                        key={index}
+                        className="store-cost-center-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCostCenterSelect(selectedStoreForCostCenter, option);
+                        }}
+                        style={{ width: '100%', textAlign: 'left', padding: '16px', fontSize: '16px' }}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
 export default Login;
-

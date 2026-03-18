@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import Login from "./Login";
-import StoreList from "./StoreList";
 import PatientList from "./PatientList";
 import AddMed from "./AddMed";
 
@@ -42,18 +41,6 @@ function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const handleLogin = () => {
-    // Replace 'login' history entry with 'storeList' so "Back" exits the app
-    window.history.replaceState({ screen: "storeList" }, "", "");
-    setCurrentScreen("storeList");
-  };
-
-  // handleBackToLogin is technically unreachable via UI now, but kept for safety/references
-  const handleBackToLogin = () => {
-    setScannedPatients([]); // Clear persisted scanned patients on logout
-    setCurrentScreen("login");
-  };
-
   const handleCostCenterSelect = (storeName, costCenter) => {
     setSelectedStoreName(storeName);
     setSelectedCostCenter(costCenter);
@@ -61,7 +48,7 @@ function App() {
     setCurrentScreen("patientList");
   };
 
-  const handleBackToStoreList = () => {
+  const handleBackToLogin = () => {
     window.history.back();
   };
 
@@ -86,18 +73,14 @@ function App() {
   return (
     <>
       {currentScreen === "login" && (
-        <Login onLogin={handleLogin} />
-      )}
-      {currentScreen === "storeList" && (
-        <StoreList
-          onBack={handleBackToLogin}
-          onSelectCostCenter={handleCostCenterSelect}
-          stores={STORES}
+        <Login 
+          onSelectCostCenter={handleCostCenterSelect} 
+          stores={STORES} 
         />
       )}
       {currentScreen === "patientList" && (
         <PatientList
-          onBack={handleBackToStoreList}
+          onBack={handleBackToLogin}
           onSelectPatient={handleSelectPatient}
           scannedPatients={scannedPatients}
           onAddScannedPatient={handleAddScannedPatient}
