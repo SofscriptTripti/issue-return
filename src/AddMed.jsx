@@ -87,30 +87,25 @@ function AddMed({ patient, onBack }) {
 
     return (
         <div className="add-med-container">
-            {/* Header */}
-            {/* Header */}
-            <div className="app-header">
-                <button className="back-button" onClick={onBack}>←</button>
-                <h2 className="header-title">Add Medicines</h2>
+            <div className="patient-detail-wide">
+                <div className="patient-card">
+                    <div className="card-header">
+                        <button className="am-back-btn" onClick={onBack} title="Back to list">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 12H5M12 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <h3 className="patient-name">{patient.name}</h3>
+                    </div>
+                    <div className="am-patient-row">
+                        <span className="am-ptn-no">PTN: <span className="am-ptn-val">#{patient.ptnNo}</span></span>
+                    </div>
+                </div>
             </div>
 
-            {/* Patient Details Card */}
-            <div className="patient-card">
-                <div className="card-header">
-                    <h3 className="patient-name">{patient.name}</h3>
-                    <span className="status-badge">{patient.status || 'OPD'}</span>
-                </div>
-                <div className="am-patient-row">
-                    <span className="am-age-gender">👤 {patient.age} Yrs • {patient.gender}</span>
-                    <span className="am-ptn-no">PTN: <span className="am-ptn-val">#{patient.ptnNo}</span></span>
-                </div>
-
-            </div>
+            <div className="add-med-content">
 
             {/* Search and Scanner */}
-            <div className="section-title-row">
-                <span className="section-title">Add Medicines</span>
-            </div>
             <div className="search-scanner-row">
                 <div className="search-box">
                     <span className="search-icon">🔍</span>
@@ -159,48 +154,46 @@ function AddMed({ patient, onBack }) {
                 )}
             </div>
 
-            {/* Summary card + Prescribed Items Header */}
-            {/* {medicines.length > 0 && (
-                <div className="med-summary-card">
-                    <span className="med-summary-icon">🛒</span>
-                    <span className="med-summary-text">Total Medicines</span>
-                    <span className="med-summary-count">{medicines.reduce((sum, m) => sum + m.quantity, 0)}</span>
-                </div>
-            )} */}
+            {/* Prescribed Items Header */}
             <div className="prescribed-header">
-                <span className="prescribed-title">📄 Prescribed Items</span>
                 {medicines.length > 0 && (
                     <span className="added-badge">🛒 Added: {medicines.reduce((sum, m) => sum + m.quantity, 0)}</span>
                 )}
             </div>
-            <div className="medicines-list">
-                {medicines.length === 0 ? (
-                    <div className="empty-state">No medicines added. Scan to add.</div>
-                ) : (
-                    medicines.map((med) => (
-                        <div key={med.id} className="medicine-card">
-                            <div className="med-card-left">
-                                <div className="med-name">{med.name}</div>
-                                <div className="med-sub">{med.sub}</div>
-                                <div className="med-tags">
-                                    <span className="med-tag">{med.dose}</span>
-                                </div>
-                                <div className="med-meta">
-                                    Expiry: {med.expiry} &nbsp;|&nbsp; Batch: {med.batch} &nbsp;|&nbsp; Stocking Unit: {med.stockingUnit}
-                                </div>
-                            </div>
-                            <div className="med-card-right">
-                                <span className="med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
-                                <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
-                                <div className="qty-control">
-                                    <button className="qty-btn" onClick={() => updateQuantity(med.id, -1)}>−</button>
-                                    <span className="qty-value">{med.quantity}</span>
-                                    <button className="qty-btn" onClick={() => updateQuantity(med.id, 1)}>+</button>
-                                </div>
-                            </div>
+                <div className="medicines-list">
+                    {medicines.length === 0 ? (
+                        <div className="empty-state-container">
+                            <img src="/Medicine.gif" alt="Medicine Animation" className="empty-gif" />
+                            <div className="empty-state-text">No medicines added yet.</div>
                         </div>
-                    ))
-                )}
+                    ) : (
+                        medicines.map((med) => (
+                            <div key={med.id} className="medicine-card blue-theme">
+                                <div className="med-card-left">
+                                    <div className="med-name">{med.name}</div>
+                                    <div className="med-sub">{med.sub}</div>
+                                    <div className="med-tags">
+                                        <span className="med-tag">{med.dose}</span>
+                                    </div>
+                                    <div className="med-meta">
+                                        Expiry: {med.expiry} &nbsp;|&nbsp; Batch: {med.batch}
+                                    </div>
+                                </div>
+                                <div className="med-card-right">
+                                    <div className="med-price-row">
+                                        <span className="med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
+                                        <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
+                                    </div>
+                                    <div className="qty-control">
+                                        <button className="qty-btn" onClick={() => updateQuantity(med.id, -1)}>−</button>
+                                        <span className="qty-value">{med.quantity}</span>
+                                        <button className="qty-btn" onClick={() => updateQuantity(med.id, 1)}>+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
 
             {/* Footer */}
@@ -279,9 +272,12 @@ function AddMed({ patient, onBack }) {
                                 <div key={med.id} className="confirm-med-row">
                                     <div className="confirm-med-left">
                                         <span className="confirm-med-num">{i + 1}.</span>
-                                        <div>
-                                            <div className="confirm-med-name">{med.name}</div>
-                                            <div className="confirm-med-dose">{med.dose} &nbsp;|&nbsp; Qty: {med.quantity} &nbsp;|&nbsp; Unit: {med.stockingUnit * med.quantity}</div>
+                                        <div className="confirm-med-content-stack">
+                                            <div className="confirm-med-name-qty-row">
+                                                <span className="confirm-med-name">{med.name}</span>
+                                                <span className="confirm-med-qty-badge">x{med.quantity}</span>
+                                            </div>
+                                            <div className="confirm-med-dose">{med.dose} &nbsp;|&nbsp; Unit: {med.stockingUnit * med.quantity}</div>
                                         </div>
                                     </div>
                                     <span className="confirm-med-price">₹{(med.price * med.quantity).toFixed(2)}</span>

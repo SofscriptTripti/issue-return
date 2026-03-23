@@ -14,7 +14,13 @@ const SCANNED_PATIENTS = {
 const ALL_PATIENTS = [
     { id: 1, name: 'Rathi Kumari', ptnNo: '24568', age: 16, gender: 'Female', phone: '+91 99999 99999', doctor: 'Dr. Anita Desai', lastVisit: '02/05/2025', status: 'OPD' },
     { id: 2, name: 'Kunal Shah', ptnNo: '56486', age: 25, gender: 'Male', phone: '+91 88888 88888', doctor: 'Dr. Paresh', lastVisit: '15/04/2025', status: 'OPD' },
-    { id: 3, name: 'Ananya Iyer', ptnNo: '78910', age: 52, gender: 'Female', phone: '+91 77777 77777', doctor: 'Dr. Kavitha', lastVisit: '10/03/2025', status: 'IPD' },
+    { id: 3, name: 'Ananya Iyer', ptnNo: '78910', age: 52, gender: 'Female', phone: '+91 77777 77777', doctor: 'Dr. Kavitha', lastVisit: '10/03/2025', status: 'OPD' },
+    { id: 4, name: 'Vikram Singh', ptnNo: '90123', age: 38, gender: 'Male', phone: '+91 91234 56789', doctor: 'Dr. Anita Desai', lastVisit: '12/05/2025', status: 'OPD' },
+    { id: 5, name: 'Sanya Malhotra', ptnNo: '34567', age: 29, gender: 'Female', phone: '+91 98765 43210', doctor: 'Dr. Paresh', lastVisit: '08/04/2025', status: 'OPD' },
+    { id: 6, name: 'Aditya Reddy', ptnNo: '56789', age: 45, gender: 'Male', phone: '+91 99887 76655', doctor: 'Dr. Kavitha', lastVisit: '22/03/2025', status: 'OPD' },
+    { id: 7, name: 'Deepa Patel', ptnNo: '12345', age: 62, gender: 'Female', phone: '+91 88776 65544', doctor: 'Dr. Anita Desai', lastVisit: '05/05/2025', status: 'OPD' },
+    { id: 8, name: 'Rohan Verma', ptnNo: '67890', age: 19, gender: 'Male', phone: '+91 77665 54433', doctor: 'Dr. Paresh', lastVisit: '18/04/2025', status: 'OPD' },
+    { id: 9, name: 'Nisha Kumari', ptnNo: '89012', age: 31, gender: 'Female', phone: '+91 66554 43322', doctor: 'Dr. Kavitha', lastVisit: '28/03/2025', status: 'OPD' },
 ];
 
 const QR_ICON = (
@@ -26,8 +32,15 @@ const QR_ICON = (
     </svg>
 );
 
+const LOGOUT_ICON = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+    </svg>
+);
+
 function PatientList({
     onBack,
+    onLogout,
     onSelectPatient,
     scannedPatients = [],
     onAddScannedPatient,
@@ -38,11 +51,10 @@ function PatientList({
 }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [isScannerOpen, setIsScannerOpen] = useState(false);
-    const [scannerTarget, setScannerTarget] = useState('main'); // 'main' | 'filter'
+    const [scannerTarget, setScannerTarget] = useState('main'); 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // Close dropdown on click outside
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -58,17 +70,16 @@ function PatientList({
         setIsDropdownOpen(false);
     };
 
-    // Filter modal state
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filterPtnNo, setFilterPtnNo] = useState('');
     const [filterFirst, setFilterFirst] = useState('');
     const [filterLast, setFilterLast] = useState('');
     const [filterMobile, setFilterMobile] = useState('');
-    const [activeFilters, setActiveFilters] = useState(null); // null = no filter applied
+    const [activeFilters, setActiveFilters] = useState(null);
 
     const openScanner = (target) => {
         setScannerTarget(target);
-        if (target === 'filter') setIsFilterOpen(false); // close filter so scanner is on top
+        if (target === 'filter') setIsFilterOpen(false);
         setIsScannerOpen(true);
     };
 
@@ -77,7 +88,7 @@ function PatientList({
         if (scannerTarget === 'filter') {
             setFilterPtnNo(randomPTN.replace('PTN-', ''));
             setIsScannerOpen(false);
-            setIsFilterOpen(true); // reopen filter with scanned value
+            setIsFilterOpen(true);
         } else {
             if (onAddScannedPatient) {
                 onAddScannedPatient(SCANNED_PATIENTS[randomPTN]);
@@ -96,7 +107,6 @@ function PatientList({
         setActiveFilters(null);
     };
 
-    // Determine which patients to show
     const getDisplayedPatients = () => {
         let list = ALL_PATIENTS;
         if (activeFilters) {
@@ -124,142 +134,202 @@ function PatientList({
 
     return (
         <div className="patient-list-container">
-            {/* Header */}
-            <div className="app-header">
-                <button className="back-button" onClick={onBack}>←</button>
-                <h2 className="header-title">Patient</h2>
-            </div>
-
-            {/* Selection info */}
+            {/* Selection info (Higher wide bar) */}
             {(selectedStore || selectedCostCenter) && (
                 <div className="selection-info-bar">
-                    <span className="selection-label">📍 {selectedStore}{selectedCostCenter ? `, ${selectedCostCenter}` : ''}</span>
-                    <div className="custom-store-dropdown" ref={dropdownRef}>
-                        <button
-                            className={`dropdown-trigger ${isDropdownOpen ? 'active' : ''}`}
-                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            title={selectedStore}
-                        >
-                            <span className="current-store-text">{selectedStore}</span>
-                            <span className="chevron-icon">▼</span>
+                    {/* TOP ROW: Filter and Logout */}
+                    {/* ROW 1: Store & Logout */}
+                    <div className="selection-top-row">
+                        <div className="custom-store-dropdown" ref={dropdownRef}>
+                            <button
+                                className={`dropdown-trigger ${isDropdownOpen ? 'active' : ''}`}
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            >
+                                <span className="current-store-text">{selectedStore || "Select Store"}</span>
+                                <span className="chevron-icon">▼</span>
+                            </button>
+                            {isDropdownOpen && (
+                                <div className="dropdown-menu-portal">
+                                    {stores.map(store => (
+                                        <div
+                                            key={store.id}
+                                            className={`dropdown-item ${selectedStore === store.name ? 'selected' : ''}`}
+                                            onClick={() => handleStoreSelect(store.name)}
+                                        >
+                                            <span className="store-indicator" style={{ background: store.color }}></span>
+                                            <span className="store-option-name">{store.name}</span>
+                                            {selectedStore === store.name && <span className="check-icon">✓</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <button className="logout-btn" onClick={onLogout} title="Logout">
+                            {LOGOUT_ICON}
+                            <span className="logout-text">Logout</span>
                         </button>
-
-                        {isDropdownOpen && (
-                            <div className="dropdown-menu-portal">
-                                {stores.map(store => (
-                                    <div
-                                        key={store.id}
-                                        className={`dropdown-item ${selectedStore === store.name ? 'selected' : ''}`}
-                                        onClick={() => handleStoreSelect(store.name)}
-                                    >
-                                        <span className="store-indicator" style={{ background: store.color }}></span>
-                                        <span className="store-option-name">{store.name}</span>
-                                        {selectedStore === store.name && <span className="check-icon">✓</span>}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                     </div>
-                </div>
-            )}
 
-            {/* Search Bar */}
-            <div className="search-container">
-                <div className="search-box">
-                    <span className="search-icon">🔍</span>
-                    <input
-                        type="text"
-                        placeholder="Search by Name, PTN..."
-                        className="search-input"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <button className="search-scanner-btn" onClick={() => openScanner('main')} title="Scan PTN">
-                        {QR_ICON}
-                    </button>
-                </div>
-                <button className={`filter-button ${hasActiveFilter ? 'filter-active' : ''}`} onClick={() => setIsFilterOpen(true)}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                    </svg>
-                </button>
-            </div>
-
-            {/* Active filter chips */}
-            {hasActiveFilter && (
-                <div className="active-filter-bar">
-                    <span className="active-filter-label">🔖 Filtered</span>
-                    <button className="clear-filter-btn" onClick={clearFilter}>Clear ✕</button>
-                </div>
-            )}
-
-            {/* SCANNED PATIENTS — persistence */}
-            {scannedPatients.map((scannedPatient, idx) => (
-                <div key={`scanned-${idx}`} className="patient-card scanned-patient-card"
-                    onClick={() => onSelectPatient && onSelectPatient({
-                        name: scannedPatient.name, ptnNo: scannedPatient.uhid.replace('PTN-', ''),
-                        age: scannedPatient.age, gender: scannedPatient.gender,
-                        phone: 'N/A', doctor: scannedPatient.doctor,
-                        lastVisit: scannedPatient.discharge, status: 'IPD'
-                    })}>
-                    <div className="card-name-row">
-                        <h3 className="patient-name">{scannedPatient.name}</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span className="status-badge ipd-badge">IPD</span>
-                        </div>
-                    </div>
-                    <div className="card-detail-cols">
-                        <div className="card-col-left">
-                            <span className="meta-chip">👤 {scannedPatient.age}Y • {scannedPatient.gender}</span>
-                            <span className="meta-chip">🏥 {scannedPatient.ward} · Bed {scannedPatient.bed}</span>
-                        </div>
-                        <div className="card-col-right">
-                            <span className="ptn-id">
-                                <span className="ptn-label">PTN: </span>
-                                <span className="ptn-num">{scannedPatient.uhid}</span>
+                    {/* ROW 2: Filters & Location */}
+                    <div className="selection-bottom-row">
+                        <div className="selection-left">
+                            <span className="selection-label">
+                                <div className="selection-details-text">
+                                    <span className="store-display-name">{selectedStore}</span>
+                                    <span className="cc-display-name">{selectedCostCenter}</span>
+                                </div>
                             </span>
                         </div>
-                    </div>
-                    <div className="card-footer">
-                        <span className="doctor-name">👨‍⚕️ {scannedPatient.doctor}</span>
-                        <span className="last-visit">📅 {scannedPatient.discharge}</span>
+
+                        <button 
+                            className={`nav-filter-btn ${hasActiveFilter ? 'filter-active' : ''}`} 
+                            onClick={() => setIsFilterOpen(true)}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                            </svg>
+                            <span className="nav-filter-text">Advance Search</span>
+                        </button>
                     </div>
                 </div>
-            ))}
+            )}
 
-            {/* Recent Views label */}
-            <div className="recent-views-label">
-                <span className="history-icon">�</span> Patients
-            </div>
-
-            {/* Patient Cards */}
-            <div className="patient-cards-list">
-                {displayedPatients.length === 0 ? (
-                    <div className="no-results">No patients found</div>
-                ) : displayedPatients.map((patient) => (
-                    <div key={patient.id} className="patient-card" onClick={() => onSelectPatient && onSelectPatient(patient)}>
-                        <div className="card-name-row">
-                            <h3 className="patient-name">{patient.name}</h3>
-                            <span className={`status-badge ${patient.status === 'IPD' ? 'ipd-badge' : ''}`}>{patient.status}</span>
-                        </div>
-                        <div className="card-detail-cols">
-                            <div className="card-col-left">
-                                <span className="meta-chip">👤 {patient.age}Y • {patient.gender}</span>
-                                <span className="meta-chip">📞 {patient.phone}</span>
-                            </div>
-                            <div className="card-col-right">
-                                <span className="ptn-id"><span className="ptn-label">PTN: </span><span className="ptn-num">#{patient.ptnNo}</span></span>
-                            </div>
-                        </div>
-                        <div className="card-footer">
-                            <span className="doctor-name">👨‍⚕️ {patient.doctor}</span>
-                            <span className="last-visit">📅 {patient.lastVisit}</span>
-                        </div>
+            <div className="patient-list-content">
+                {/* Search Bar */}
+                <div className="search-container">
+                    <div className="search-box">
+                        <span className="search-icon">🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Search by Name, PTN..."
+                            className="search-input"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <button className="search-scanner-btn" onClick={() => openScanner('main')}>
+                            {QR_ICON}
+                        </button>
                     </div>
-                ))}
+                    {/* Filter button moved to header */}
+                </div>
+
+                {/* Active filter chips */}
+                {hasActiveFilter && (
+                    <div className="active-filter-bar">
+                        <span className="active-filter-label">🔖 Filtered</span>
+                        <button className="clear-filter-btn" onClick={clearFilter}>Clear ✕</button>
+                    </div>
+                )}
+
+                {/* Scrollable Patient List Container */}
+                <div className="patient-cards-list">
+                    {/* 1. SCANNED PATIENTS FIRST - FILTERED BY SEARCH */}
+                    {(scannedPatients || []).filter(sp => {
+                        const searchLower = searchTerm.toLowerCase();
+                        const matchesSearch = !searchTerm || 
+                            sp.name.toLowerCase().includes(searchLower) || 
+                            sp.uhid.toLowerCase().includes(searchLower);
+                        
+                        // Also apply advance filters if present
+                        let matchesAdvance = true;
+                        if (activeFilters) {
+                            if (activeFilters.ptnNo && !sp.uhid.includes(activeFilters.ptnNo)) matchesAdvance = false;
+                            if (activeFilters.first && !sp.name.toLowerCase().includes(activeFilters.first.toLowerCase())) matchesAdvance = false;
+                            // Add other filters as needed
+                        }
+
+                        return matchesSearch && matchesAdvance;
+                    }).map((scannedPatient, idx) => (
+                        <div key={`scanned-${idx}`} className="patient-card scanned-patient-card"
+                            onClick={() => onSelectPatient && onSelectPatient({
+                                name: scannedPatient.name, ptnNo: scannedPatient.uhid.replace('PTN-', ''),
+                                age: scannedPatient.age, gender: scannedPatient.gender,
+                                phone: 'N/A', doctor: scannedPatient.doctor,
+                                lastVisit: scannedPatient.discharge, status: 'OPD'
+                            })}>
+                            <div className="patient-card-content">
+                                <div className="patient-avatar">
+                                    <img src={scannedPatient.avatar || "https://thumbs.dreamstime.com/b/happy-black-teen-boy-outside-african-american-smiles-sitting-bench-192130399.jpg"} alt={scannedPatient.name} />
+                                </div>
+
+                                <div className="patient-info-grid">
+                                    <div className="grid-cell cell-left">
+                                        <span className="patient-name-bold">{scannedPatient.name}</span>
+                                    </div>
+                                    <div className="grid-cell cell-right">
+                                        <span className="status-badge opd-badge">OPD</span>
+                                    </div>
+                                    
+                                    <div className="grid-cell cell-left">
+                                        <span className="info-label-inline">Age / Gender:</span>
+                                        <span className="info-value-inline text-black">{scannedPatient.age} / {scannedPatient.gender}</span>
+                                    </div>
+                                    <div className="grid-cell cell-right">
+                                        <span className="info-label-inline">Doctor:</span>
+                                        <span className="info-value-inline text-black">{scannedPatient.doctor}</span>
+                                    </div>
+
+                                    <div className="grid-cell cell-left">
+                                        <span className="info-label-inline">PTN ID:</span>
+                                        <span className="info-value-inline text-black">#{scannedPatient.uhid.replace('PTN-', '')}</span>
+                                    </div>
+                                    <div className="grid-cell cell-right">
+                                        <span className="info-label-inline">Last Visit:</span>
+                                        <span className="info-value-inline text-black">{scannedPatient.discharge}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {/* 2. REGULAR PATIENTS */}
+                    {displayedPatients.length === 0 ? (
+                        <div className="no-results">No patients found</div>
+                    ) : (
+                        displayedPatients.map((patient) => (
+                            <div key={patient.id} className="patient-card" onClick={() => onSelectPatient && onSelectPatient(patient)}>
+                                <div className="patient-card-content">
+                                    <div className="patient-avatar">
+                                        <img src={patient.avatar || "https://thumbs.dreamstime.com/b/happy-black-teen-boy-outside-african-american-smiles-sitting-bench-192130399.jpg"} alt={patient.name} />
+                                    </div>
+
+                                    <div className="patient-info-grid">
+                                        <div className="grid-cell cell-left">
+                                            <span className="patient-name-bold">{patient.name}</span>
+                                        </div>
+                                        <div className="grid-cell cell-right">
+                                            <span className={`status-badge opd-badge`}>
+                                                OPD
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="grid-cell cell-left">
+                                            <span className="info-label-inline">Age / Gender:</span>
+                                            <span className="info-value-inline text-black">{patient.age} / {patient.gender}</span>
+                                        </div>
+                                        <div className="grid-cell cell-right">
+                                            <span className="info-label-inline">Doctor:</span>
+                                            <span className="info-value-inline text-black">{patient.doctor}</span>
+                                        </div>
+
+                                        <div className="grid-cell cell-left">
+                                            <span className="info-label-inline">PTN ID:</span>
+                                            <span className="info-value-inline text-black">#{patient.ptnNo}</span>
+                                        </div>
+                                        <div className="grid-cell cell-right">
+                                            <span className="info-label-inline">Last Visit:</span>
+                                            <span className="info-value-inline text-black">{patient.lastVisit}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
 
-            {/* ====== FILTER MODAL ====== */}
+            {/* Advance Search Modal */}
             {isFilterOpen && (
                 <div className="adv-overlay" onClick={() => setIsFilterOpen(false)}>
                     <div className="adv-modal" onClick={e => e.stopPropagation()}>
@@ -267,24 +337,13 @@ function PatientList({
                             <span className="adv-title">Advance Search</span>
                             <button className="adv-close" onClick={() => setIsFilterOpen(false)}>✕</button>
                         </div>
-
-                        {/* Patient Number */}
                         <div className="adv-field">
                             <label className="adv-label">Patient Number</label>
                             <div className="adv-input-row">
-                                <input
-                                    className="adv-input"
-                                    placeholder="Enter"
-                                    value={filterPtnNo}
-                                    onChange={e => setFilterPtnNo(e.target.value)}
-                                />
-                                <button className="adv-scan-btn" onClick={() => openScanner('filter')} title="Scan PTN">
-                                    {QR_ICON}
-                                </button>
+                                <input className="adv-input" placeholder="Enter" value={filterPtnNo} onChange={e => setFilterPtnNo(e.target.value)} />
+                                <button className="adv-scan-btn" onClick={() => openScanner('filter')}>{QR_ICON}</button>
                             </div>
                         </div>
-
-                        {/* First & Last Name */}
                         <div className="adv-row-2">
                             <div className="adv-field">
                                 <label className="adv-label">First Name</label>
@@ -295,14 +354,10 @@ function PatientList({
                                 <input className="adv-input" placeholder="Enter" value={filterLast} onChange={e => setFilterLast(e.target.value)} />
                             </div>
                         </div>
-
-                        {/* Mobile */}
                         <div className="adv-field">
                             <label className="adv-label">Mobile Number</label>
                             <input className="adv-input" placeholder="+91" value={filterMobile} onChange={e => setFilterMobile(e.target.value)} />
                         </div>
-
-                        {/* Buttons */}
                         <div className="adv-actions">
                             <button className="adv-btn-clear" onClick={clearFilter}>Clear</button>
                             <button className="adv-btn-apply" onClick={applyFilter}>Show Results</button>
@@ -311,7 +366,7 @@ function PatientList({
                 </div>
             )}
 
-            {/* QR Scanner Modal */}
+            {/* Scanner Modal */}
             {isScannerOpen && (
                 <div className="scanner-modal-overlay" onClick={() => setIsScannerOpen(false)}>
                     <div className="scanner-modal" onClick={e => e.stopPropagation()}>

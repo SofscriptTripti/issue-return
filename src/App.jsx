@@ -52,6 +52,15 @@ function App() {
     window.history.back();
   };
 
+  const handleLogout = () => {
+    setCurrentScreen("login");
+    setSelectedStoreName("");
+    setSelectedCostCenter("");
+    setSelectedPatient(null);
+    setScannedPatients([]);
+    window.history.pushState({ screen: "login" }, "", "");
+  };
+
   const handleSelectPatient = (patient) => {
     setSelectedPatient(patient);
     window.history.pushState({ screen: "addMed", patient }, "", "");
@@ -81,6 +90,7 @@ function App() {
       {currentScreen === "patientList" && (
         <PatientList
           onBack={handleBackToLogin}
+          onLogout={handleLogout}
           onSelectPatient={handleSelectPatient}
           scannedPatients={scannedPatients}
           onAddScannedPatient={handleAddScannedPatient}
