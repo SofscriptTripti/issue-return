@@ -543,14 +543,14 @@
 }
 
 .qty-btn {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: none;
-    font-size: 20px;
+    font-size: 16px;
     color: #006ce6;
     cursor: pointer;
     font-weight: 800;
@@ -563,10 +563,10 @@
 }
 
 .qty-value {
-    width: 30px;
+    width: 24px;
     text-align: center;
     font-weight: 800;
-    font-size: 15px;
+    font-size: 13px;
     color: #1a1a1a;
 }
 

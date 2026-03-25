@@ -47,13 +47,21 @@ function PatientList({
     selectedStore,
     selectedCostCenter,
     stores = [],
-    onStoreChange
+    onStoreChange,
+    apiPatients = [],
+    isPatientsLoading = false
 }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [scannerTarget, setScannerTarget] = useState('main'); 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        if (apiPatients.length > 0) {
+            console.log("Current API Patients in List:", apiPatients);
+        }
+    }, [apiPatients]);
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -76,6 +84,7 @@ function PatientList({
     const [filterLast, setFilterLast] = useState('');
     const [filterMobile, setFilterMobile] = useState('');
     const [activeFilters, setActiveFilters] = useState(null);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const openScanner = (target) => {
         setScannerTarget(target);
@@ -108,22 +117,38 @@ function PatientList({
     };
 
     const getDisplayedPatients = () => {
-        let list = ALL_PATIENTS;
+        // Favor API patients if available
+        let list = apiPatients.length > 0 ? apiPatients.map((p, idx) => {
+            // Combine name parts cleanly, ignoring "." placeholders
+            const fullName = [p.ptnFName, p.ptnMName, p.ptnLName]
+                .filter(part => part && part.trim() !== "." && part.trim() !== "")
+                .map(part => part.trim())
+                .join(" ");
+
+            return {
+                id: p.ptnNo || idx,
+                name: fullName || "Unnamed Patient",
+                ptnNo: p.ptnNo || "00000",
+                age: p.age || "N/A",
+                gender: p.gender || "N/A",
+                phone: p.ptnMobileNo || "N/A",
+                doctor: p.docName || "N/A",
+                lastVisit: "N/A", // Not explicitly in provided JSON snippet
+                status: 'OPD' 
+            };
+        }) : ALL_PATIENTS;
+
         if (activeFilters) {
             list = list.filter(p => {
-                const fullName = p.name.toLowerCase();
-                const [first = '', ...rest] = p.name.split(' ');
-                const last = rest.join(' ');
-                if (activeFilters.ptnNo && !p.ptnNo.includes(activeFilters.ptnNo)) return false;
-                if (activeFilters.first && !first.toLowerCase().includes(activeFilters.first.toLowerCase())) return false;
-                if (activeFilters.last && !last.toLowerCase().includes(activeFilters.last.toLowerCase())) return false;
+                if (activeFilters.ptnNo && !String(p.ptnNo).includes(activeFilters.ptnNo)) return false;
+                if (activeFilters.first && !p.name.toLowerCase().includes(activeFilters.first.toLowerCase())) return false;
                 if (activeFilters.mobile && !p.phone.includes(activeFilters.mobile)) return false;
                 return true;
             });
         } else if (searchTerm) {
             list = list.filter(p =>
                 p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.ptnNo.toLowerCase().includes(searchTerm.toLowerCase())
+                String(p.ptnNo).toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
         return list;
@@ -165,7 +190,7 @@ function PatientList({
                             )}
                         </div>
 
-                        <button className="logout-btn" onClick={onLogout} title="Logout">
+                        <button className="logout-btn" onClick={() => setShowLogoutConfirm(true)} title="Logout">
                             {LOGOUT_ICON}
                             <span className="logout-text">Logout</span>
                         </button>
@@ -224,6 +249,10 @@ function PatientList({
 
                 {/* Scrollable Patient List Container */}
                 <div className="patient-cards-list">
+                    {isPatientsLoading && (
+                        <div className="no-results">Fetching patient details...</div>
+                    )}
+                    
                     {/* 1. SCANNED PATIENTS FIRST - FILTERED BY SEARCH */}
                     {(scannedPatients || []).filter(sp => {
                         const searchLower = searchTerm.toLowerCase();
@@ -380,6 +409,42 @@ function PatientList({
                             <div className="scan-line" />
                         </div>
                         <p className="tap-hint">👆 Tap QR to simulate scan</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutConfirm && (
+                <div className="adv-overlay" onClick={() => setShowLogoutConfirm(false)}>
+                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 340 }}>
+                        <div style={{ fontSize: 48, marginBottom: 8 }}>🚪</div>
+                        <h2 style={{ fontSize: 20, fontWeight: 800, color: '#005bb7', marginBottom: 8 }}>Confirm Logout</h2>
+                        <p style={{ fontSize: 14, color: '#4a4a4a', marginBottom: 24, lineHeight: 1.5 }}>
+                            Are you sure you want to logout? All your session data and saved carts will be cleared.
+                        </p>
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button
+                                onClick={() => setShowLogoutConfirm(false)}
+                                style={{
+                                    flex: 1, padding: '12px', borderRadius: 10,
+                                    border: '1px solid #dae8f7', background: '#f0f7ff',
+                                    color: '#005bb7', fontWeight: 700, fontSize: 14, cursor: 'pointer'
+                                }}
+                            >
+                                CANCEL
+                            </button>
+                            <button
+                                onClick={() => { setShowLogoutConfirm(false); onLogout(); }}
+                                style={{
+                                    flex: 1, padding: '12px', borderRadius: 10,
+                                    border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                    color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+                                    boxShadow: '0 4px 12px rgba(239,68,68,0.35)'
+                                }}
+                            >
+                                LOGOUT
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

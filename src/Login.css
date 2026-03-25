@@ -263,6 +263,8 @@ body {
 .store-modal-content {
   max-width: 600px;
   max-height: 85vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .login-modal-header,
@@ -378,9 +380,16 @@ body {
   margin-top: 5px;
 }
 
-.btn-submit:hover {
+.btn-submit:hover:not(:disabled) {
   background: #005bb7;
   box-shadow: 0 4px 12px rgba(0, 80, 200, 0.2);
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  background: #94a3b8;
 }
 
 /* STORES MODAL BODY */
@@ -388,7 +397,9 @@ body {
   padding: 24px 30px;
   overflow-y: auto;
   background: transparent;
-  /* Changed from white to transparent */
+  flex: 1; /* Take up all available space to enable scrolling */
+  display: flex;
+  flex-direction: column;
 }
 
 .store-modal-body::-webkit-scrollbar {
@@ -396,8 +407,12 @@ body {
 }
 
 .store-modal-body::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #006ce6; /* Match brand color */
   border-radius: 4px;
+}
+
+.store-modal-body::-webkit-scrollbar-track {
+  background: rgba(0, 108, 230, 0.05);
 }
 
 .store-modal-item {

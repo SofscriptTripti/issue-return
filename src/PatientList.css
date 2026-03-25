@@ -245,9 +245,28 @@
     border: 1px solid var(--theme-text-blue);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    overflow: hidden;
+    overflow-y: auto;
+    max-height: 250px;
     padding: 5px 0;
     animation: fadeInSlideDown 0.2s ease-out;
+}
+
+/* Custom Scrollbar for Dropdown */
+.dropdown-menu-portal::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-menu-portal::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dropdown-menu-portal::-webkit-scrollbar-thumb {
+    background: #dae8f7;
+    border-radius: 10px;
+}
+
+.dropdown-menu-portal::-webkit-scrollbar-thumb:hover {
+    background: var(--theme-text-blue);
 }
 
 @keyframes fadeInSlideDown {

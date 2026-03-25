@@ -1,45 +1,55 @@
 import { useState } from "react";
+import { authService } from "./api/authService";
 import "./Login.css";
 
-function Login({ onSelectCostCenter, stores }) {
+function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Modals
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showStoreModal, setShowStoreModal] = useState(false);
-  const [selectedStoreForCostCenter, setSelectedStoreForCostCenter] = useState(null);
 
-  const costCenters = [
-    "Out patient Cash",
-    // "Out patient Credit",
-    // "In patient Cash",
-    // "OP Package patient"
-  ];
-
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    if (username === "Tripti" && password === "Tripti@123") {
-      setError("");
-      setUsername("");
-      setPassword("");
-      setShowLoginModal(false);
-      setShowStoreModal(true); // Open the store modal after login
-    } else {
-      setError("Invalid credentials");
-    }
-  };
+    setIsLoading(true);
+    setError("");
 
-  const handleStoreClick = (store) => {
-    setSelectedStoreForCostCenter(store);
-  };
-
-  const handleCostCenterSelect = (store, option) => {
-    setShowStoreModal(false);
-    if (onSelectCostCenter) {
-      onSelectCostCenter(store.name, option);
+    try {
+      // API Integration: Get Token using the username & password typed by user
+      const response = await authService.getToken(username, password);
+      
+      console.log("Login API Response:", response);
+      
+      // If the API call is successful, proceed to store selection
+      if (response && (response.token || response.access_token)) {
+        // Save the token for future authenticated requests
+        localStorage.setItem("authToken", response.token || response.access_token);
+        
+        // Reset and hide modal so it's clean if we ever come back
+        setShowLoginModal(false);
+        setUsername("");
+        setPassword("");
+        
+        // Notify parent of success
+        if (onLoginSuccess) {
+           onLoginSuccess();
+        }
+      } else if (response && response.success !== false) {
+        // Handle cases where the response might be different but successful
+        setShowLoginModal(false);
+        if (onLoginSuccess) onLoginSuccess();
+      } else {
+        setError("Invalid response from server. Please try again.");
+      }
+    } catch (err) {
+      console.warn("API Error:", err);
+      // Fallback messaging
+      setError(err.message || "Failed to connect to the authentication server");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -115,55 +125,10 @@ function Login({ onSelectCostCenter, stores }) {
                 )}
               </div>
               {error && <p className="error-text">{error}</p>}
-              <button type="submit" className="btn-submit">Login →</button>
+              <button type="submit" className="btn-submit" disabled={isLoading}>
+                {isLoading ? "Authenticating..." : "Login →"}
+              </button>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* STORE SELECTION MODAL */}
-      {showStoreModal && (
-        <div className="modal-overlay" onClick={() => { setShowStoreModal(false); setSelectedStoreForCostCenter(null); }}>
-          <div className="store-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="store-modal-header">
-              <h2>{selectedStoreForCostCenter ? "Select Cost Center" : "Store Selection"}</h2>
-            </div>
-            <div className="store-modal-body">
-              {!selectedStoreForCostCenter ? (
-                stores.map((store) => (
-                  <div
-                    key={store.id}
-                    className="store-modal-item"
-                  >
-                    <div className="store-item-header" onClick={() => handleStoreClick(store)}>
-                      <span className="store-item-name">{store.name}</span>
-                      <span style={{ marginLeft: "auto", color: "#64748b" }}>→</span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="cost-center-selection-view">
-                  <div style={{ marginBottom: '20px', color: '#000000', fontSize: '15px', fontWeight: '500' }}>
-                    Store: <strong style={{ color: '#006ce6' }}>{selectedStoreForCostCenter.name}</strong>
-                  </div>
-                  <div className="store-item-body" style={{ borderTop: 'none', padding: 0, animation: 'fadeIn 0.3s ease-out' }}>
-                    {costCenters.map((option, index) => (
-                      <button
-                        key={index}
-                        className="store-cost-center-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCostCenterSelect(selectedStoreForCostCenter, option);
-                        }}
-                        style={{ width: '100%', textAlign: 'left', padding: '16px', fontSize: '16px' }}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}
