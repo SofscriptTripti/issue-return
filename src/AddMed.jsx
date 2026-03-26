@@ -54,34 +54,59 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     // Scanner logic
     useEffect(() => {
+        let isMounted = true;
+
         if (isScannerOpen && isMobile) {
             // delay to ensure DOM is ready
-            setTimeout(() => {
+            const timer = setTimeout(() => {
                 const html5QrCode = new Html5Qrcode("reader");
                 html5QrCodeRef.current = html5QrCode;
                 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
                 
-                html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-                    // Success callback
-                    console.log("Scan result: ", decodedText);
-                    setSearchTerm(decodedText);
-                    setLastScanned(decodedText);
-                    html5QrCode.stop().then(() => {
-                        setIsScannerOpen(false);
-                    }).catch(console.error);
-                }, (errorMessage) => {
-                    // Ignore normal decode errors (happens when no QR found in frame)
-                }).catch((err) => {
-                    console.error("Camera start failed:", err);
-                    setScannerError("Camera not allowed or unavailable.");
+                // First check/request camera permissions
+                Html5Qrcode.getCameras().then(devices => {
+                    if (devices && devices.length > 0 && isMounted) {
+                        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                            // Success callback
+                            console.log("Scan result: ", decodedText);
+                            setSearchTerm(decodedText);
+                            setLastScanned(decodedText);
+                            html5QrCode.stop().then(() => {
+                                if (isMounted) setIsScannerOpen(false);
+                            }).catch(console.error);
+                        }, (errorMessage) => {
+                            // Ignore normal decode errors
+                        }).catch((err) => {
+                            console.error("Camera start failed:", err);
+                            if (isMounted) setScannerError("Camera not allowed or unavailable. Check app settings.");
+                        });
+                    } else if (isMounted) {
+                        setScannerError("No camera found on this device.");
+                    }
+                }).catch(err => {
+                    console.error("GetCameras failed:", err);
+                    if (isMounted) setScannerError("Camera permission denied or camera unavailable.");
                 });
             }, 300);
+            return () => {
+                isMounted = false;
+                clearTimeout(timer);
+            };
         }
 
         return () => {
-            if (html5QrCodeRef.current && (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2)) {
-                html5QrCodeRef.current.stop().catch(console.error);
-            }
+            isMounted = false;
+            const stopScanner = async () => {
+                if (html5QrCodeRef.current && (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2)) {
+                    try {
+                        await html5QrCodeRef.current.stop();
+                        html5QrCodeRef.current = null;
+                    } catch (e) {
+                        console.error("Scanner cleanup failed:", e);
+                    }
+                }
+            };
+            stopScanner();
         };
     }, [isScannerOpen, isMobile]);
 
