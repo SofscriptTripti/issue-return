@@ -182,6 +182,16 @@ function App() {
     });
   };
 
+  const handleStoreAndCCChange = (store) => {
+    // When store changes from dropdown in PatientList, we must reset selection
+    // and go back to store selection or at least cost center selection
+    setSelectedStoreName(store.name);
+    setSelectedStoreCd(store.id);
+    setSelectedCostCenter("");
+    setSelectedCCCd("");
+    setCurrentScreen("storeSelection");
+  };
+
   return (
     <>
       {(currentScreen === "login" || currentScreen === "storeSelection") && (
@@ -206,7 +216,7 @@ function App() {
           selectedStore={selectedStoreName}
           selectedCostCenter={selectedCostCenter}
           stores={stores}
-          onStoreChange={setSelectedStoreName}
+          onStoreAndCCChange={handleStoreAndCCChange}
           storeType={storeType}
           onStoreTypeChange={setStoreType}
           apiPatients={apiPatients}

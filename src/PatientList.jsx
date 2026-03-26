@@ -26,6 +26,8 @@ function PatientList({
     selectedCostCenter,
     stores = [],
     onStoreChange,
+    onStoreAndCCChange,
+
     apiPatients = [],
     isPatientsLoading = false
 }) {
@@ -51,8 +53,12 @@ function PatientList({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleStoreSelect = (name) => {
-        if (onStoreChange) onStoreChange(name);
+    const handleStoreSelect = (store) => {
+        if (onStoreAndCCChange) {
+            // When store changes from dropdown, we actually need to let the user pick a new Cost Center
+            // because CCs are dependent on the store. For now, let's trigger a flow to reset CC
+            onStoreAndCCChange(store);
+        }
         setIsDropdownOpen(false);
     };
 
@@ -144,7 +150,7 @@ function PatientList({
                                         <div
                                             key={store.id}
                                             className={`dropdown-item ${selectedStore === store.name ? 'selected' : ''}`}
-                                            onClick={() => handleStoreSelect(store.name)}
+                                            onClick={() => handleStoreSelect(store)}
                                         >
                                             <span className="store-indicator" style={{ background: store.color }}></span>
                                             <span className="store-option-name">{store.name}</span>
