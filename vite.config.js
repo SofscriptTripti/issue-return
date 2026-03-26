@@ -34,5 +34,14 @@ export default defineConfig({
 
 
     })
-  ]
+  ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://123.108.45.16:8650/InvBasketAPI/api/',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  }
 })

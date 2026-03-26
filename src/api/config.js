@@ -1,4 +1,4 @@
-export const BASE_URL = "http://123.108.45.16:8650/InvBasketAPI/api/";
+export const BASE_URL = "/api/";
 export const ENDPOINTS = {
   TOKEN: "Authentication/Token",
   GET_STORES: "Patient/GetStoreCodeByUserId",
