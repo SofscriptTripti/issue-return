@@ -14,6 +14,7 @@ function StoreSelection({ stores, onSelectCostCenter }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [costCenters, setCostCenters] = useState([]);
     const [isLoadingCC, setIsLoadingCC] = useState(false);
+    const [ccError, setCcError] = useState('');
 
     const filteredStores = stores.filter(s =>
         s.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -37,6 +38,8 @@ function StoreSelection({ stores, onSelectCostCenter }) {
                     name: cc.ccDescriprion || "Unnamed Cost Center",
                     ptnTypFlg: cc.ptnTypFlg || "O" // Default to Out if missing
                 }));
+                
+                // Always set cost centers and let user see/confirm them, even if there's only one
                 setCostCenters(mappedCC);
             }
         } catch (err) {
@@ -111,21 +114,25 @@ function StoreSelection({ stores, onSelectCostCenter }) {
                 ) : (
                     <div className="selection-card-body" style={{ padding: '20px 0 30px 0' }}>
                         <div className="selection-list-viewport">
-                            {isLoadingCC ? (
-                                <div className="empty-state">Loading cost centers...</div>
-                            ) : costCenters.length > 0 ? (
-                                costCenters.map((cc) => (
-                                    <button
-                                        key={cc.id}
-                                        className="modal-style-action-btn"
-                                        onClick={() => handleCostCenterClick(cc)}
-                                    >
-                                        {cc.name}
-                                    </button>
-                                ))
-                            ) : (
-                                <div className="empty-state">No cost centers found for this store.</div>
-                            )}
+                                {isLoadingCC ? (
+                                    <div className="empty-state">Loading cost centers...</div>
+                                ) : ccError ? (
+                                    <div className="empty-state" style={{ color: '#ef4444', fontWeight: 600 }}>
+                                        ⚠️ {ccError}
+                                    </div>
+                                ) : costCenters.length > 0 ? (
+                                    costCenters.map((cc) => (
+                                        <button
+                                            key={cc.id}
+                                            className="modal-style-action-btn"
+                                            onClick={() => handleCostCenterClick(cc)}
+                                        >
+                                            {cc.name}
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="empty-state">No cost centers found for this store.</div>
+                                )}
                         </div>
                     </div>
                 )}

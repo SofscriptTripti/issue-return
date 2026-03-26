@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './PatientList.css';
+import { authService } from './api/authService';
+import { Html5Qrcode } from 'html5-qrcode';
 
 const QR_ICON = (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -13,6 +15,13 @@ const QR_ICON = (
 const LOGOUT_ICON = (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+    </svg>
+);
+
+const CLOSE_ICON_SMALL = (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
 );
 
@@ -37,6 +46,61 @@ function PatientList({
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
+    const [costCenters, setCostCenters] = useState([]);
+    const [isLoadingCC, setIsLoadingCC] = useState(false);
+    const [erroredStoreId, setErroredStoreId] = useState(null);
+    const [isMobile, setIsMobile] = useState(false);
+    const [scannerError, setScannerError] = useState('');
+    const html5QrCodeRef = useRef(null);
+
+    useEffect(() => {
+        setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    }, []);
+
+    // Scanner logic
+    useEffect(() => {
+        let isMounted = true;
+        if (isScannerOpen && isMobile) {
+            const timer = setTimeout(() => {
+                const html5QrCode = new Html5Qrcode("reader-patient");
+                html5QrCodeRef.current = html5QrCode;
+                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+                Html5Qrcode.getCameras().then(devices => {
+                    if (devices && devices.length > 0 && isMounted) {
+                        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                            console.log("Patient Scan result: ", decodedText);
+                            setSearchTerm(decodedText);
+                            html5QrCode.stop().then(() => {
+                                if (isMounted) setIsScannerOpen(false);
+                            }).catch(console.error);
+                        }, (errorMessage) => {
+                        }).catch((err) => {
+                            console.error("Camera start failed:", err);
+                            if (isMounted) setScannerError("Camera not allowed or unavailable. Check app settings.");
+                        });
+                    } else if (isMounted) {
+                        setScannerError("No camera found on this device.");
+                    }
+                }).catch(err => {
+                    console.error("GetCameras failed:", err);
+                    if (isMounted) setScannerError("Camera permission denied or camera unavailable.");
+                });
+            }, 300);
+            return () => {
+                isMounted = false;
+                clearTimeout(timer);
+            };
+        }
+
+        return () => {
+            isMounted = false;
+            if (html5QrCodeRef.current && (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2)) {
+                html5QrCodeRef.current.stop().catch(console.error);
+            }
+        };
+    }, [isScannerOpen, isMobile]);
+
     useEffect(() => {
         if (apiPatients.length > 0) {
             console.log("Current API Patients in List:", apiPatients);
@@ -53,13 +117,50 @@ function PatientList({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleStoreSelect = (store) => {
+    const handleStoreSelect = async (e, store) => {
+        if (e) e.stopPropagation();
         if (onStoreAndCCChange) {
-            // When store changes from dropdown, we actually need to let the user pick a new Cost Center
-            // because CCs are dependent on the store. For now, let's trigger a flow to reset CC
-            onStoreAndCCChange(store);
+            setCostCenters([]);
+            setErroredStoreId(null);
+            setIsLoadingCC(true);
+            try {
+                const response = await authService.getCostCenters(store.id);
+                const ccData = response.data || (Array.isArray(response) ? response : []);
+                if (Array.isArray(ccData) && ccData.length > 0) {
+                    const mappedCC = ccData.map(cc => ({
+                        id: cc.ccCd,
+                        name: cc.ccDescriprion || "Unnamed Cost Center",
+                        ptnTypFlg: cc.ptnTypFlg || "O"
+                    }));
+                    
+                    if (mappedCC.length === 1) {
+                        onStoreAndCCChange(store, mappedCC[0]);
+                        setIsDropdownOpen(false);
+                    } else {
+                        setCostCenters(mappedCC);
+                        onStoreAndCCChange(store, null); 
+                    }
+                } else {
+                    setErroredStoreId(store.id);
+                    // We don't change screen, just show error in dropdown
+                    onStoreAndCCChange(store, null);
+                }
+            } catch (err) {
+                console.error("Failed to fetch CCs in dropdown:", err);
+                setErroredStoreId(store.id);
+            } finally {
+                setIsLoadingCC(false);
+            }
+        }
+    };
+
+    const handleCCSelect = (e, cc) => {
+        if (e) e.stopPropagation();
+        if (onStoreAndCCChange) {
+            onStoreAndCCChange(null, cc);
         }
         setIsDropdownOpen(false);
+        setCostCenters([]);
     };
 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -70,9 +171,8 @@ function PatientList({
     const [activeFilters, setActiveFilters] = useState(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-    const openScanner = (target) => {
-        setScannerTarget(target);
-        if (target === 'filter') setIsFilterOpen(false);
+    const openScanner = () => {
+        setScannerError('');
         setIsScannerOpen(true);
     };
 
@@ -107,7 +207,7 @@ function PatientList({
                 gender: formatVal(p.gender),
                 phone: formatVal(p.ptnMobileNo),
                 doctor: formatVal(p.docName),
-                lastVisit: "-",
+                mobile: formatVal(p.ptnMobileNo),
                 status: 'OPD'
             };
         });
@@ -146,17 +246,47 @@ function PatientList({
                             </button>
                             {isDropdownOpen && (
                                 <div className="dropdown-menu-portal">
-                                    {stores.map(store => (
-                                        <div
-                                            key={store.id}
-                                            className={`dropdown-item ${selectedStore === store.name ? 'selected' : ''}`}
-                                            onClick={() => handleStoreSelect(store)}
-                                        >
-                                            <span className="store-indicator" style={{ background: store.color }}></span>
-                                            <span className="store-option-name">{store.name}</span>
-                                            {selectedStore === store.name && <span className="check-icon">✓</span>}
-                                        </div>
-                                    ))}
+                                    {costCenters.length > 0 ? (
+                                        <>
+                                            <div className="dropdown-header-with-action">
+                                                <span className="dropdown-header-label">Select Cost Center</span>
+                                                <button className="dropdown-close-action" onClick={(e) => { e.stopPropagation(); setCostCenters([]); }} title="Back to Stores">
+                                                    {CLOSE_ICON_SMALL}
+                                                </button>
+                                            </div>
+                                            {costCenters.map(cc => (
+                                                <div
+                                                    key={cc.id}
+                                                    className="dropdown-item cc-item"
+                                                    onClick={(e) => handleCCSelect(e, cc)}
+                                                >
+                                                    <span className="store-option-name">{cc.name}</span>
+                                                </div>
+                                            ))}
+                                        </>
+                                    ) : (
+                                        stores.map(store => (
+                                            <div
+                                                key={store.id}
+                                                className={`dropdown-item ${selectedStore === store.name ? 'selected' : ''}`}
+                                                onClick={(e) => handleStoreSelect(e, store)}
+                                            >
+                                                <div className="store-item-row" style={{display:'flex', alignItems:'center', gap:10}}>
+                                                    <span className="store-indicator" style={{ background: store.color }}></span>
+                                                    <div className="store-text-stack" style={{display:'flex', flexDirection:'column'}}>
+                                                        <span className="store-option-name">{store.name}</span>
+                                                        {erroredStoreId === store.id && (
+                                                            <span style={{fontSize:'10px', color:'#ef4444', fontWeight:600}}>No Cost Center available</span>
+                                                        )}
+                                                        {isLoadingCC && !costCenters.length && !erroredStoreId && (
+                                                            <span style={{fontSize:'10px', color:'#94a3b8'}}>Checking...</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {selectedStore === store.name && <span className="check-icon">✓</span>}
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -196,14 +326,14 @@ function PatientList({
                         <span className="search-icon">🔍</span>
                         <input
                             type="text"
-                            placeholder="Search by Name, PTN"
+                            placeholder="Search by Name, PTN and Phone No"
                             className="search-input"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        {/* <button className="search-scanner-btn" onClick={() => openScanner('main')}>
+                        <button className="search-scanner-btn" onClick={openScanner}>
                             {QR_ICON}
-                        </button> */}
+                        </button>
                     </div>
                 </div>
 
@@ -297,8 +427,8 @@ function PatientList({
                                             <span className="info-value-inline text-black">#{patient.ptnNo}</span>
                                         </div>
                                         <div className="grid-cell cell-right">
-                                            <span className="info-label-inline">Last Visit:</span>
-                                            <span className="info-value-inline text-black">{patient.lastVisit}</span>
+                                            <span className="info-label-inline">Patient No:</span>
+                                            <span className="info-value-inline text-black">{patient.mobile}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -344,22 +474,34 @@ function PatientList({
                 </div>
             )} */}
 
-            {/* {isScannerOpen && (
-                <div className="scanner-modal-overlay" onClick={() => setIsScannerOpen(false)}>
-                    <div className="scanner-modal" onClick={e => e.stopPropagation()}>
-                        <button className="close-scanner-btn" onClick={() => setIsScannerOpen(false)}>✕</button>
-                        <h3 className="scanner-title">Scan Patient PTN</h3>
-                        <p className="scanner-subtitle">Tap QR to simulate scan</p>
-                        <div className="qr-frame">
-                            <div className="qr-corner tl" /><div className="qr-corner tr" />
-                            <div className="qr-corner bl" /><div className="qr-corner br" />
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg" alt="Dummy QR" className="dummy-qr-img" onClick={handleScanQR} />
-                            <div className="scan-line" />
+            {isScannerOpen && (
+                <div className="scanner-modal-overlay">
+                    <div className="scanner-modal">
+                        <button className="close-scanner" onClick={() => setIsScannerOpen(false)}>×</button>
+                        <div className="scanner-view">
+                            <h3 className="scanner-instructions">Scan Patient ID</h3>
+                            {!isMobile ? (
+                                <div style={{ color: '#ef4444', marginTop: '20px', padding: '15px', background: '#fee2e2', borderRadius: '8px', textAlign: 'center', fontWeight: '500' }}>
+                                    Please use a mobile or tablet device to use the camera scanning feature.
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#000', borderRadius: '12px' }}>
+                                        {scannerError ? (
+                                            <div style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{scannerError}</div>
+                                        ) : (
+                                            <div id="reader-patient" style={{ width: '100%', height: '100%' }}></div>
+                                        )}
+                                    </div>
+                                    <div className="scanner-actions">
+                                        <p className="scan-btn-hint">Point camera at Patient QR Code</p>
+                                    </div>
+                                </>
+                            )}
                         </div>
-                        <p className="tap-hint">👆 Tap QR to simulate scan</p>
                     </div>
                 </div>
-            )} */}
+            )}
 
             {showLogoutConfirm && (
                 <div className="adv-overlay" onClick={() => setShowLogoutConfirm(false)}>

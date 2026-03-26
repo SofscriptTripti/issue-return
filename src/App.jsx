@@ -138,30 +138,12 @@ function App() {
   };
 
   const handleLogout = () => {
-    // Clear session + token
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem("authToken");
+    // Clear ALL localStorage to ensure no credentials or sessions persist
+    localStorage.clear();
 
-    // Clear all saved medicine carts (keyed as med_cart_<ptnNo>)
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith("med_cart_")) keysToRemove.push(key);
-    }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
-
-    // Reset all state
-    setCurrentScreen("login");
-    setSelectedStoreName("");
-    setSelectedStoreCd("");
-    setSelectedCostCenter("");
-    setSelectedCCCd("");
-    setSelectedPatient(null);
-    setScannedPatients([]);
-    setApiPatients([]);
-    setSavedPtnTypFlg("O");
-    setStores([]);
-    window.history.pushState({ screen: "login" }, "", "");
+    // Force a full page reload to the root URL
+    // This is the most reliable way to clear all in-memory React states
+    window.location.href = "/";
   };
 
   const handleSelectPatient = (patient) => {
@@ -182,14 +164,17 @@ function App() {
     });
   };
 
-  const handleStoreAndCCChange = (store) => {
-    // When store changes from dropdown in PatientList, we must reset selection
-    // and go back to store selection or at least cost center selection
-    setSelectedStoreName(store.name);
-    setSelectedStoreCd(store.id);
-    setSelectedCostCenter("");
-    setSelectedCCCd("");
-    setCurrentScreen("storeSelection");
+  const handleStoreAndCCChange = (store, cc) => {
+    if (store) {
+      setSelectedStoreName(store.name);
+      setSelectedStoreCd(store.id);
+    }
+    if (cc) {
+      setSelectedCostCenter(cc.name);
+      setSelectedCCCd(cc.id);
+      setSavedPtnTypFlg(cc.ptnTypFlg);
+      fetchPatients(cc.ptnTypFlg);
+    }
   };
 
   return (
