@@ -78,36 +78,56 @@ function PatientList({
     // Scanner logic
     useEffect(() => {
         let isMounted = true;
-        if (isScannerOpen) {
-            const timer = setTimeout(() => {
-                const html5QrCode = new Html5Qrcode("reader-patient");
-                html5QrCodeRef.current = html5QrCode;
-                const config = { fps: 10, qrbox: { width: 250, height: 240 } };
+        let html5QrCode = null;
 
-                Html5Qrcode.getCameras().then(devices => {
-                    if (devices && devices.length > 0 && isMounted) {
-                        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+        if (isScannerOpen) {
+            const timer = setTimeout(async () => {
+                try {
+                    html5QrCode = new Html5Qrcode("reader-patient");
+                    html5QrCodeRef.current = html5QrCode;
+                    const config = { fps: 10, qrbox: { width: 250, height: 240 } };
+
+                    await html5QrCode.start(
+                        { facingMode: "environment" }, 
+                        config, 
+                        (decodedText) => {
                             console.log("Patient Scan result: ", decodedText);
                             setSearchTerm(decodedText);
                             if (onSearch) onSearch(decodedText);
-                            html5QrCode.stop().then(() => {
-                                if (isMounted) setIsScannerOpen(false);
-                            }).catch(console.error);
-                        }, (errorMessage) => {
-                        }).catch((err) => {
-                            console.error("Camera start failed:", err);
-                        });
+                            
+                            // Stop scanner on success
+                            if (html5QrCode) {
+                                html5QrCode.stop().then(() => {
+                                    if (isMounted) setIsScannerOpen(false);
+                                }).catch(console.error);
+                            }
+                        }, 
+                        (errorMessage) => { /* ignore normal decode noise */ }
+                    );
+                } catch (err) {
+                    console.error("Scanner Start Error:", err);
+                    if (isMounted) {
+                        setScannerError("Unable to start camera. Please check permissions.");
                     }
-                }).catch(err => {
-                    console.error("GetCameras failed:", err);
-                });
+                }
             }, 300);
 
             return () => {
                 isMounted = false;
                 clearTimeout(timer);
-                if (html5QrCodeRef.current && (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2)) {
-                    html5QrCodeRef.current.stop().catch(console.error);
+                if (html5QrCodeRef.current) {
+                    const stopScanner = async () => {
+                        if (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2) {
+                            try {
+                                await html5QrCodeRef.current.stop();
+                                html5QrCodeRef.current = null;
+                                console.log("Scanner stopped and cleaned up.");
+                            } catch (e) {
+                                console.error("Scanner stop fail:", e);
+                            }
+                        }
+                    };
+                    stopScanner();
                 }
             };
         }

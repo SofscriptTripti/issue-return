@@ -30,7 +30,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [isConfirming, setIsConfirming] = useState(false);
     const [lastScanned, setLastScanned] = useState(null);
     const [toasts, setToasts] = useState([]);
-    const [isMobile, setIsMobile] = useState(false);
+    const [showNoCameraModal, setShowNoCameraModal] = useState(false);
+    const [showPermissionSplash, setShowPermissionSplash] = useState(false);
 
     const showToast = (message) => {
         setToasts(prev => {
@@ -48,67 +49,73 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [scannerError, setScannerError] = useState('');
     const html5QrCodeRef = useRef(null);
 
-    useEffect(() => {
-        setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-    }, []);
+    // Hardware-aware Camera Check
+    const checkBackCamera = async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return false;
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            return devices.some(device => device.kind === 'videoinput');
+        } catch (e) {
+            return false;
+        }
+    };
 
     // Scanner logic
     useEffect(() => {
         let isMounted = true;
+        let html5QrCode = null;
 
-        if (isScannerOpen && isMobile) {
-            // delay to ensure DOM is ready
-            const timer = setTimeout(() => {
-                const html5QrCode = new Html5Qrcode("reader");
-                html5QrCodeRef.current = html5QrCode;
-                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-                
-                // First check/request camera permissions
-                Html5Qrcode.getCameras().then(devices => {
-                    if (devices && devices.length > 0 && isMounted) {
-                        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-                            // Success callback
-                            console.log("Scan result: ", decodedText);
+        if (isScannerOpen) {
+            const timer = setTimeout(async () => {
+                try {
+                    html5QrCode = new Html5Qrcode("reader");
+                    html5QrCodeRef.current = html5QrCode;
+                    const config = { fps: 10, qrbox: { width: 250, height: 240 } };
+
+                    await html5QrCode.start(
+                        { facingMode: "environment" }, 
+                        config, 
+                        (decodedText) => {
+                            console.log("Med Scan Result: ", decodedText);
                             setSearchTerm(decodedText);
                             setLastScanned(decodedText);
-                            html5QrCode.stop().then(() => {
-                                if (isMounted) setIsScannerOpen(false);
-                            }).catch(console.error);
-                        }, (errorMessage) => {
-                            // Ignore normal decode errors
-                        }).catch((err) => {
-                            console.error("Camera start failed:", err);
-                            if (isMounted) setScannerError("Camera not allowed or unavailable. Check app settings.");
-                        });
-                    } else if (isMounted) {
-                        setScannerError("No camera found on this device.");
+                            
+                            // Stop scanner on success
+                            if (html5QrCode) {
+                                html5QrCode.stop().then(() => {
+                                    if (isMounted) setIsScannerOpen(false);
+                                }).catch(console.error);
+                            }
+                        }, 
+                        (errorMessage) => { /* quiet noise */ }
+                    );
+                } catch (err) {
+                    console.error("Scanner Error:", err);
+                    if (isMounted) {
+                        setScannerError("Camera could not be started.");
                     }
-                }).catch(err => {
-                    console.error("GetCameras failed:", err);
-                    if (isMounted) setScannerError("Camera permission denied or camera unavailable.");
-                });
+                }
             }, 300);
+
             return () => {
                 isMounted = false;
                 clearTimeout(timer);
-            };
-        }
-
-        return () => {
-            isMounted = false;
-            const stopScanner = async () => {
-                if (html5QrCodeRef.current && (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2)) {
-                    try {
-                        await html5QrCodeRef.current.stop();
-                        html5QrCodeRef.current = null;
-                    } catch (e) {
-                        console.error("Scanner cleanup failed:", e);
-                    }
+                if (html5QrCodeRef.current) {
+                    const stopScanner = async () => {
+                        if (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2) {
+                            try {
+                                await html5QrCodeRef.current.stop();
+                                html5QrCodeRef.current = null;
+                            } catch (e) {
+                                console.error("Scanner stop fail:", e);
+                            }
+                        }
+                    };
+                    stopScanner();
                 }
             };
-            stopScanner();
-        };
-    }, [isScannerOpen, isMobile]);
+        }
+    }, [isScannerOpen]);
 
     // Auto-save cart to localStorage whenever medicines change
     useEffect(() => {
@@ -273,7 +280,17 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             setIsFetchingBatch(false);
         }
     };
-    const handleScannerClick = () => {
+    const handleScannerClick = async () => {
+        const hasCamera = await checkBackCamera();
+        if (!hasCamera) {
+            setShowNoCameraModal(true);
+            return;
+        }
+        setShowPermissionSplash(true);
+    };
+
+    const confirmPermission = () => {
+        setShowPermissionSplash(false);
         setScannerError('');
         setIsScannerOpen(true);
     };
@@ -464,7 +481,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         <div className="scanner-view">
                             <h3 className="scanner-instructions">Tap on button to Scan</h3>
 
-                            {!isMobile ? (
+                            {false ? (
                                 <div style={{ color: '#ef4444', marginTop: '20px', padding: '15px', background: '#fee2e2', borderRadius: '8px', textAlign: 'center', fontWeight: '500' }}>
                                     Please use a mobile or tablet device to use the camera scanning feature.
                                 </div>
@@ -596,14 +613,74 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 </div>
             )}
 
-            {/* Toasts Container */}
-            <div className="toasts-container">
-                {toasts.map(toast => (
-                    <div key={toast.id} className="toast-notification">
-                        <span className="toast-message">{toast.message}</span>
+            {showNoCameraModal && (
+                <div className="adv-overlay" onClick={() => setShowNoCameraModal(false)}>
+                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 360 }}>
+                        <p style={{ fontSize: 16, fontWeight: 700, color: '#1e3a8a', marginBottom: 24, lineHeight: 1.6 }}>
+                            You don't have Back Camera. Please use device with Back Camera
+                        </p>
+                        <button
+                            onClick={() => setShowNoCameraModal(false)}
+                            style={{
+                                width: '100%', padding: '14px', borderRadius: 12,
+                                border: 'none', background: '#006ce6',
+                                color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(0,108,230,0.2)'
+                            }}
+                        >
+                            OK
+                        </button>
                     </div>
-                ))}
-            </div>
+                </div>
+            )}
+
+            {showPermissionSplash && (
+                <div className="adv-overlay" onClick={() => setShowPermissionSplash(false)}>
+                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 360, padding: '40px 30px' }}>
+                        <div style={{ marginBottom: 20 }}>
+                            <div style={{ 
+                                background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
+                                width: 70, height: 70, borderRadius: 20, margin: '0 auto',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: '0 10px 20px rgba(0, 108, 230, 0.2)'
+                            }}>
+                                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                </svg>
+                            </div>
+                        </div>
+                        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1e3a8a', marginBottom: 12 }}>Inventory Basket</h2>
+                        <p style={{ fontSize: 16, fontWeight: 600, color: '#64748b', marginBottom: 30, lineHeight: 1.6 }}>
+                            Inventory Basket needs your <br/> camera permission to scan medicines.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <button
+                                onClick={confirmPermission}
+                                style={{
+                                    width: '100%', padding: '16px', borderRadius: 14,
+                                    border: 'none', background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
+                                    color: '#fff', fontWeight: 800, fontSize: 16, cursor: 'pointer',
+                                    boxShadow: '0 8px 20px rgba(0, 108, 230, 0.25)',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Allow Camera
+                            </button>
+                            <button
+                                onClick={() => setShowPermissionSplash(false)}
+                                style={{
+                                    width: '100%', padding: '14px', borderRadius: 14,
+                                    border: '1px solid #dae8f7', background: '#f8fbff',
+                                    color: '#005bb7', fontWeight: 700, fontSize: 14, cursor: 'pointer'
+                                }}
+                            >
+                                Not Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
