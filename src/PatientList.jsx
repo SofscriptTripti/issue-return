@@ -437,17 +437,9 @@ function PatientList({
             )}
             {showNoCameraModal && (
                 <div className="adv-overlay" onClick={() => setShowNoCameraModal(false)}>
-                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 340 }}>
-                        <div style={{ color: '#ef4444', marginBottom: 16 }}>
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <line x1="1" y1="1" x2="23" y2="23"></line>
-                            </svg>
-                        </div>
-                        <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1e3a8a', marginBottom: 8 }}>Camera Not Found</h2>
-                        <p style={{ fontSize: 15, fontWeight: 600, color: '#64748b', marginBottom: 24, lineHeight: 1.5 }}>
-                            YOU DON'T HAVE BACK CAMERA
+                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 360 }}>
+                        <p style={{ fontSize: 16, fontWeight: 700, color: '#1e3a8a', marginBottom: 24, lineHeight: 1.6 }}>
+                            You don't have Back Camera. Please use device with Back Camera
                         </p>
                         <button
                             onClick={() => setShowNoCameraModal(false)}
