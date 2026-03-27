@@ -9,7 +9,7 @@ const CROSS_ICON = (
     </svg>
 );
 
-function StoreSelection({ stores, onSelectCostCenter }) {
+function StoreSelection({ stores, onSelectCostCenter, onLogout }) {
     const [selectedStore, setSelectedStore] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [costCenters, setCostCenters] = useState([]);
@@ -71,8 +71,12 @@ function StoreSelection({ stores, onSelectCostCenter }) {
                                 </div>
                             )}
                         </div>
-                        {selectedStore && (
-                            <button className="header-close-btn" onClick={() => setSelectedStore(null)}>
+                        {selectedStore ? (
+                            <button className="header-close-btn" onClick={() => setSelectedStore(null)} title="Back to Stores">
+                                {CROSS_ICON}
+                            </button>
+                        ) : (
+                            <button className="header-close-btn" onClick={onLogout} title="Logout">
                                 {CROSS_ICON}
                             </button>
                         )}

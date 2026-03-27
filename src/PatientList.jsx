@@ -38,7 +38,8 @@ function PatientList({
     onStoreAndCCChange,
 
     apiPatients = [],
-    isPatientsLoading = false
+    isPatientsLoading = false,
+    onSearch
 }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -53,59 +54,62 @@ function PatientList({
     const [scannerError, setScannerError] = useState('');
     const html5QrCodeRef = useRef(null);
 
-    useEffect(() => {
-        setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-    }, []);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [filterPtnNo, setFilterPtnNo] = useState('');
+    const [filterFirst, setFilterFirst] = useState('');
+    const [filterLast, setFilterLast] = useState('');
+    const [filterMobile, setFilterMobile] = useState('');
+    const [activeFilters, setActiveFilters] = useState(null);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+    // Hardware-aware Camera Check
+    const checkBackCamera = async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return false;
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            return devices.some(device => device.kind === 'videoinput');
+        } catch (e) {
+            return false;
+        }
+    };
 
     // Scanner logic
     useEffect(() => {
         let isMounted = true;
-        if (isScannerOpen && isMobile) {
+        if (isScannerOpen) {
             const timer = setTimeout(() => {
                 const html5QrCode = new Html5Qrcode("reader-patient");
                 html5QrCodeRef.current = html5QrCode;
-                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                const config = { fps: 10, qrbox: { width: 250, height: 240 } };
 
                 Html5Qrcode.getCameras().then(devices => {
                     if (devices && devices.length > 0 && isMounted) {
                         html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
                             console.log("Patient Scan result: ", decodedText);
                             setSearchTerm(decodedText);
+                            if (onSearch) onSearch(decodedText);
                             html5QrCode.stop().then(() => {
                                 if (isMounted) setIsScannerOpen(false);
                             }).catch(console.error);
                         }, (errorMessage) => {
                         }).catch((err) => {
                             console.error("Camera start failed:", err);
-                            if (isMounted) setScannerError("Camera not allowed or unavailable. Check app settings.");
                         });
-                    } else if (isMounted) {
-                        setScannerError("No camera found on this device.");
                     }
                 }).catch(err => {
                     console.error("GetCameras failed:", err);
-                    if (isMounted) setScannerError("Camera permission denied or camera unavailable.");
                 });
             }, 300);
+
             return () => {
                 isMounted = false;
                 clearTimeout(timer);
+                if (html5QrCodeRef.current && (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2)) {
+                    html5QrCodeRef.current.stop().catch(console.error);
+                }
             };
         }
-
-        return () => {
-            isMounted = false;
-            if (html5QrCodeRef.current && (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2)) {
-                html5QrCodeRef.current.stop().catch(console.error);
-            }
-        };
-    }, [isScannerOpen, isMobile]);
-
-    useEffect(() => {
-        if (apiPatients.length > 0) {
-            console.log("Current API Patients in List:", apiPatients);
-        }
-    }, [apiPatients]);
+    }, [isScannerOpen]);
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -116,6 +120,30 @@ function PatientList({
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    const onSearchRef = useRef(onSearch);
+    useEffect(() => {
+        onSearchRef.current = onSearch;
+    }, [onSearch]);
+
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            console.log("PatientList: Debounced search triggered for:", searchTerm);
+            if (onSearchRef.current) {
+                onSearchRef.current(searchTerm);
+            }
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm]);
+
+    const handleSearchSubmit = (e) => {
+        if (e) e.preventDefault();
+        console.log("PatientList: handleSearchSubmit triggered. Term:", searchTerm);
+        if (onSearch) {
+            onSearch(searchTerm);
+        }
+    };
 
     const handleStoreSelect = async (e, store) => {
         if (e) e.stopPropagation();
@@ -142,7 +170,6 @@ function PatientList({
                     }
                 } else {
                     setErroredStoreId(store.id);
-                    // We don't change screen, just show error in dropdown
                     onStoreAndCCChange(store, null);
                 }
             } catch (err) {
@@ -163,27 +190,14 @@ function PatientList({
         setCostCenters([]);
     };
 
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [filterPtnNo, setFilterPtnNo] = useState('');
-    const [filterFirst, setFilterFirst] = useState('');
-    const [filterLast, setFilterLast] = useState('');
-    const [filterMobile, setFilterMobile] = useState('');
-    const [activeFilters, setActiveFilters] = useState(null);
-    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-    const openScanner = () => {
+    const openScanner = async () => {
+        const hasCamera = await checkBackCamera();
+        if (!hasCamera) {
+            alert("You dont have back camera");
+            return;
+        }
         setScannerError('');
         setIsScannerOpen(true);
-    };
-
-    const handleScanQR = () => {
-        console.log("QR Scan triggered");
-        setIsScannerOpen(false);
-    };
-
-    const applyFilter = () => {
-        setActiveFilters({ ptnNo: filterPtnNo, first: filterFirst, last: filterLast, mobile: filterMobile });
-        setIsFilterOpen(false);
     };
 
     const clearFilter = () => {
@@ -192,16 +206,20 @@ function PatientList({
     };
 
     const getDisplayedPatients = () => {
-        let list = apiPatients.map((p, idx) => {
+        return apiPatients.map((p, idx) => {
             const formatVal = (val) => (val && val !== "." && String(val).trim() !== "") ? val : "-";
-            const fullName = [p.ptnFName, p.ptnMName, p.ptnLName]
+            
+            // Prefer the backend's pre-formatted Full Name if available
+            const fullNameFallback = [p.ptnFName, p.ptnMName, p.ptnLName]
                 .filter(part => part && part.trim() !== "." && part.trim() !== "")
                 .map(part => part.trim())
                 .join(" ");
+            
+            const displayTitle = formatVal(p.ptnFullLName) !== "-" ? p.ptnFullLName : (fullNameFallback || "-");
 
             return {
                 id: p.ptnNo || idx,
-                name: fullName || "-",
+                name: displayTitle,
                 ptnNo: formatVal(p.ptnNo),
                 age: formatVal(p.age),
                 gender: formatVal(p.gender),
@@ -211,21 +229,6 @@ function PatientList({
                 status: 'OPD'
             };
         });
-
-        if (activeFilters) {
-            list = list.filter(p => {
-                if (activeFilters.ptnNo && !String(p.ptnNo).includes(activeFilters.ptnNo)) return false;
-                if (activeFilters.first && !p.name.toLowerCase().includes(activeFilters.first.toLowerCase())) return false;
-                if (activeFilters.mobile && !p.phone.includes(activeFilters.mobile)) return false;
-                return true;
-            });
-        } else if (searchTerm) {
-            list = list.filter(p =>
-                p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                String(p.ptnNo).toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-        return list;
     };
 
     const displayedPatients = getDisplayedPatients();
@@ -306,35 +309,28 @@ function PatientList({
                                 </div>
                             </span>
                         </div>
-
-                        {/* <button 
-                            className={`nav-filter-btn ${hasActiveFilter ? 'filter-active' : ''}`} 
-                            onClick={() => setIsFilterOpen(true)}
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                            </svg>
-                            <span className="nav-filter-text">Advance Search</span>
-                        </button> */}
                     </div>
                 </div>
             )}
 
             <div className="patient-list-content">
                 <div className="search-container">
-                    <div className="search-box">
-                        <span className="search-icon">🔍</span>
+                    <form className="search-box" onSubmit={handleSearchSubmit}>
+                        <button type="submit" className="search-icon-btn" onClick={handleSearchSubmit}>🔍</button>
                         <input
                             type="text"
-                            placeholder="Search by Name, PTN and Phone No"
+                            placeholder="Type Name, PTN or Phone and search..."
                             className="search-input"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        <button className="search-scanner-btn" onClick={openScanner}>
+                        {isPatientsLoading && (
+                            <div className="search-circle-loader"></div>
+                        )}
+                        <button type="button" className="search-scanner-btn" onClick={openScanner}>
                             {QR_ICON}
                         </button>
-                    </div>
+                    </form>
                 </div>
 
                 {hasActiveFilter && (
@@ -345,62 +341,8 @@ function PatientList({
                 )}
 
                 <div className="patient-cards-list">
-                    {isPatientsLoading && (
-                        <div className="no-results">Loading patient details...</div>
-                    )}
-
-                    {(scannedPatients || []).filter(sp => {
-                        const searchLower = searchTerm.toLowerCase();
-                        const matchesSearch = !searchTerm ||
-                            sp.name.toLowerCase().includes(searchLower) ||
-                            sp.uhid.toLowerCase().includes(searchLower);
-
-                        let matchesAdvance = true;
-                        if (activeFilters) {
-                            if (activeFilters.ptnNo && !sp.uhid.includes(activeFilters.ptnNo)) matchesAdvance = false;
-                            if (activeFilters.first && !sp.name.toLowerCase().includes(activeFilters.first.toLowerCase())) matchesAdvance = false;
-                        }
-
-                        return matchesSearch && matchesAdvance;
-                    }).map((scannedPatient, idx) => (
-                        <div key={`scanned-${idx}`} className="patient-card scanned-patient-card"
-                            onClick={() => onSelectPatient && onSelectPatient({
-                                name: scannedPatient.name || "-", ptnNo: scannedPatient.uhid ? scannedPatient.uhid.replace('PTN-', '') : "-",
-                                age: scannedPatient.age || "-", gender: scannedPatient.gender || "-",
-                                phone: '-', doctor: scannedPatient.doctor || "-",
-                                lastVisit: scannedPatient.discharge || "-", status: 'OPD'
-                            })}>
-                            <div className="patient-card-content">
-                                <div className="patient-info-grid">
-                                    <div className="grid-cell cell-left">
-                                        <span className="patient-name-bold">{scannedPatient.name}</span>
-                                    </div>
-                                    <div className="grid-cell cell-right">
-                                        <span className="status-badge opd-badge">OPD</span>
-                                    </div>
-                                    <div className="grid-cell cell-left">
-                                        <span className="info-label-inline">Age / Gender:</span>
-                                        <span className="info-value-inline text-black">{scannedPatient.age} / {scannedPatient.gender}</span>
-                                    </div>
-                                    <div className="grid-cell cell-right">
-                                        <span className="info-label-inline">Doctor:</span>
-                                        <span className="info-value-inline text-black">{scannedPatient.doctor}</span>
-                                    </div>
-                                    <div className="grid-cell cell-left">
-                                        <span className="info-label-inline">PTN ID:</span>
-                                        <span className="info-value-inline text-black">#{scannedPatient.uhid.replace('PTN-', '')}</span>
-                                    </div>
-                                    <div className="grid-cell cell-right">
-                                        <span className="info-label-inline">Last Visit:</span>
-                                        <span className="info-value-inline text-black">{scannedPatient.discharge}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-
                     {!isPatientsLoading && displayedPatients.length === 0 ? (
-                        <div className="no-results">No patients found</div>
+                        <div className="no-results">No patients matching your search</div>
                     ) : (
                         displayedPatients.map((patient) => (
                             <div key={patient.id} className="patient-card" onClick={() => onSelectPatient && onSelectPatient(patient)}>
@@ -438,66 +380,22 @@ function PatientList({
                 </div>
             </div>
 
-            {/* {isFilterOpen && (
-                <div className="adv-overlay" onClick={() => setIsFilterOpen(false)}>
-                    <div className="adv-modal" onClick={e => e.stopPropagation()}>
-                        <div className="adv-header">
-                            <span className="adv-title">Advance Search</span>
-                            <button className="adv-close" onClick={() => setIsFilterOpen(false)}>✕</button>
-                        </div>
-                        <div className="adv-field">
-                            <label className="adv-label">Patient Number</label>
-                            <div className="adv-input-row">
-                                <input className="adv-input" placeholder="Enter" value={filterPtnNo} onChange={e => setFilterPtnNo(e.target.value)} />
-                                <button className="adv-scan-btn" onClick={() => openScanner('filter')}>{QR_ICON}</button>
-                            </div>
-                        </div>
-                        <div className="adv-row-2">
-                            <div className="adv-field">
-                                <label className="adv-label">First Name</label>
-                                <input className="adv-input" placeholder="Enter" value={filterFirst} onChange={e => setFilterFirst(e.target.value)} />
-                            </div>
-                            <div className="adv-field">
-                                <label className="adv-label">Last Name</label>
-                                <input className="adv-input" placeholder="Enter" value={filterLast} onChange={e => setFilterLast(e.target.value)} />
-                            </div>
-                        </div>
-                        <div className="adv-field">
-                            <label className="adv-label">Mobile Number</label>
-                            <input className="adv-input" placeholder="+91" value={filterMobile} onChange={e => setFilterMobile(e.target.value)} />
-                        </div>
-                        <div className="adv-actions">
-                            <button className="adv-btn-clear" onClick={clearFilter}>Clear</button>
-                            <button className="adv-btn-apply" onClick={applyFilter}>Show Results</button>
-                        </div>
-                    </div>
-                </div>
-            )} */}
-
             {isScannerOpen && (
                 <div className="scanner-modal-overlay">
                     <div className="scanner-modal">
                         <button className="close-scanner" onClick={() => setIsScannerOpen(false)}>×</button>
                         <div className="scanner-view">
                             <h3 className="scanner-instructions">Scan Patient ID</h3>
-                            {!isMobile ? (
-                                <div style={{ color: '#ef4444', marginTop: '20px', padding: '15px', background: '#fee2e2', borderRadius: '8px', textAlign: 'center', fontWeight: '500' }}>
-                                    Please use a mobile or tablet device to use the camera scanning feature.
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#000', borderRadius: '12px' }}>
-                                        {scannerError ? (
-                                            <div style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{scannerError}</div>
-                                        ) : (
-                                            <div id="reader-patient" style={{ width: '100%', height: '100%' }}></div>
-                                        )}
-                                    </div>
-                                    <div className="scanner-actions">
-                                        <p className="scan-btn-hint">Point camera at Patient QR Code</p>
-                                    </div>
-                                </>
-                            )}
+                            <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#000', borderRadius: '12px' }}>
+                                {scannerError ? (
+                                    <div style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{scannerError}</div>
+                                ) : (
+                                    <div id="reader-patient" style={{ width: '100%', height: '100%' }}></div>
+                                )}
+                            </div>
+                            <div className="scanner-actions">
+                                <p className="scan-btn-hint">Point camera at Patient QR Code</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -536,7 +434,6 @@ function PatientList({
                     </div>
                 </div>
             )}
-
         </div>
     );
 }

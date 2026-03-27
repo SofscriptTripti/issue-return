@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Login from "./Login";
 import PatientList from "./PatientList";
 import AddMed from "./AddMed";
@@ -63,9 +63,9 @@ function App() {
     }
   };
 
-  const fetchPatients = async (ptnTypFlg) => {
+  const fetchPatients = useCallback(async (ptnTypFlg) => {
     setIsPatientsLoading(true);
-    setApiPatients([]);
+    // Removed setApiPatients([]) to prevent flickering while loading
     try {
       let response;
       if (ptnTypFlg === "I") {
@@ -84,7 +84,7 @@ function App() {
     } finally {
       setIsPatientsLoading(false);
     }
-  };
+  }, []);
 
   // On mount: restore session if token exists
   useEffect(() => {
@@ -177,6 +177,30 @@ function App() {
     }
   };
 
+  const handlePatientSearch = useCallback(async (searchTerm) => {
+    console.log("App.jsx handlePatientSearch called with:", searchTerm);
+    if (!searchTerm || searchTerm.trim() === "") {
+      console.log("Empty search term, fetching default list...");
+      fetchPatients(savedPtnTypFlg);
+      return;
+    }
+
+    setIsPatientsLoading(true);
+    try {
+      console.log(`API Searching for: "${searchTerm}"...`);
+      const response = await authService.getOutPatients(searchTerm);
+      console.log("Search API Result received:", response);
+      
+      const data = response.data || (Array.isArray(response) ? response : []);
+      setApiPatients(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to search patients:", err);
+      setApiPatients([]);
+    } finally {
+      setIsPatientsLoading(false);
+    }
+  }, [fetchPatients, savedPtnTypFlg]);
+
   return (
     <>
       {(currentScreen === "login" || currentScreen === "storeSelection") && (
@@ -206,6 +230,7 @@ function App() {
           onStoreTypeChange={setStoreType}
           apiPatients={apiPatients}
           isPatientsLoading={isPatientsLoading}
+          onSearch={handlePatientSearch}
         />
       )}
       {currentScreen === "addMed" && (
