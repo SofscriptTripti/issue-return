@@ -88,20 +88,20 @@ function PatientList({
                     const config = { fps: 10, qrbox: { width: 250, height: 240 } };
 
                     await html5QrCode.start(
-                        { facingMode: "environment" }, 
-                        config, 
+                        { facingMode: "environment" },
+                        config,
                         (decodedText) => {
                             console.log("Patient Scan result: ", decodedText);
                             setSearchTerm(decodedText);
                             if (onSearch) onSearch(decodedText);
-                            
+
                             // Stop scanner on success
                             if (html5QrCode) {
                                 html5QrCode.stop().then(() => {
                                     if (isMounted) setIsScannerOpen(false);
                                 }).catch(console.error);
                             }
-                        }, 
+                        },
                         (errorMessage) => { /* ignore normal decode noise */ }
                     );
                 } catch (err) {
@@ -182,13 +182,13 @@ function PatientList({
                         name: cc.ccDescriprion || "Unnamed Cost Center",
                         ptnTypFlg: cc.ptnTypFlg || "O"
                     }));
-                    
+
                     if (mappedCC.length === 1) {
                         onStoreAndCCChange(store, mappedCC[0]);
                         setIsDropdownOpen(false);
                     } else {
                         setCostCenters(mappedCC);
-                        onStoreAndCCChange(store, null); 
+                        onStoreAndCCChange(store, null);
                     }
                 } else {
                     setErroredStoreId(store.id);
@@ -218,10 +218,17 @@ function PatientList({
             setShowNoCameraModal(true);
             return;
         }
-        setShowPermissionSplash(true);
+
+        // Skip splash if already accepted during this session
+        if (localStorage.getItem('cameraPermissionAccepted') === 'true') {
+            confirmPermission();
+        } else {
+            setShowPermissionSplash(true);
+        }
     };
 
     const confirmPermission = () => {
+        localStorage.setItem('cameraPermissionAccepted', 'true');
         setShowPermissionSplash(false);
         setScannerError('');
         setIsScannerOpen(true);
@@ -235,13 +242,13 @@ function PatientList({
     const getDisplayedPatients = () => {
         return apiPatients.map((p, idx) => {
             const formatVal = (val) => (val && val !== "." && String(val).trim() !== "") ? val : "-";
-            
+
             // Prefer the backend's pre-formatted Full Name if available
             const fullNameFallback = [p.ptnFName, p.ptnMName, p.ptnLName]
                 .filter(part => part && part.trim() !== "." && part.trim() !== "")
                 .map(part => part.trim())
                 .join(" ");
-            
+
             const displayTitle = formatVal(p.ptnFullLName) !== "-" ? p.ptnFullLName : (fullNameFallback || "-");
 
             return {
@@ -301,15 +308,15 @@ function PatientList({
                                                 className={`dropdown-item ${selectedStore === store.name ? 'selected' : ''}`}
                                                 onClick={(e) => handleStoreSelect(e, store)}
                                             >
-                                                <div className="store-item-row" style={{display:'flex', alignItems:'center', gap:10}}>
+                                                <div className="store-item-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                     <span className="store-indicator" style={{ background: store.color }}></span>
-                                                    <div className="store-text-stack" style={{display:'flex', flexDirection:'column'}}>
+                                                    <div className="store-text-stack" style={{ display: 'flex', flexDirection: 'column' }}>
                                                         <span className="store-option-name">{store.name}</span>
                                                         {erroredStoreId === store.id && (
-                                                            <span style={{fontSize:'10px', color:'#ef4444', fontWeight:600}}>No Cost Center available</span>
+                                                            <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>No Cost Center available</span>
                                                         )}
                                                         {isLoadingCC && !costCenters.length && !erroredStoreId && (
-                                                            <span style={{fontSize:'10px', color:'#94a3b8'}}>Checking...</span>
+                                                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>Checking...</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -393,7 +400,7 @@ function PatientList({
                                         </div>
                                         <div className="grid-cell cell-left">
                                             <span className="info-label-inline">PTN ID:</span>
-                                            <span className="info-value-inline text-black">#{patient.ptnNo}</span>
+                                            <span className="info-value-inline text-black">{patient.ptnNo}</span>
                                         </div>
                                         <div className="grid-cell cell-right">
                                             <span className="info-label-inline">Patient No:</span>
@@ -485,7 +492,7 @@ function PatientList({
                 <div className="adv-overlay" onClick={() => setShowPermissionSplash(false)}>
                     <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 360, padding: '40px 30px' }}>
                         <div style={{ marginBottom: 20 }}>
-                            <div style={{ 
+                            <div style={{
                                 background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
                                 width: 70, height: 70, borderRadius: 20, margin: '0 auto',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -499,7 +506,7 @@ function PatientList({
                         </div>
                         <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1e3a8a', marginBottom: 12 }}>Inventory Basket</h2>
                         <p style={{ fontSize: 16, fontWeight: 600, color: '#64748b', marginBottom: 30, lineHeight: 1.6 }}>
-                            Inventory Basket needs your <br/> camera permission to scan QR codes.
+                            Inventory Basket needs your <br /> camera permission to scan QR codes.
                         </p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <button

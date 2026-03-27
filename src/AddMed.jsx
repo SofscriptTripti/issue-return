@@ -286,10 +286,17 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             setShowNoCameraModal(true);
             return;
         }
-        setShowPermissionSplash(true);
+
+        // Skip splash if already accepted during this session
+        if (localStorage.getItem('cameraPermissionAccepted') === 'true') {
+            confirmPermission();
+        } else {
+            setShowPermissionSplash(true);
+        }
     };
 
     const confirmPermission = () => {
+        localStorage.setItem('cameraPermissionAccepted', 'true');
         setShowPermissionSplash(false);
         setScannerError('');
         setIsScannerOpen(true);
