@@ -62,7 +62,6 @@ function PatientList({
     const [activeFilters, setActiveFilters] = useState(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showNoCameraModal, setShowNoCameraModal] = useState(false);
-    const [showPermissionSplash, setShowPermissionSplash] = useState(false);
 
     // Hardware-aware Camera Check
     const checkBackCamera = async () => {
@@ -247,17 +246,6 @@ function PatientList({
             return;
         }
 
-        // Skip splash if already accepted during this session
-        if (sessionStorage.getItem('cameraPermissionAccepted') === 'true') {
-            confirmPermission();
-        } else {
-            setShowPermissionSplash(true);
-        }
-    };
-
-    const confirmPermission = () => {
-        sessionStorage.setItem('cameraPermissionAccepted', 'true');
-        setShowPermissionSplash(false);
         setScannerError('');
         setIsScannerOpen(true);
     };
@@ -532,53 +520,6 @@ function PatientList({
                         >
                             GOT IT
                         </button>
-                    </div>
-                </div>
-            )}
-            {showPermissionSplash && (
-                <div className="adv-overlay" onClick={() => setShowPermissionSplash(false)}>
-                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 360, padding: '40px 30px' }}>
-                        <div style={{ marginBottom: 20 }}>
-                            <div style={{
-                                background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
-                                width: 70, height: 70, borderRadius: 20, margin: '0 auto',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: '0 10px 20px rgba(0, 108, 230, 0.2)'
-                            }}>
-                                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                                    <circle cx="12" cy="13" r="4"></circle>
-                                </svg>
-                            </div>
-                        </div>
-                        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1e3a8a', marginBottom: 12 }}>Inventory Basket</h2>
-                        <p style={{ fontSize: 16, fontWeight: 600, color: '#64748b', marginBottom: 30, lineHeight: 1.6 }}>
-                            Inventory Basket needs your <br /> camera permission to scan QR codes.
-                        </p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <button
-                                onClick={confirmPermission}
-                                style={{
-                                    width: '100%', padding: '16px', borderRadius: 14,
-                                    border: 'none', background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
-                                    color: '#fff', fontWeight: 800, fontSize: 16, cursor: 'pointer',
-                                    boxShadow: '0 8px 20px rgba(0, 108, 230, 0.25)',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                Allow Camera
-                            </button>
-                            <button
-                                onClick={() => setShowPermissionSplash(false)}
-                                style={{
-                                    width: '100%', padding: '14px', borderRadius: 14,
-                                    border: '1px solid #dae8f7', background: '#f8fbff',
-                                    color: '#005bb7', fontWeight: 700, fontSize: 14, cursor: 'pointer'
-                                }}
-                            >
-                                Not Now
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}
