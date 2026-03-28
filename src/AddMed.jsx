@@ -232,13 +232,16 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         setTimeout(() => setLastScanned(null), 2000);
     };
 
-    const handleAddMedicine = async (med, targetBatch = null) => {
-        if (medicines.some(m => m.id === med.id)) {
+    const handleAddMedicine = async (med, targetBatch = null, isSilent = false) => {
+        // Only prevent adding if the EXACT SAME medicine ID is already present (regardless of batch)
+        // unless we want to allow multiple batches of same med. 
+        // For now keep your current logic but adapt for silent scan.
+        if (!isSilent && medicines.some(m => (m.itemCd || m.id) === med.id)) {
             showToast(`${med.name} is already in your list.`);
             return;
         }
 
-        console.log("Medicine selected, fetching batches:", med.id);
+        console.log(`Medicine ${isSilent ? 'scanned' : 'selected'}, fetching batches:`, med.id);
         setIsFetchingBatch(true);
         setSearchTerm('');
         setSearchItems([]);
@@ -250,14 +253,53 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             
             const batches = response.data || (Array.isArray(response) ? response : []);
             if (Array.isArray(batches) && batches.length > 0) {
+                // SILENT BACKGROUND ADD (FOR QR SCANS)
+                if (isSilent && targetBatch) {
+                    const foundBatch = batches.find(b => (b.bchNo || b.batchNo) === targetBatch);
+                    if (foundBatch) {
+                         const newItem = {
+                            id: Date.now() + Math.random(),
+                            itemCd: med.id,
+                            name: med.name,
+                            sub: med.sub,
+                            batch: targetBatch,
+                            expiry: foundBatch.expiryDate || "N/A",
+                            price: parseFloat(foundBatch.trnRate || foundBatch.trnSellPrice || med.price || 0),
+                            currQty: parseFloat(foundBatch.qty || foundBatch.currQty || 0),
+                            quantity: 1,
+                            shelf: med.shelf || "N/A",
+                            rack: med.rack || "N/A",
+                            stockingUnit: parseFloat(foundBatch.qty || foundBatch.currQty || 0)
+                        };
+
+                        setMedicines(prev => {
+                            // Check if this specific batch already exists in cart
+                            const existingIdx = prev.findIndex(m => m.itemCd === newItem.itemCd && m.batch === newItem.batch);
+                            if (existingIdx !== -1) {
+                                const updated = [...prev];
+                                updated[existingIdx] = { 
+                                    ...updated[existingIdx], 
+                                    quantity: Math.min(updated[existingIdx].quantity + 1, newItem.currQty) 
+                                };
+                                return updated;
+                            }
+                            return [newItem, ...prev];
+                        });
+
+                        // Feedback
+                        setShowQuickSuccess(true);
+                        setTimeout(() => setShowQuickSuccess(false), 1200);
+                        return; // Done
+                    }
+                }
+
+                // If not silent or batch not found, open the batch modal as usual
                 setAvailableBatches(batches);
                 setSelectedMedForBatch(med);
                 
-                // Initialize batchSelections
                 const initialSelections = {};
                 batches.forEach(b => {
                     const bchKey = b.bchNo || b.batchNo || "no-batch";
-                    // If this was scanned, auto-set quantity to 1 for that specific batch
                     initialSelections[bchKey] = (targetBatch && bchKey === targetBatch) ? 1 : 0;
                 });
                 setBatchSelections(initialSelections);
@@ -268,7 +310,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 setShowBatchModal(true);
                 batchModalOpened = true;
             } else {
-                showToast("No stock available for this medicine.");
+                showToast("No stock available.");
             }
         } catch (err) {
             console.error("Failed to load batches:", err);
@@ -350,12 +392,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     stockingUnit: parseFloat(main.currQty || extra.currQty || 0)
                 };
 
-                // Move to batch selection step, passing the specific batch from mainData if exists
-                await handleAddMedicine(mapped, main.bchNo || null);
-                
-                // Show Quick Success Modal
-                setShowQuickSuccess(true);
-                setTimeout(() => setShowQuickSuccess(false), 1200);
+                // TRUE = Silent Scan (Background Add)
+                await handleAddMedicine(mapped, main.bchNo || null, true);
                 
                 console.log("Captured Successful Barcode:", barCd);
             } else {
