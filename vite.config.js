@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  base: '/Meditrack/',
   plugins: [
     react(),
     VitePWA({
@@ -15,22 +16,23 @@ export default defineConfig({
         background_color: "#0f172a",
         display: "standalone",
         orientation: "portrait",
-        start_url: "/",
+        start_url: "/Meditrack/",
 
 
 
         "icons": [
           {
-            src: "./medical-192.jpg",
+            src: "medical-192.png",
             sizes: "192x192",
-            type: "image/jpeg"
+            type: "image/png",
+            purpose: "any maskable"
           },
           {
-            src: "./medical-512.jpg",
+            src: "medical-512.jpg",
             sizes: "512x512",
-            type: "image/jpeg"
+            type: "image/jpeg",
+            purpose: "any maskable"
           }
-
         ]
 
       }

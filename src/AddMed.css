@@ -1057,3 +1057,331 @@
         transform: scale(1) translateY(0);
     }
 }
+
+/* Batch Modal Styles */
+.batch-modal-overlay {
+    background: rgba(0, 30, 60, 0.4);
+    backdrop-filter: blur(12px); /* Premium glass effect */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.batch-modal {
+    background: #ffffff;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 500px; /* More compact for focus */
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 50, 100, 0.25);
+    position: relative;
+    border: 1px solid rgba(0, 108, 230, 0.1);
+    animation: modalPopUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPopUp {
+    from { opacity: 0; transform: scale(0.9) translateY(40px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.batch-header {
+    background: linear-gradient(135deg, #005bb7, #0082fb);
+    color: white;
+    padding: 22px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.batch-title {
+    font-size: 19px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+.batch-close {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+    font-weight: 700;
+}
+
+.batch-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg) scale(1.1);
+}
+
+.batch-med-info {
+    padding: 18px 24px;
+    background: #f8fbff;
+    border-bottom: 1.5px solid #edf2f7;
+}
+
+.batch-med-name {
+    font-size: 17px;
+    font-weight: 800;
+    color: #0c1e4c;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.batch-med-sub {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.batch-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    background: #ffffff;
+}
+
+/* Custom Scrollbar */
+.batch-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+.batch-list-container::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.batch-item-card {
+    background: white;
+    border: 1.5px solid #f1f5f9;
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.25s ease;
+}
+
+.batch-item-card:hover {
+    border-color: #0082fb;
+    background: #fafcff;
+    transform: translateX(4px);
+}
+
+.batch-item-card.has-qty {
+    border-color: #10b981;
+    background: #f0fdfa;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.08);
+}
+
+/* Unified Batch Header */
+.batch-header-unified {
+    background: linear-gradient(135deg, #005bb7, #0082fb);
+    color: white;
+    padding: 12px 20px 16px 20px;
+}
+
+.batch-header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.batch-close-new {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+    font-weight: 700;
+}
+
+.batch-close-new:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: rotate(90deg);
+}
+
+.batch-med-details-white {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.batch-med-name-white {
+    font-size: 18px;
+    font-weight: 800;
+    color: #ffffff;
+    display: block;
+    letter-spacing: -0.2px;
+}
+
+.med-info-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.med-sub-dose-white {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.total-units-badge-white {
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+}
+
+.batch-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    background: #ffffff;
+}
+
+/* Custom Scrollbar */
+.batch-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+.batch-list-container::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.batch-item-card {
+    background: white;
+    border: 1.5px solid #f1f5f9;
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.25s ease;
+}
+
+.batch-item-card:hover {
+    border-color: #0082fb;
+    background: #fafcff;
+}
+
+.batch-item-card.has-qty {
+    border-color: #10b981;
+    background: #f0fdfa;
+}
+
+.batch-data-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+.batch-kw {
+    font-size: 13px;
+    color: #94a3b8;
+    font-weight: 700;
+    width: 60px;
+}
+
+.batch-val {
+    font-size: 14px;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.batch-price-row-mini {
+    display: inline-block;
+}
+
+.batch-price-val {
+    color: #059669;
+    background: #ecfdf5;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.batch-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.batch-add-footer {
+    padding: 16px 24px;
+    background: #ffffff;
+    border-top: 1.5px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+}
+
+.batch-count-val {
+    font-size: 19px;
+    font-weight: 950;
+    color: #0c1e4c;
+}
+
+.batch-confirm-btn {
+    flex: 1;
+    background: linear-gradient(135deg, #006ce6, #00a3ff);
+    color: white;
+    border: none;
+    height: 38px !important;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 108, 230, 0.2);
+    transition: all 0.15s;
+}
+
+.batch-confirm-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 108, 230, 0.3);
+}
+
+.batch-confirm-btn:active:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.batch-confirm-btn:disabled {
+    background: #f1f5f9;
+    color: #94a3b8;
+    box-shadow: none;
+    cursor: not-allowed;
+}

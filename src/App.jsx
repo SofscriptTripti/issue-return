@@ -9,9 +9,9 @@ const STORE_COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#ef4444', '#f59e0b', '#8
 const SESSION_KEY = "app_session";
 
 function App() {
-  // Restore session from localStorage on first render
+  // Restore session from sessionStorage on first render
   const savedSession = (() => {
-    try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || {}; } catch { return {}; }
+    try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)) || {}; } catch { return {}; }
   })();
 
   const [currentScreen, setCurrentScreen] = useState(savedSession.screen || "login");
@@ -27,7 +27,7 @@ function App() {
   const [apiPatients, setApiPatients] = useState([]);
   const [isPatientsLoading, setIsPatientsLoading] = useState(false);
 
-  // Save session to localStorage whenever key values change
+  // Save session to sessionStorage whenever key values change
   useEffect(() => {
     const session = {
       screen: currentScreen,
@@ -38,7 +38,7 @@ function App() {
       ptnTypFlg: savedPtnTypFlg,
       selectedPatient,
     };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }, [currentScreen, selectedStoreName, selectedStoreCd, selectedCostCenter, selectedCCCd, selectedPatient]);
 
   const fetchStores = async () => {
@@ -88,7 +88,7 @@ function App() {
 
   // On mount: restore session if token exists
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
+    const token = sessionStorage.getItem("authToken");
     if (!token) {
       // No token — reset to login
       setCurrentScreen("login");
@@ -139,11 +139,12 @@ function App() {
 
   const handleLogout = () => {
     // Clear ALL localStorage to ensure no credentials or sessions persist
-    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.clear(); // Keep clearing localStorage too just in case old data exists
 
     // Force a full page reload to the root URL
     // This is the most reliable way to clear all in-memory React states
-    window.location.href = "/";
+    window.location.href = "/Meditrack/";
   };
 
   const handleSelectPatient = (patient) => {
@@ -190,7 +191,7 @@ function App() {
       console.log(`API Searching for: "${searchTerm}"...`);
       const response = await authService.getOutPatients(searchTerm);
       console.log("Search API Result received:", response);
-      
+
       const data = response.data || (Array.isArray(response) ? response : []);
       setApiPatients(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -204,7 +205,7 @@ function App() {
   return (
     <>
       {(currentScreen === "login" || currentScreen === "storeSelection") && (
-        <Login 
+        <Login
           onLoginSuccess={handleLoginSuccess}
         />
       )}

@@ -26,7 +26,8 @@ function Login({ onLoginSuccess }) {
       // If the API call is successful, proceed to store selection
       if (response && (response.token || response.access_token)) {
         // Save the token for future authenticated requests
-        localStorage.setItem("authToken", response.token || response.access_token);
+        sessionStorage.setItem("authToken", response.token || response.access_token);
+        sessionStorage.setItem("username", username);
         
         // Reset and hide modal so it's clean if we ever come back
         setShowLoginModal(false);
@@ -88,7 +89,7 @@ function Login({ onLoginSuccess }) {
 
         <div className="hero-image-container">
           <div className="hero-doctor-wrapper">
-            <img src="/Doctor.png" alt="Pharmacist" className="hero-doctor" />
+            <img src={`${import.meta.env.BASE_URL}Doctor.png`} alt="Pharmacist" className="hero-doctor" />
           </div>
         </div>
       </div>

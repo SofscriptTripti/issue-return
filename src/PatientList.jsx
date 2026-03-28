@@ -66,12 +66,26 @@ function PatientList({
 
     // Hardware-aware Camera Check
     const checkBackCamera = async () => {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return false;
+        // Mobile browsers often block enumeration until permission, or if on HTTP.
+        const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isSecure = window.isSecureContext;
+
+        if (!navigator.mediaDevices) {
+            console.warn("Scanner: navigator.mediaDevices NOT found.");
+            // Assume hardware exists if mobile but browser is likely blocking (Insecure context?)
+            return isMobileOrTablet;
+        }
+
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
-            return devices.some(device => device.kind === 'videoinput');
+            const hasVideo = devices.some(device => device.kind === 'videoinput');
+            
+            // On mobile, if no video found yet, still return true to allow permission pop up
+            if (!hasVideo && isMobileOrTablet) return true;
+            
+            return hasVideo;
         } catch (e) {
-            return false;
+            return isMobileOrTablet;
         }
     };
 
@@ -220,7 +234,7 @@ function PatientList({
         }
 
         // Skip splash if already accepted during this session
-        if (localStorage.getItem('cameraPermissionAccepted') === 'true') {
+        if (sessionStorage.getItem('cameraPermissionAccepted') === 'true') {
             confirmPermission();
         } else {
             setShowPermissionSplash(true);
@@ -228,7 +242,7 @@ function PatientList({
     };
 
     const confirmPermission = () => {
-        localStorage.setItem('cameraPermissionAccepted', 'true');
+        sessionStorage.setItem('cameraPermissionAccepted', 'true');
         setShowPermissionSplash(false);
         setScannerError('');
         setIsScannerOpen(true);
@@ -470,20 +484,39 @@ function PatientList({
             )}
             {showNoCameraModal && (
                 <div className="adv-overlay" onClick={() => setShowNoCameraModal(false)}>
-                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 360 }}>
-                        <p style={{ fontSize: 16, fontWeight: 700, color: '#1e3a8a', marginBottom: 24, lineHeight: 1.6 }}>
-                            You don't have Back Camera. Please use device with Back Camera
+                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 380, padding: '30px 24px' }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📷</div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px' }}>Camera Not Found</h3>
+                        <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '24px', lineHeight: 1.5 }}>
+                            We couldn't detect a camera on this device.
                         </p>
+                        
+                        {!window.isSecureContext && (
+                            <div style={{ 
+                                background: '#fff9eb', 
+                                border: '1px solid #ffde8a', 
+                                padding: '14px', 
+                                borderRadius: '12px', 
+                                marginBottom: '24px', 
+                                textAlign: 'left' 
+                            }}>
+                                <span style={{ fontWeight: 800, color: '#9a6b00', fontSize: '13px', display: 'block', marginBottom: '4px' }}>⚠️ HTTPS Required</span>
+                                <p style={{ fontSize: '12px', color: '#966900', margin: 0, lineHeight: 1.4 }}>
+                                    Modern mobile browsers **block** camera access over insecure (HTTP) connections. Please use **HTTPS** to enable scanning.
+                                </p>
+                            </div>
+                        )}
+                        
                         <button
                             onClick={() => setShowNoCameraModal(false)}
                             style={{
-                                width: '100%', padding: '14px', borderRadius: 12,
-                                border: 'none', background: '#006ce6',
+                                width: '100%', padding: '16px', borderRadius: 14,
+                                border: 'none', background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
                                 color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-                                boxShadow: '0 4px 12px rgba(0,108,230,0.2)'
+                                boxShadow: '0 8px 16px rgba(0,108,230,0.2)'
                             }}
                         >
-                            OK
+                            GOT IT
                         </button>
                     </div>
                 </div>

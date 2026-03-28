@@ -9,8 +9,8 @@ import { BASE_URL } from "./config";
 const apiClient = async (endpoint, options = {}) => {
   const url = `${BASE_URL}${endpoint}`;
 
-  // Get token from localStorage
-  const token = localStorage.getItem("authToken");
+  // Get token from sessionStorage
+  const token = sessionStorage.getItem("authToken");
 
   const defaultHeaders = {
     "Content-Type": "application/json",

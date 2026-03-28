@@ -9,10 +9,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [medicines, setMedicines] = useState(() => {
-        // Load saved cart from localStorage on first render
+        // Load saved cart from sessionStorage on first render
         try {
             if (!patient) return [];
-            const saved = localStorage.getItem(`med_cart_${patient.ptnNo}`);
+            const saved = sessionStorage.getItem(`med_cart_${patient.ptnNo}`);
             if (saved) {
                 const parsed = JSON.parse(saved);
                 console.log(`Loaded saved cart for PTN ${patient.ptnNo}:`, parsed);
@@ -32,6 +32,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [toasts, setToasts] = useState([]);
     const [showNoCameraModal, setShowNoCameraModal] = useState(false);
     const [showPermissionSplash, setShowPermissionSplash] = useState(false);
+    const [voucherNo, setVoucherNo] = useState('');
+    
+    // Batch Selection Modal States
+    const [showBatchModal, setShowBatchModal] = useState(false);
+    const [availableBatches, setAvailableBatches] = useState([]);
+    const [selectedMedForBatch, setSelectedMedForBatch] = useState(null);
+    const [batchSelections, setBatchSelections] = useState({}); // { batchKey: quantity }
 
     const showToast = (message) => {
         setToasts(prev => {
@@ -48,15 +55,32 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
     const [scannerError, setScannerError] = useState('');
     const html5QrCodeRef = useRef(null);
+    const medSearchInputRef = useRef(null);
 
     // Hardware-aware Camera Check
     const checkBackCamera = async () => {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return false;
+        // Many mobile browsers block enumeration or return empty until permission is granted.
+        // Also, navigator.mediaDevices is only available in Secure Contexts (HTTPS/localhost).
+        const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isSecure = window.isSecureContext;
+
+        if (!navigator.mediaDevices) {
+            console.warn("Scanner: navigator.mediaDevices NOT found.");
+            // If we are on mobile/tablet, it definitely has a camera, 
+            // but the browser is blocking it (likely due to HTTP vs HTTPS).
+            return isMobileOrTablet; 
+        }
+
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
-            return devices.some(device => device.kind === 'videoinput');
+            const hasVideo = devices.some(device => device.kind === 'videoinput');
+            
+            // If enumeration is empty but we're on mobile, trust the hardware and try anyway
+            if (!hasVideo && isMobileOrTablet) return true;
+            
+            return hasVideo;
         } catch (e) {
-            return false;
+            return isMobileOrTablet; // Fallback for mobile
         }
     };
 
@@ -117,14 +141,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         }
     }, [isScannerOpen]);
 
-    // Auto-save cart to localStorage whenever medicines change
+    // Auto-save cart to sessionStorage whenever medicines change
     useEffect(() => {
         if (!cartKey) return;
         if (medicines.length > 0) {
-            localStorage.setItem(cartKey, JSON.stringify(medicines));
+            sessionStorage.setItem(cartKey, JSON.stringify(medicines));
             console.log(`Cart saved for PTN ${patient.ptnNo}:`, medicines);
         } else {
-            localStorage.removeItem(cartKey);
+            sessionStorage.removeItem(cartKey);
         }
     }, [medicines]);
 
@@ -146,7 +170,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             currQty: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0,
                             shelf: item.shelf_No || "N/A",
                             rack: item.rack_No || "N/A",
-                            price: parseFloat(item.trnSellPrice || item.trnMRP || 0),
+                            price: parseFloat(item.trnRate || item.trnSellPrice || item.trnMRP || 0),
                             expiry: item.expiryDate || "N/A",
                             batch: item.bchNo || item.itemCd,
                             stockingUnit: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0
@@ -203,84 +227,50 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
 
     const handleAddMedicine = async (med) => {
-        console.log("Selected Medicine from Search:", med);
+        console.log("Medicine selected, fetching batches:", med.id);
         setIsFetchingBatch(true);
         setSearchTerm('');
         setSearchItems([]);
+        
+        let batchModalOpened = false;
         try {
-            // Fetch batch details for this specific item
-            const batchResponse = await authService.getItemBatchList(storeCd, med.id);
-            const batches = batchResponse.data || (Array.isArray(batchResponse) ? batchResponse : []);
-            const firstBatch = Array.isArray(batches) && batches.length > 0 ? batches[0] : null;
-
-            console.log("Batch details for", med.id, ":", batches);
-
-            const newItem = {
-                id: Date.now(),
-                itemCd: med.id,
-                name: med.name,
-                sub: med.sub,
-                dose: med.dose,
-                currQty: firstBatch ? parseFloat(firstBatch.qty !== undefined ? firstBatch.qty : (firstBatch.currQty || firstBatch.batchQty || 0)) : med.currQty,
-                expiry: firstBatch ? (firstBatch.expiryDate || firstBatch.expDt || med.expiry) : med.expiry,
-                batch: firstBatch ? (firstBatch.bchNo || firstBatch.batchNo || firstBatch.batch || med.batch) : med.batch,
-                price: firstBatch ? parseFloat(firstBatch.trnSellPrice || firstBatch.trnMRP || firstBatch.mrp || firstBatch.rate || med.price) : med.price,
-                stockingUnit: firstBatch ? parseFloat(firstBatch.qty !== undefined ? firstBatch.qty : (firstBatch.currQty || firstBatch.batchQty || 1)) : med.stockingUnit,
-                quantity: 1
-            };
-            setMedicines(prev => {
-                const maxQty = newItem.currQty !== undefined && newItem.currQty !== null ? newItem.currQty : (newItem.stockingUnit || 999999);
-                const existingIndex = prev.findIndex(m => m.itemCd === newItem.itemCd && m.batch === newItem.batch && m.expiry === newItem.expiry);
-                
-                if (existingIndex !== -1) {
-                    const updated = [...prev];
-                    const currentMed = updated[existingIndex];
-                    if (currentMed.quantity + 1 <= maxQty) {
-                        updated[existingIndex] = { ...currentMed, quantity: currentMed.quantity + 1 };
-                    } else {
-                        showToast(`Oops! 😬 Item out of stock (${maxQty})`);
-                    }
-                    return updated;
+            const response = await authService.getItemBatchList(storeCd, med.id);
+            console.log("Batch API full response:", response);
+            
+            const batches = response.data || (Array.isArray(response) ? response : []);
+            if (Array.isArray(batches) && batches.length > 0) {
+                setAvailableBatches(batches);
+                setSelectedMedForBatch(med);
+                // Initialize batchSelections with 0 qtys
+                const initialSelections = {};
+                batches.forEach(b => {
+                    const bchKey = b.bchNo || b.batchNo || "no-batch";
+                    initialSelections[bchKey] = 0;
+                });
+                setBatchSelections(initialSelections);
+                if (document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
                 }
-                
-                if (1 <= maxQty) {
-                    return [newItem, ...prev];
-                } else {
-                    showToast(`Oops! 😬 Item out of stock (${maxQty})`);
-                    return prev;
-                }
-            });
+                setShowBatchModal(true);
+                batchModalOpened = true;
+            } else {
+                showToast("No stock available for this medicine.");
+            }
         } catch (err) {
-            console.error("Failed to fetch batch details:", err);
-            // Add medicine without batch details as fallback
-            const fallbackItem = { id: Date.now(), ...med, itemCd: med.id, quantity: 1 };
-            setMedicines(prev => {
-                const maxQty = fallbackItem.currQty !== undefined && fallbackItem.currQty !== null ? fallbackItem.currQty : (fallbackItem.stockingUnit || 999999);
-                const existingIndex = prev.findIndex(m => m.itemCd === fallbackItem.itemCd && m.batch === fallbackItem.batch && m.expiry === fallbackItem.expiry);
-                
-                if (existingIndex !== -1) {
-                    const updated = [...prev];
-                    const currentMed = updated[existingIndex];
-                    if (currentMed.quantity + 1 <= maxQty) {
-                        updated[existingIndex] = { ...currentMed, quantity: currentMed.quantity + 1 };
-                    } else {
-                        showToast(`Oops! 😬 Item out of stock (${maxQty})`);
-                    }
-                    return updated;
-                }
-                
-                if (1 <= maxQty) {
-                    return [fallbackItem, ...prev];
-                } else {
-                        showToast(`Oops! 😬 Item out of stock (${maxQty})`);
-                    return prev;
-                }
-            });
+            console.error("Failed to load batches:", err);
+            showToast("Failed to fetch medicine batches.");
         } finally {
             setIsFetchingBatch(false);
+            // Only focus if we didn't open the batch modal
+            if (!batchModalOpened && medSearchInputRef.current) {
+                medSearchInputRef.current.focus();
+            }
         }
     };
     const handleScannerClick = async () => {
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
         const hasCamera = await checkBackCamera();
         if (!hasCamera) {
             setShowNoCameraModal(true);
@@ -288,7 +278,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         }
 
         // Skip splash if already accepted during this session
-        if (localStorage.getItem('cameraPermissionAccepted') === 'true') {
+        if (sessionStorage.getItem('cameraPermissionAccepted') === 'true') {
             confirmPermission();
         } else {
             setShowPermissionSplash(true);
@@ -296,7 +286,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
 
     const confirmPermission = () => {
-        localStorage.setItem('cameraPermissionAccepted', 'true');
+        sessionStorage.setItem('cameraPermissionAccepted', 'true');
         setShowPermissionSplash(false);
         setScannerError('');
         setIsScannerOpen(true);
@@ -325,11 +315,61 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         setMedicines(medicines.filter(med => med.id !== id));
     };
 
+    const updateBatchSelection = (batchKey, change, maxQty) => {
+        setBatchSelections(prev => {
+            const current = prev[batchKey] || 0;
+            const newVal = current + change;
+            if (newVal < 0) return prev;
+            if (newVal > maxQty) {
+                showToast(`Oops! 😬 Only ${maxQty} available in this batch.`);
+                return prev;
+            }
+            return { ...prev, [batchKey]: newVal };
+        });
+    };
+
+    const commitBatchesToCart = () => {
+        if (!selectedMedForBatch) return;
+
+        const newItems = [];
+        availableBatches.forEach(batch => {
+            const bchKey = batch.bchNo || batch.batchNo || "no-batch";
+            const qty = batchSelections[bchKey] || 0;
+
+            if (qty > 0) {
+                newItems.push({
+                    id: Date.now() + Math.random(), // Unique ID for cart row
+                    itemCd: selectedMedForBatch.id,
+                    name: selectedMedForBatch.name,
+                    sub: selectedMedForBatch.sub,
+                    dose: selectedMedForBatch.dose,
+                    currQty: parseFloat(batch.qty !== undefined ? batch.qty : (batch.currQty || 0)),
+                    expiry: batch.expiryDate || batch.expDt || "N/A",
+                    batch: bchKey,
+                    price: parseFloat(batch.trnRate || batch.trnSellPrice || batch.trnMRP || 0),
+                    stockingUnit: parseFloat(batch.qty !== undefined ? batch.qty : 1),
+                    quantity: qty
+                });
+            }
+        });
+
+        if (newItems.length > 0) {
+            setMedicines(prev => [...newItems, ...prev]);
+            setShowBatchModal(false);
+            showToast(`${newItems.length} batch(es) added to cart!`);
+        } else {
+            showToast("Please select quantity for at least one batch.");
+        }
+    };
+
     const calculateTotal = () => {
         return medicines.reduce((total, med) => total + (med.price * med.quantity), 0);
     };
 
     const handleSave = () => {
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
         setShowConfirmModal(true);
     };
 
@@ -378,6 +418,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         type="text"
                         placeholder="Search medicines"
                         className="search-input"
+                        ref={medSearchInputRef}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -404,7 +445,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                     </div>
                                     <div className="res-meta">
                                         <div className="res-dose" style={{fontSize:'11px', color:'#888'}}>{med.dose}</div>
-                                        <div className="res-price" style={{fontSize:'12px', fontWeight:700, color:'#006ce6'}}>Qty: {med.currQty}</div>
+                                        <div className="res-stock" style={{fontSize:'11px', color:'#ef4444', fontWeight: 600}}>Qty: {med.currQty}</div>
                                     </div>
                                 </div>
                             ))
@@ -426,7 +467,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 <div className="medicines-list">
                     {medicines.length === 0 ? (
                         <div className="empty-state-container">
-                            <img src="/Medicine.gif" alt="Medicine Animation" className="empty-gif" />
+                            <img src={`${import.meta.env.BASE_URL}Medicine.gif`} alt="Medicine Animation" className="empty-gif" />
                             <div className="empty-state-text">No medicines added yet.</div>
                         </div>
                     ) : (
@@ -438,8 +479,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                     <div className="med-tags">
                                         {med.itemCd && <span className="med-tag" style={{background:'#e6f2ff', color:'#005bb7'}}>{med.itemCd}</span>}
                                     </div>
-                                    <div className="med-meta">
+                                    <div className="med-meta" style={{marginBottom: '5px'}}>
                                         Exp: {med.expiry} &nbsp;|&nbsp; Batch: {med.batch}
+                                    </div>
+                                    <div className="med-rate" style={{fontSize: '11px', color: '#059669', fontWeight: 700}}>
+                                        Rate: ₹{med.price.toFixed(2)}
                                     </div>
                                 </div>
                                 <div className="med-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
@@ -547,7 +591,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                                 <span className="confirm-med-name">{med.name}</span>
                                                 <span className="confirm-med-qty-badge">x{med.quantity}</span>
                                             </div>
-                                            <div className="confirm-med-dose">{med.dose} &nbsp;|&nbsp; Unit: {med.stockingUnit * med.quantity}</div>
+                                            <div className="confirm-med-dose">{med.dose} &nbsp;|&nbsp; Unit: {med.stockingUnit * med.quantity} &nbsp;|&nbsp; Rate: ₹{med.price.toFixed(2)}</div>
                                         </div>
                                     </div>
                                     <span className="confirm-med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
@@ -573,7 +617,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         strcd: parseInt(storeCd, 10),
                                         cstCntrTyp: 34,
                                         ccCd: parseInt(ccCd, 10),
-                                        userId: localStorage.getItem("username") || "sssl",
+                                        userId: sessionStorage.getItem("username") || "sssl",
                                         bedNo: patient.bedNo || "1234566",
                                         ptnNo: parseInt(patient.ptnNo, 10),
                                         items: medicines.map(med => ({
@@ -584,10 +628,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         }))
                                     };
                                     
-                                    await authService.addIssueHoldVch(payload);
+                                    const response = await authService.addIssueHoldVch(payload);
+                                    
+                                    // Capture the Voucher Number from API response data
+                                    const vch = response.data || (response.data && response.data.data) || "0000";
+                                    setVoucherNo(vch);
 
                                     // Clear the saved cart for this patient on confirm
-                                    if (cartKey) localStorage.removeItem(cartKey);
+                                    if (cartKey) sessionStorage.removeItem(cartKey);
                                     console.log(`Cart confirmed & cleared for PTN ${patient.ptnNo}`);
                                     setShowConfirmModal(false);
                                     setMedicines([]); // Clear current medicines from state
@@ -610,8 +658,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             {showSuccessModal && (
                 <div className="success-overlay">
                     <div className="success-modal-small">
-                        <div className="success-icon-wrap">✅</div>
-                        <h3 className="success-msg-text">Medicine Confirm Successfully</h3>
+                        {/* No Icon as requested */}
+                        <h3 className="success-msg-text" style={{fontSize: '15px', color: '#1e3a8a', padding: '10px 0'}}>
+                            Hold Voucher No ({voucherNo}) created successfully.
+                        </h3>
                         <button className="success-ok-btn" onClick={() => {
                             setShowSuccessModal(false);
                             onBack();
@@ -622,20 +672,39 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
             {showNoCameraModal && (
                 <div className="adv-overlay" onClick={() => setShowNoCameraModal(false)}>
-                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 360 }}>
-                        <p style={{ fontSize: 16, fontWeight: 700, color: '#1e3a8a', marginBottom: 24, lineHeight: 1.6 }}>
-                            You don't have Back Camera. Please use device with Back Camera
+                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 380, padding: '30px 24px' }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📷</div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px' }}>Camera Not Found</h3>
+                        <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '24px', lineHeight: 1.5 }}>
+                            We couldn't detect a camera on this device.
                         </p>
+                        
+                        {!window.isSecureContext && (
+                            <div style={{ 
+                                background: '#fff9eb', 
+                                border: '1px solid #ffde8a', 
+                                padding: '14px', 
+                                borderRadius: '12px', 
+                                marginBottom: '24px', 
+                                textAlign: 'left' 
+                            }}>
+                                <span style={{ fontWeight: 800, color: '#9a6b00', fontSize: '13px', display: 'block', marginBottom: '4px' }}>⚠️ HTTPS Required</span>
+                                <p style={{ fontSize: '12px', color: '#966900', margin: 0, lineHeight: 1.4 }}>
+                                    Modern mobile browsers **block** camera access over insecure (HTTP) connections. Please use **HTTPS** to enable scanning.
+                                </p>
+                            </div>
+                        )}
+                        
                         <button
                             onClick={() => setShowNoCameraModal(false)}
                             style={{
-                                width: '100%', padding: '14px', borderRadius: 12,
-                                border: 'none', background: '#006ce6',
+                                width: '100%', padding: '16px', borderRadius: 14,
+                                border: 'none', background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
                                 color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-                                boxShadow: '0 4px 12px rgba(0,108,230,0.2)'
+                                boxShadow: '0 8px 16px rgba(0,108,230,0.2)'
                             }}
                         >
-                            OK
+                            GOT IT
                         </button>
                     </div>
                 </div>
@@ -683,6 +752,89 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 }}
                             >
                                 Not Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Batch Selection Modal */}
+            {showBatchModal && (
+                <div className="batch-modal-overlay">
+                    <div className="batch-modal animated-modal" onClick={e => e.stopPropagation()}>
+                        {/* Unified Gradient Header */}
+                        <div className="batch-header-unified">
+                            <div className="batch-header-main-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <span className="batch-med-name-white" style={{ fontSize: '18px', fontWeight: '800' }}>
+                                    {selectedMedForBatch ? selectedMedForBatch.name : "Select Batch"}
+                                </span>
+                                <button className="batch-close-new" onClick={() => setShowBatchModal(false)}>✕</button>
+                            </div>
+
+                            {selectedMedForBatch && (
+                                <div className="batch-med-details-white">
+                                    <div className="med-info-line" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div className="med-sub-dose-white">
+                                            {selectedMedForBatch.sub} | {selectedMedForBatch.dose}
+                                        </div>
+                                        <div className="total-units-badge-white">
+                                            TOTAL UNITS: {Object.values(batchSelections).reduce((sum, q) => sum + q, 0)}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="batch-list-container">
+                            {availableBatches.map((batch, index) => {
+                                const bchKey = batch.bchNo || batch.batchNo || "no-batch";
+                                const qty = batchSelections[bchKey] || 0;
+                                const maxQty = parseFloat(batch.qty !== undefined ? batch.qty : (batch.currQty || 0));
+                                
+                                return (
+                                    <div key={index} className={`batch-item-card ${qty > 0 ? "has-qty" : ""}`}>
+                                        <div className="batch-info-left">
+                                            <div className="batch-data-row">
+                                                <span className="batch-kw">Batch:</span>
+                                                <span className="batch-val">{bchKey}</span>
+                                            </div>
+                                            <div className="batch-data-row">
+                                                <span className="batch-kw">Expiry:</span>
+                                                <span className="batch-val">{batch.expiryDate || batch.expDt || "N/A"}</span>
+                                            </div>
+                                            <div className="batch-data-row">
+                                                <span className="batch-kw">MRP:</span>
+                                                <span className="batch-val">{parseFloat(batch.trnRate || batch.trnSellPrice || 0).toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="batch-info-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                            <div className="batch-actions-row">
+                                                <div className="qty-control">
+                                                    <button className="qty-btn" onClick={() => updateBatchSelection(bchKey, -1, maxQty)}>−</button>
+                                                    <span className="qty-value">{qty}</span>
+                                                    <button className="qty-btn" onClick={() => updateBatchSelection(bchKey, 1, maxQty)}>+</button>
+                                                </div>
+                                                {qty > 0 && (
+                                                    <button className="delete-button" onClick={() => setBatchSelections({...batchSelections, [bchKey]: 0})}>🗑️</button>
+                                                )}
+                                            </div>
+                                            <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: '800', marginRight: '4px' }}>
+                                                Stock: {maxQty}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="batch-add-footer" style={{ padding: '8px 16px', justifyContent: 'center' }}>
+                            <button 
+                                className="batch-confirm-btn" 
+                                style={{ height: '34px', padding: '0 40px', maxWidth: '140px', fontSize: '13px' }}
+                                onClick={commitBatchesToCart} 
+                                disabled={Object.values(batchSelections).reduce((sum, q) => sum + q, 0) === 0}
+                            >
+                                ADD
                             </button>
                         </div>
                     </div>
