@@ -59,28 +59,22 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     // Hardware-aware Camera Check
     const checkBackCamera = async () => {
-        // Many mobile browsers block enumeration or return empty until permission is granted.
-        // Also, navigator.mediaDevices is only available in Secure Contexts (HTTPS/localhost).
+        // We now always return true on mobile/tablet to allow the scanner to at least try.
+        // This is to bypass browser 'Insecure Context' reports that might be false or overridden.
         const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const isSecure = window.isSecureContext;
+        
+        if (isMobileOrTablet) return true;
 
         if (!navigator.mediaDevices) {
             console.warn("Scanner: navigator.mediaDevices NOT found.");
-            // If we are on mobile/tablet, it definitely has a camera, 
-            // but the browser is blocking it (likely due to HTTP vs HTTPS).
-            return isMobileOrTablet; 
+            return true; // Return true to let html5-qrcode attempt and give real error
         }
 
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
-            const hasVideo = devices.some(device => device.kind === 'videoinput');
-            
-            // If enumeration is empty but we're on mobile, trust the hardware and try anyway
-            if (!hasVideo && isMobileOrTablet) return true;
-            
-            return hasVideo;
+            return devices.some(device => device.kind === 'videoinput') || isMobileOrTablet;
         } catch (e) {
-            return isMobileOrTablet; // Fallback for mobile
+            return true; // Fallback
         }
     };
 
@@ -116,7 +110,25 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 } catch (err) {
                     console.error("Scanner Error:", err);
                     if (isMounted) {
-                        setScannerError("Camera could not be started.");
+                        if (!window.isSecureContext) {
+                            setScannerError(
+                                <>
+                                    <div style={{ color: '#ef4444', marginBottom: '12px' }}>⚠️ Browser Security: HTTPS is required for camera access.</div>
+                                    <div style={{ fontSize: '11px', color: '#94a3b8', background: '#1e293b', padding: '12px', borderRadius: '8px', textAlign: 'left' }}>
+                                        <p style={{ margin: '0 0 6px 0', fontWeight: 'bold', color: '#fff' }}>Quick Fix (Chrome Desktop):</p>
+                                        <ol style={{ paddingLeft: '15px', margin: 0 }}>
+                                            <li>Go to <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code></li>
+                                            <li>Add <code>{window.location.origin}</code> to the list.</li>
+                                            <li>Set to "Enabled" and Relaunch Chrome.</li>
+                                        </ol>
+                                        <p style={{ margin: '8px 0 0 0', fontWeight: 'bold' }}>Mobile Tip:</p>
+                                        <p style={{ margin: 0 }}>Use an <strong>HTTPS</strong> URL or deploy to Vercel/similar host.</p>
+                                    </div>
+                                </>
+                            );
+                        } else {
+                            setScannerError("Camera could not be started. Please check permissions.");
+                        }
                     }
                 }
             }, 300);
