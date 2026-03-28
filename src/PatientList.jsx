@@ -62,9 +62,9 @@ function PatientList({
     const [activeFilters, setActiveFilters] = useState(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showNoCameraModal, setShowNoCameraModal] = useState(false);
-    const [tempScannedCode, setTempScannedCode] = useState(null);
     const [isProcessingScan, setIsProcessingScan] = useState(false);
     const [showQuickSuccess, setShowQuickSuccess] = useState(false);
+    const lastDetectedRef = useRef(null);
 
     // Hardware-aware Camera Check
     const checkBackCamera = async () => {
@@ -103,9 +103,8 @@ function PatientList({
                         { facingMode: "environment" },
                         config,
                         (decodedText) => {
-                            console.log("Scanner detected patient code:", decodedText);
-                            setTempScannedCode(decodedText);
-                            // Keep scanning, wait for manual confirm
+                            // Update ref silently
+                            lastDetectedRef.current = decodedText;
                         }, 
                         (errorMessage) => { /* ignore normal decode noise */ }
                     );
@@ -267,7 +266,13 @@ function PatientList({
     };
 
     const handleBarcodeLookup = async (barCd) => {
-        if (!barCd || isProcessingScan) return;
+        if (isProcessingScan) return;
+        
+        if (!barCd) {
+            // No code in ref yet, user clicked blindly
+            return;
+        }
+
         setIsProcessingScan(true);
         try {
             // Call the barcode API upon scan as requested
@@ -281,9 +286,6 @@ function PatientList({
             // Show Success Feedback
             setShowQuickSuccess(true);
             setTimeout(() => setShowQuickSuccess(false), 1500);
-
-            // Clear temp code for next scan
-            setTempScannedCode(null);
         } catch (e) {
             console.error("Barcode lookup failed in PatientList:", e);
             
@@ -293,7 +295,6 @@ function PatientList({
             
             setShowQuickSuccess(true);
             setTimeout(() => setShowQuickSuccess(false), 1500);
-            setTempScannedCode(null);
         } finally {
             setIsProcessingScan(false);
         }
@@ -482,48 +483,60 @@ function PatientList({
             {isScannerOpen && (
                 <div className="scanner-modal-overlay">
                     <div className="scanner-modal">
-                        <button className="close-scanner" onClick={() => { setIsScannerOpen(false); setTempScannedCode(null); }}>×</button>
+                        <button className="close-scanner" onClick={() => { setIsScannerOpen(false); lastDetectedRef.current = null; }}>×</button>
                         <div className="scanner-view">
                             <h3 className="scanner-instructions">Scanner Active</h3>
-                            <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '300px', display: 'flex', flexDirection: 'column', background: '#000', borderRadius: '12px' }}>
+                            <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column', background: '#000', borderRadius: '16px', boxShadow: '0 0 0 1px rgba(255,255,255,0.1)' }}>
                                 {scannerError ? (
                                     <div style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{scannerError}</div>
                                 ) : (
-                                    <>
-                                        <div id="reader-patient" style={{ width: '100%', flex: 1 }}></div>
-                                        {tempScannedCode && (
-                                            <div className="scanned-overlay-status" style={{
-                                                position: 'absolute', top: 12, left: 12, right: 12,
-                                                background: 'rgba(30, 58, 138, 0.9)', color: '#fff',
-                                                padding: '8px 12px', borderRadius: '8px', fontSize: '12px',
-                                                fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6,
-                                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 10
-                                            }}>
-                                                <span style={{fontSize: 16}}>🎯</span> Scanned: {tempScannedCode}
-                                            </div>
-                                        )}
-                                    </>
+                                    <div id="reader-patient" style={{ width: '100%', flex: 1 }}></div>
                                 )}
+                                <div className="scanner-crosshair" style={{
+                                    position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                                    width: '200px', height: '200px', border: '2px solid rgba(255,255,255,0.25)',
+                                    borderRadius: '30px', pointerEvents: 'none', zIndex: 5
+                                }}>
+                                    <div style={{ position: 'absolute', top: -2, left: -2, width: 25, height: 25, borderTop: '4px solid #fff', borderLeft: '4px solid #fff', borderTopLeftRadius: 12 }}></div>
+                                    <div style={{ position: 'absolute', top: -2, right: -2, width: 25, height: 25, borderTop: '4px solid #fff', borderRight: '4px solid #fff', borderTopRightRadius: 12 }}></div>
+                                    <div style={{ position: 'absolute', bottom: -2, left: -2, width: 25, height: 25, borderBottom: '4px solid #fff', borderLeft: '4px solid #fff', borderBottomLeftRadius: 12 }}></div>
+                                    <div style={{ position: 'absolute', bottom: -2, right: -2, width: 25, height: 25, borderBottom: '4px solid #fff', borderRight: '4px solid #fff', borderBottomRightRadius: 12 }}></div>
+                                </div>
                             </div>
-                            <div className="scanner-actions" style={{ padding: '20px 0 0 0' }}>
+                            <div className="scanner-actions" style={{ padding: '24px 0 10px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                 <button
-                                    className="confirm-scan-btn"
-                                    disabled={!tempScannedCode || isProcessingScan}
-                                    onClick={() => handleBarcodeLookup(tempScannedCode)}
+                                    className="capture-btn"
+                                    disabled={isProcessingScan}
+                                    onClick={() => handleBarcodeLookup(lastDetectedRef.current)}
                                     style={{
-                                        width: '100%', padding: '16px', borderRadius: '14px',
-                                        background: tempScannedCode ? 'linear-gradient(135deg, #1e3a8a, #3b82f6)' : '#cbd5e1',
-                                        color: '#fff', fontSize: '16px', fontWeight: '800', border: 'none',
-                                        cursor: tempScannedCode ? 'pointer' : 'not-allowed',
-                                        boxShadow: tempScannedCode ? '0 8px 16px rgba(30,58,138,0.25)' : 'none',
-                                        transition: 'all 0.2s transform active', marginBottom: '10px'
+                                        width: '80px', height: '80px', borderRadius: '50%',
+                                        background: '#fff', border: '8px solid #dae8f7',
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: '0 0 20px rgba(0,0,0,0.15)', transition: 'all 0.2s',
+                                        padding: 0
                                     }}
+                                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'}
+                                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                 >
-                                    {isProcessingScan ? "Searching..." : (tempScannedCode ? "Confirm & Search Patient" : "Point to QR Code")}
+                                    <div style={{ 
+                                        width: '56px', height: '56px', borderRadius: '50%', 
+                                        background: isProcessingScan ? '#cbd5e1' : 'linear-gradient(135deg, #1e3a8a, #3b82f6)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}>
+                                        {isProcessingScan ? (
+                                            <div className="search-circle-loader white" style={{ width: 20, height: 20 }}></div>
+                                        ) : (
+                                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                <circle cx="12" cy="13" r="3"></circle>
+                                            </svg>
+                                        )}
+                                    </div>
                                 </button>
-                                <p className="scan-btn-hint" style={{ fontSize: '12px', color: '#64748b', textAlign: 'center' }}>
-                                    Keep camera steady on ID code and click Search
+                                <p className="scan-btn-hint" style={{ fontSize: '15px', color: '#1e3a8a', fontWeight: '800', marginTop: '16px' }}>
+                                    {isProcessingScan ? "Searching..." : "Click to Identify Patient"}
                                 </p>
+                                <p style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Point at QR code and tap the capture button</p>
                             </div>
                         </div>
                     </div>
@@ -546,7 +559,7 @@ function PatientList({
                                     <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
                              </div>
-                             <span style={{ fontSize: '18px', fontWeight: '800', color: '#1e3a8a' }}>Patient Identified!</span>
+                             <span style={{ fontSize: '18px', fontWeight: '800', color: '#1e3a8a' }}>Identify Success!</span>
                         </div>
                     )}
                 </div>
