@@ -94,8 +94,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         config, 
                         (decodedText) => {
                             console.log("Med Scan Result: ", decodedText);
-                            setSearchTerm(decodedText);
                             setLastScanned(decodedText);
+                            handleBarcodeScan(decodedText);
                             
                             // Stop scanner on success
                             if (html5QrCode) {
@@ -306,6 +306,38 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 setScannerError("Camera could not be started: " + err.message);
             }
             setIsScannerOpen(true);
+        }
+    };
+
+    const handleBarcodeScan = async (barCd) => {
+        setIsFetchingBatch(true);
+        try {
+            const response = await authService.getItemByBarcode(barCd);
+            const data = response.data || (Array.isArray(response) ? response : []);
+            if (Array.isArray(data) && data.length > 0) {
+                const item = data[0];
+                const mapped = {
+                    id: item.itemCd,
+                    name: item.itemDescription || "Unnamed Item",
+                    sub: item.gen_nm ? item.gen_nm.trim() : "N/A",
+                    dose: item.stockUnitCd || item.itemCd,
+                    currQty: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0,
+                    shelf: item.shelf_No || "N/A",
+                    rack: item.rack_No || "N/A",
+                    price: parseFloat(item.trnRate || item.trnSellPrice || item.trnMRP || 0),
+                    expiry: item.expiryDate || "N/A",
+                    batch: item.bchNo || item.itemCd,
+                    stockingUnit: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0
+                };
+                handleAddMedicine(mapped);
+            } else {
+                showToast("Item not found by barcode: " + barCd);
+            }
+        } catch (err) {
+            console.error("Barcode lookup failed:", err);
+            showToast("Failed to lookup barcode.");
+        } finally {
+            setIsFetchingBatch(false);
         }
     };
 

@@ -139,4 +139,20 @@ export const authService = {
       throw error;
     }
   },
+
+  /**
+   * Get Item/Patient details by Barcode/QR
+   */
+  getItemByBarcode: async (barCd) => {
+    try {
+      console.log("Fetching details by barcode:", barCd);
+      const endpoint = `${ENDPOINTS.GET_ITEM_BY_BARCODE}?BarCd=${barCd}`;
+      const response = await apiClient(endpoint, { method: "GET" });
+      console.log("Barcode API Response:", response);
+      return response;
+    } catch (error) {
+      console.warn("GetItemByBarcode API connection failed:", error);
+      throw error;
+    }
+  },
 };

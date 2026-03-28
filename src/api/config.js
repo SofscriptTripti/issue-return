@@ -8,4 +8,5 @@ export const ENDPOINTS = {
   GET_ITEMS: "Patient/GetItemMstDetails",
   GET_ITEM_BATCH: "Patient/GetIemBatchList",
   ADD_ISSUE_HOLD_VCH: "Patient/AddIssueHoldVch",
+  GET_ITEM_BY_BARCODE: "Patient/GetItemMstDetailsbyBarCd",
 };

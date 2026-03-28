@@ -101,8 +101,7 @@ function PatientList({
                         config,
                         (decodedText) => {
                             console.log("Patient Scan result: ", decodedText);
-                            setSearchTerm(decodedText);
-                            if (onSearch) onSearch(decodedText);
+                            handleBarcodeLookup(decodedText);
 
                             // Stop scanner on success
                             if (html5QrCode) {
@@ -267,6 +266,23 @@ function PatientList({
                 setScannerError("Unable to start camera: " + err.message);
             }
             setIsScannerOpen(true);
+        }
+    };
+
+    const handleBarcodeLookup = async (barCd) => {
+        try {
+            // Call the barcode API upon scan as requested
+            console.log("PatientList: Looking up barcode:", barCd);
+            await authService.getItemByBarcode(barCd);
+            
+            // Proceed with the normal search flow using the scanned barcode as the search term
+            setSearchTerm(barCd);
+            if (onSearch) onSearch(barCd);
+        } catch (e) {
+            console.error("Barcode lookup failed in PatientList:", e);
+            // Still fallback to searching by the raw barcode text if the API fails
+            setSearchTerm(barCd);
+            if (onSearch) onSearch(barCd);
         }
     };
 
