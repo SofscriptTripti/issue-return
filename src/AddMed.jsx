@@ -38,6 +38,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [availableBatches, setAvailableBatches] = useState([]);
     const [selectedMedForBatch, setSelectedMedForBatch] = useState(null);
     const [batchSelections, setBatchSelections] = useState({}); // { batchKey: quantity }
+    const [tempScannedCode, setTempScannedCode] = useState(null);
+    const [isProcessingScan, setIsProcessingScan] = useState(false);
+    const [showQuickSuccess, setShowQuickSuccess] = useState(false);
 
     const showToast = (message) => {
         setToasts(prev => {
@@ -93,16 +96,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         { facingMode: "environment" }, 
                         config, 
                         (decodedText) => {
-                            console.log("Med Scan Result: ", decodedText);
-                            setLastScanned(decodedText);
-                            handleBarcodeScan(decodedText);
-                            
-                            // Stop scanner on success
-                            if (html5QrCode) {
-                                html5QrCode.stop().then(() => {
-                                    if (isMounted) setIsScannerOpen(false);
-                                }).catch(console.error);
-                            }
+                            console.log("Scanner detected code:", decodedText);
+                            setTempScannedCode(decodedText);
+                            // We do NOT stop the scanner or call API here anymore per request
                         }, 
                         (errorMessage) => { /* quiet noise */ }
                     );
@@ -310,7 +306,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
 
     const handleBarcodeScan = async (barCd) => {
-        setIsFetchingBatch(true);
+        if (!barCd || isProcessingScan) return;
+        
+        setIsProcessingScan(true);
         try {
             const response = await authService.getItemByBarcode(barCd);
             const data = response.data || (Array.isArray(response) ? response : []);
@@ -330,6 +328,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     stockingUnit: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0
                 };
                 handleAddMedicine(mapped);
+                
+                // Show Quick Success Modal
+                setShowQuickSuccess(true);
+                setTimeout(() => setShowQuickSuccess(false), 1500);
+                
+                // Reset temp code so button doesn't look same
+                setTempScannedCode(null);
             } else {
                 showToast("Item not found by barcode: " + barCd);
             }
@@ -337,7 +342,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             console.error("Barcode lookup failed:", err);
             showToast("Failed to lookup barcode.");
         } finally {
-            setIsFetchingBatch(false);
+            setIsProcessingScan(false);
         }
     };
 
@@ -577,38 +582,75 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             {isScannerOpen && (
                 <div className="scanner-modal-overlay">
                     <div className="scanner-modal">
-                        <button className="close-scanner" onClick={() => setIsScannerOpen(false)}>×</button>
+                        <button className="close-scanner" onClick={() => { setIsScannerOpen(false); setTempScannedCode(null); }}>×</button>
                         <div className="scanner-view">
-                            <h3 className="scanner-instructions">Tap on button to Scan</h3>
+                            <h3 className="scanner-instructions">Scanner Active</h3>
 
-                            {false ? (
-                                <div style={{ color: '#ef4444', marginTop: '20px', padding: '15px', background: '#fee2e2', borderRadius: '8px', textAlign: 'center', fontWeight: '500' }}>
-                                    Please use a mobile or tablet device to use the camera scanning feature.
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#000', borderRadius: '12px' }}>
-                                        {scannerError ? (
-                                            <div style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{scannerError}</div>
-                                        ) : (
-                                            <div id="reader" style={{ width: '100%', height: '100%' }}></div>
+                            <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '300px', display: 'flex', flexDirection: 'column', background: '#000', borderRadius: '12px' }}>
+                                {scannerError ? (
+                                    <div style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{scannerError}</div>
+                                ) : (
+                                    <>
+                                        <div id="reader" style={{ width: '100%', flex: 1 }}></div>
+                                        {tempScannedCode && (
+                                            <div className="scanned-overlay-status" style={{
+                                                position: 'absolute', top: 12, left: 12, right: 12,
+                                                background: 'rgba(5, 150, 105, 0.9)', color: '#fff',
+                                                padding: '8px 12px', borderRadius: '8px', fontSize: '12px',
+                                                fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6,
+                                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 10
+                                            }}>
+                                                <span style={{fontSize: 16}}>🎯</span> Scanned: {tempScannedCode}
+                                            </div>
                                         )}
-                                    </div>
-                                    <div className="scanner-actions">
-                                        <p className="scan-btn-hint">Point camera at 2D Barcode</p>
-                                    </div>
-                                </>
-                            )}
+                                    </>
+                                )}
+                            </div>
 
-                            {/* Feedback Toast */}
-                            {lastScanned && (
-                                <div className="scan-feedback">
-                                    <span className="feedback-icon">✅</span>
-                                    <span className="feedback-text">{lastScanned} Added</span>
-                                </div>
-                            )}
+                            <div className="scanner-actions" style={{ padding: '20px 0 0 0' }}>
+                                <button
+                                    className="confirm-scan-btn"
+                                    disabled={!tempScannedCode || isProcessingScan}
+                                    onClick={() => handleBarcodeScan(tempScannedCode)}
+                                    style={{
+                                        width: '100%', padding: '16px', borderRadius: '14px',
+                                        background: tempScannedCode ? 'linear-gradient(135deg, #059669, #10b981)' : '#cbd5e1',
+                                        color: '#fff', fontSize: '16px', fontWeight: '800', border: 'none',
+                                        cursor: tempScannedCode ? 'pointer' : 'not-allowed',
+                                        boxShadow: tempScannedCode ? '0 8px 16px rgba(16,185,129,0.3)' : 'none',
+                                        transition: 'all 0.2s transform active', marginBottom: '10px'
+                                    }}
+                                >
+                                    {isProcessingScan ? "Adding..." : (tempScannedCode ? "Confirm & Add Medicine" : "Point to QR Code")}
+                                </button>
+                                <p className="scan-btn-hint" style={{ fontSize: '12px', color: '#64748b', textAlign: 'center' }}>
+                                    Keep camera steady on barcode and click Add
+                                </p>
+                            </div>
                         </div>
                     </div>
+
+                    {/* Quick Success Toast / Modal */}
+                    {showQuickSuccess && (
+                        <div className="quick-success-modal" style={{
+                            position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
+                            background: 'rgba(255,255,255,0.95)', padding: '30px', borderRadius: '24px',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+                            zIndex: 1000, border: '2px solid #10b981', minWidth: '200px'
+                        }}>
+                             <div style={{
+                                width: 60, height: 60, background: '#10b981', borderRadius: '50%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                animation: 'scaleUp 0.3s ease-out'
+                             }}>
+                                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                             </div>
+                             <span style={{ fontSize: '18px', fontWeight: '800', color: '#065f46' }}>Medicine Added!</span>
+                        </div>
+                    )}
                 </div>
             )}
 

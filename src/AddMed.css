@@ -967,6 +967,11 @@
     box-shadow: 0 4px 12px rgba(0, 108, 230, 0.2);
 }
 
+@keyframes scaleUp {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
