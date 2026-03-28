@@ -232,7 +232,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         setTimeout(() => setLastScanned(null), 2000);
     };
 
-    const handleAddMedicine = async (med) => {
+    const handleAddMedicine = async (med, targetBatch = null) => {
+        if (medicines.some(m => m.id === med.id)) {
+            showToast(`${med.name} is already in your list.`);
+            return;
+        }
+
         console.log("Medicine selected, fetching batches:", med.id);
         setIsFetchingBatch(true);
         setSearchTerm('');
@@ -247,13 +252,16 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             if (Array.isArray(batches) && batches.length > 0) {
                 setAvailableBatches(batches);
                 setSelectedMedForBatch(med);
-                // Initialize batchSelections with 0 qtys
+                
+                // Initialize batchSelections
                 const initialSelections = {};
                 batches.forEach(b => {
                     const bchKey = b.bchNo || b.batchNo || "no-batch";
-                    initialSelections[bchKey] = 0;
+                    // If this was scanned, auto-set quantity to 1 for that specific batch
+                    initialSelections[bchKey] = (targetBatch && bchKey === targetBatch) ? 1 : 0;
                 });
                 setBatchSelections(initialSelections);
+                
                 if (document.activeElement instanceof HTMLElement) {
                     document.activeElement.blur();
                 }
@@ -316,31 +324,40 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         try {
             const response = await authService.getItemByBarcode(barCd);
             const data = response.data || (Array.isArray(response) ? response : []);
+            
             if (Array.isArray(data) && data.length > 0) {
-                const item = data[0];
+                const apiResult = data[0]; 
+                const main = apiResult.mainData || {};
+                const extra = (apiResult.extraData && apiResult.extraData[0]) || {};
+
+                const itemCd = main.itemCd || extra.itemCd;
+                if (!itemCd) {
+                    showToast("No valid item details found for this barcode.");
+                    return;
+                }
+
                 const mapped = {
-                    id: item.itemCd,
-                    name: item.itemDescription || "Unnamed Item",
-                    sub: item.gen_nm ? item.gen_nm.trim() : "N/A",
-                    dose: item.stockUnitCd || item.itemCd,
-                    currQty: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0,
-                    shelf: item.shelf_No || "N/A",
-                    rack: item.rack_No || "N/A",
-                    price: parseFloat(item.trnRate || item.trnSellPrice || item.trnMRP || 0),
-                    expiry: item.expiryDate || "N/A",
-                    batch: item.bchNo || item.itemCd,
-                    stockingUnit: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0
+                    id: itemCd,
+                    name: extra.itemDescription || main.itemDescription || "Unnamed Item",
+                    sub: extra.gen_nm || main.gen_nm || "N/A",
+                    dose: extra.stockUnitCd || main.stockUnitCd || itemCd,
+                    currQty: parseFloat(main.currQty || extra.currQty || 0),
+                    shelf: main.shelf_No || extra.shelf_No || "N/A",
+                    rack: main.rack_No || extra.rack_No || "N/A",
+                    price: parseFloat(main.trnRate || extra.trnRate || main.trnMRP || 0),
+                    expiry: main.expiryDate || extra.expiryDate || "N/A",
+                    batch: main.bchNo || "N/A",
+                    stockingUnit: parseFloat(main.currQty || extra.currQty || 0)
                 };
-                handleAddMedicine(mapped);
+
+                // Move to batch selection step, passing the specific batch from mainData if exists
+                await handleAddMedicine(mapped, main.bchNo || null);
                 
                 // Show Quick Success Modal
                 setShowQuickSuccess(true);
-                setTimeout(() => setShowQuickSuccess(false), 1500);
+                setTimeout(() => setShowQuickSuccess(false), 1200);
                 
-                // Inform that capture worked
                 console.log("Captured Successful Barcode:", barCd);
-                // We keep lastDetectedRef.current so user can click again if it's the same item, 
-                // but usually they scan next one.
             } else {
                 showToast("Item not found. Please try scanning again.");
             }
