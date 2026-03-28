@@ -278,18 +278,35 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             }
         }
     };
+
     const handleScannerClick = async () => {
         if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur();
         }
-        const hasCamera = await checkBackCamera();
-        if (!hasCamera) {
-            setShowNoCameraModal(true);
+        
+        setScannerError('');
+        
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setScannerError("Camera access not supported or connection is insecure.");
+            setIsScannerOpen(true);
             return;
         }
 
-        setScannerError('');
-        setIsScannerOpen(true);
+        try {
+            // Explicitly request permission
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            stream.getTracks().forEach(track => track.stop());
+            
+            setIsScannerOpen(true);
+        } catch (err) {
+            console.error("Camera Permission Request Failed:", err);
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                setScannerError("Camera permission denied. Please allow it in settings.");
+            } else {
+                setScannerError("Camera could not be started: " + err.message);
+            }
+            setIsScannerOpen(true);
+        }
     };
 
     const updateQuantity = (id, change) => {

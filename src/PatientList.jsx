@@ -240,14 +240,34 @@ function PatientList({
     };
 
     const openScanner = async () => {
-        const hasCamera = await checkBackCamera();
-        if (!hasCamera) {
-            setShowNoCameraModal(true);
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+        
+        setScannerError('');
+        
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setScannerError("Camera access not supported or connection is insecure.");
+            setIsScannerOpen(true);
             return;
         }
 
-        setScannerError('');
-        setIsScannerOpen(true);
+        try {
+            // Force browser to show permission prompt
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            // Permission granted! Stop the temporary stream
+            stream.getTracks().forEach(track => track.stop());
+            
+            setIsScannerOpen(true);
+        } catch (err) {
+            console.error("Camera Permission Request Failed:", err);
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                setScannerError("Camera permission denied. Please allow camera access in browser settings.");
+            } else {
+                setScannerError("Unable to start camera: " + err.message);
+            }
+            setIsScannerOpen(true);
+        }
     };
 
     const clearFilter = () => {
