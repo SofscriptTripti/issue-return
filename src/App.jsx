@@ -144,7 +144,7 @@ function App() {
 
     // Force a full page reload to the root URL
     // This is the most reliable way to clear all in-memory React states
-    window.location.href = "/Meditrack/";
+    window.location.href = "/";
   };
 
   const handleSelectPatient = (patient) => {
