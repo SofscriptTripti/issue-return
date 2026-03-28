@@ -556,7 +556,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 <div key={idx} className="search-result-item" onClick={() => handleAddMedicine(med)}>
                                     <div className="res-info">
                                         <div className="res-name">{med.name}</div>
-                                        <div className="res-sub">{med.sub}</div>
                                     </div>
                                     <div className="res-meta">
                                         <div className="res-dose" style={{fontSize:'11px', color:'#888'}}>{med.dose}</div>
@@ -590,7 +589,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             <div key={med.id} className="medicine-card blue-theme">
                                 <div className="med-card-left">
                                     <div className="med-name">{med.name}</div>
-                                    <div className="med-sub">{med.sub}</div>
                                     <div className="med-tags">
                                         {med.itemCd && <span className="med-tag" style={{background:'#e6f2ff', color:'#005bb7'}}>{med.itemCd}</span>}
                                     </div>
@@ -892,7 +890,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 <div className="batch-med-details-white">
                                     <div className="med-info-line" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div className="med-sub-dose-white">
-                                            {selectedMedForBatch.sub} | {selectedMedForBatch.dose}
+                                            {selectedMedForBatch.dose}
                                         </div>
                                         <div className="total-units-badge-white">
                                             TOTAL UNITS: {Object.values(batchSelections).reduce((sum, q) => sum + q, 0)}
