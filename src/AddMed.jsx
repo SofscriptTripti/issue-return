@@ -47,6 +47,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [isProcessingScan, setIsProcessingScan] = useState(false);
     const [showScanStatus, setShowScanStatus] = useState({ show: false, msg: '', isError: false });
     const lastDetectedRef = useRef(null);
+    const [noScanTimer, setNoScanTimer] = useState(0); // Timer to detect "no result"
     const [detectedMedCode, setDetectedMedCode] = useState('');
 
     const showToast = (message) => {
@@ -101,9 +102,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 
                 await html5QrCode.start(
                     { facingMode: "environment" },
-                    { fps: 20, qrbox: { width: 280, height: 280 } },
+                    { 
+                        fps: 30, // Faster 30fps scanning
+                        qrbox: { width: 280, height: 280 },
+                        aspectRatio: 1.0 
+                    },
                     async (decodedText) => {
                         if (!isMounted || isProcessingScan) return;
+                        setNoScanTimer(0); // Reset timer on success
                         
                         // 3-SECOND SCAN COOLDOWN: Prevent rapid re-scanning
                         if (decodedText === lastDetectedRef.current && isProcessingScan) return;
@@ -156,6 +162,19 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             sessionStorage.removeItem(cartKey);
         }
     }, [medicines]);
+
+    // Timer logic for "No Result" feedback
+    useEffect(() => {
+        let interval;
+        if (isScannerOpen && !isProcessingScan) {
+            interval = setInterval(() => {
+                setNoScanTimer(prev => prev + 1);
+            }, 1000);
+        } else {
+            setNoScanTimer(0);
+        }
+        return () => clearInterval(interval);
+    }, [isScannerOpen, isProcessingScan]);
 
     // Fetch medicines as user types
     useEffect(() => {
@@ -596,15 +615,19 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         </div>
 
                         <div className="scanner-footer-msg" style={{minHeight: '40px'}}>
-                            {isProcessingScan && !showScanStatus.show ? (
-                                <p className="status-msg blue">Lookup in progress...</p>
-                            ) : detectedMedCode && !showScanStatus.show ? (
+                            {showScanStatus.show ? (
+                                null // Handled by center overlay
+                            ) : isProcessingScan ? (
+                                <p className="status-msg blue">Loading...</p>
+                            ) : detectedMedCode ? (
                                 <div className="detection-badge">
                                     <span className="badge-dot"></span>
                                     <span className="badge-text">Detected: {detectedMedCode}</span>
                                 </div>
+                            ) : noScanTimer > 5 ? (
+                                <p className="status-msg red animate-pulse">Focus QR Properly</p>
                             ) : (
-                                !showScanStatus.show && <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Focus medicine QR code</p>
+                                <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Focus medicine QR code</p>
                             )}
                         </div>
                     </div>
