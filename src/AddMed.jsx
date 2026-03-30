@@ -203,25 +203,21 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 }
                 return updated;
             }
-            
             if (1 <= maxQty) {
                 return [newItem, ...prev];
-            } else {
-                showToast(`Oops! 😬 Item out of stock (${maxQty})`);
-                return prev;
             }
+            return prev;
         });
         setLastScanned(med.name);
         setTimeout(() => setLastScanned(null), 2000);
+        return { added: true };
     };
 
     const handleAddMedicine = async (med, targetBatch = null, isSilent = false) => {
         // Only prevent adding if the EXACT SAME medicine ID is already present (regardless of batch)
-        // unless we want to allow multiple batches of same med. 
-        // For now keep your current logic but adapt for silent scan.
         if (!isSilent && medicines.some(m => (m.itemCd || m.id) === med.id)) {
             showToast(`${med.name} is already in your list.`);
-            return;
+            return { added: false, reason: 'ALREADY_PRESENT' };
         }
 
         console.log(`Medicine ${isSilent ? 'scanned' : 'selected'}, fetching batches:`, med.id);
@@ -268,7 +264,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             return [newItem, ...prev];
                         });
 
-                        return true; // Added successfully in background
+                        return { added: true }; // Added successfully in background
+                    }
+                } else {
+                    // SILENT SCAN CHECK: If it was silent but item is already maxed out
+                    const existing = medicines.find(m => (m.itemCd || m.id) === med.id && m.batch === (targetBatch || (med.batch !== 'N/A' ? med.batch : null)));
+                    if (existing && existing.quantity >= (existing.currQty || med.currQty)) {
+                        return { added: false, reason: 'OUT_OF_STOCK' };
                     }
                 }
 
@@ -287,15 +289,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     document.activeElement.blur();
                 }
                 setShowBatchModal(true);
-                return false; // Opened modal, not added directly yet
+                return { added: false, reason: 'MODAL_OPENED' };
             } else {
-                showToast("No stock available.");
-                return false;
+                return { added: false, reason: 'OUT_OF_STOCK' };
             }
         } catch (err) {
             console.error("Failed to load batches:", err);
             showToast("Failed to fetch medicine batches.");
-            return false;
+            return { added: false, reason: 'ERROR' };
         } finally {
             setIsFetchingBatch(false);
             // No longer forcing focus to prevent keyboard popup on mobile after scan
@@ -334,6 +335,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
             return;
         }
+
+        // PRE-API CHECK: If the barcode itself matches an item already in the cart and at its limit
+        const existingFull = medicines.find(m => m.itemCd === barCd && m.quantity >= m.currQty);
+        if (existingFull) {
+            setShowScanStatus({ show: true, msg: `${barCd} is Out of Stock for this Store`, isError: true });
+            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
+            return;
+        }
         
         setIsProcessingScan(true);
         try {
@@ -365,9 +374,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 };
 
                 // Trigger the addition flow (silent scan if batch found)
-                const added = await handleAddMedicine(mapped, main.bchNo || null, true);
-                if (added) {
+                const result = await handleAddMedicine(mapped, main.bchNo || null, true);
+                if (result.added) {
                     setShowScanStatus({ show: true, msg: `${mapped.name} Added.`, isError: false });
+                    setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
+                } else if (result.reason === 'OUT_OF_STOCK') {
+                    setShowScanStatus({ show: true, msg: `${mapped.id} is Out of Stock for this Store`, isError: true });
                     setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
                 }
                 
