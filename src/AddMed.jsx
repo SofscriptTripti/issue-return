@@ -21,6 +21,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         } catch (e) { /* ignore */ }
         return [];
     });
+    const medicinesRef = useRef(medicines);
+    // Sync Ref with state
+    useEffect(() => {
+        medicinesRef.current = medicines;
+    }, [medicines]);
+
     const [searchItems, setSearchItems] = useState([]);
     const [isSearchingItems, setIsSearchingItems] = useState(false);
     const [isFetchingBatch, setIsFetchingBatch] = useState(false);
@@ -193,18 +199,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             const maxQty = newItem.currQty !== undefined && newItem.currQty !== null ? newItem.currQty : (newItem.stockingUnit || 999999);
             const existingIndex = prev.findIndex(m => m.itemCd === newItem.itemCd && m.batch === newItem.batch && m.expiry === newItem.expiry);
             
-            if (existingIndex !== -1) {
-                const updated = [...prev];
-                const currentMed = updated[existingIndex];
-                if (currentMed.quantity + 1 <= maxQty) {
-                    updated[existingIndex] = { ...currentMed, quantity: currentMed.quantity + 1 };
-                } else {
-                    showToast(`Oops! 😬 Item out of stock (${maxQty})`);
-                }
-                return updated;
-            }
             if (1 <= maxQty) {
-                return [newItem, ...prev];
+                const next = [newItem, ...prev];
+                medicinesRef.current = next; // Instant sync for rapid scanning
+                return next;
             }
             return prev;
         });
@@ -215,7 +213,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     const handleAddMedicine = async (med, targetBatch = null, isSilent = false) => {
         // Only prevent adding if the EXACT SAME medicine ID is already present (regardless of batch)
-        if (!isSilent && medicines.some(m => (m.itemCd || m.id) === med.id)) {
+        const targetBatchToUse = targetBatch || (med.batch !== 'N/A' ? med.batch : null);
+        
+        // Sync check before doing anything
+        if (!isSilent && medicinesRef.current.some(m => (m.itemCd || m.id) === med.id)) {
             showToast(`${med.name} is already in your list.`);
             return { added: false, reason: 'ALREADY_PRESENT' };
         }
@@ -233,46 +234,51 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             const batches = response.data || (Array.isArray(response) ? response : []);
             if (Array.isArray(batches) && batches.length > 0) {
                 // Determine which batch we are dealing with (specific or first one)
-                let bchToValidate = targetBatch || (med.batch !== 'N/A' ? med.batch : null) || (batches.length > 0 ? (batches[0].bchNo || batches[0].batchNo) : null);
+                const chosenBatch = targetBatchToUse || (batches[0].bchNo || batches[0].batchNo) || "N/A";
                 
-                // OUT-OF-STOCK CHECK: check if THIS specific batch is already full in the cart
-                const existing = medicines.find(m => (m.itemCd || m.id) === med.id && m.batch === bchToValidate);
-                const maxAvailable = parseFloat(existing?.currQty || (batches.find(b => (b.bchNo || b.batchNo) === bchToValidate)?.qty || 0));
+                // OUT-OF-STOCK CHECK (using Ref for latest state)
+                const existingInCart = medicinesRef.current.find(m => (m.itemCd || m.id) === med.id && m.batch === chosenBatch);
+                const firstBatchStock = parseFloat(batches.find(b => (b.bchNo || b.batchNo) === chosenBatch)?.qty || batches[0]?.qty || batches[0]?.currQty || 0);
                 
-                if (isSilent && existing && existing.quantity >= maxAvailable) {
+                // If the specific batch we would add is already full, stop here.
+                if (isSilent && existingInCart && parseFloat(existingInCart.quantity) >= firstBatchStock) {
+                    console.log("Blocking Scan: Out of Stock", { quantity: existingInCart.quantity, stock: firstBatchStock });
                     return { added: false, reason: 'OUT_OF_STOCK' };
                 }
 
                 // SILENT BACKGROUND ADD (FOR QR SCANS)
-                if (isSilent && targetBatch) {
-                    const foundBatch = batches.find(b => (b.bchNo || b.batchNo) === targetBatch);
+                if (isSilent && targetBatchToUse) {
+                    const foundBatch = batches.find(b => (b.bchNo || b.batchNo) === targetBatchToUse);
                     if (foundBatch) {
-                         const newItem = {
+                        const newItem = {
                             id: Date.now() + Math.random(),
                             itemCd: med.id,
                             name: med.name,
-                            batch: targetBatch,
+                            batch: targetBatchToUse,
                             expiry: foundBatch.expiryDate || "N/A",
                             price: parseFloat(foundBatch.trnRate || foundBatch.trnSellPrice || med.price || 0),
                             currQty: parseFloat(foundBatch.qty || foundBatch.currQty || 0),
                             quantity: 1,
                             shelf: med.shelf || "N/A",
-                            rack: med.rack || "N/A",
+                            rack: foundBatch.rack_No || med.rack || "N/A",
                             stockingUnit: parseFloat(foundBatch.qty || foundBatch.currQty || 0)
                         };
 
                         setMedicines(prev => {
-                            // Check if this specific batch already exists in cart
                             const existingIdx = prev.findIndex(m => m.itemCd === newItem.itemCd && m.batch === newItem.batch);
+                            let next;
                             if (existingIdx !== -1) {
                                 const updated = [...prev];
                                 updated[existingIdx] = { 
                                     ...updated[existingIdx], 
                                     quantity: Math.min(updated[existingIdx].quantity + 1, newItem.currQty) 
                                 };
-                                return updated;
+                                next = updated;
+                            } else {
+                                next = [newItem, ...prev];
                             }
-                            return [newItem, ...prev];
+                            medicinesRef.current = next; // Instant sync
+                            return next;
                         });
 
                         return { added: true }; // Added successfully in background
@@ -280,7 +286,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 }
 
                 if (isSilent && batches.length > 0) {
-                    // QR SCANNED: Directly add the first available batch instead of asking
+                    // QR SCANNED (DEFAULT BATCH)
                     const b = batches[0];
                     const newItem = {
                         id: Date.now() + Math.random(),
@@ -298,15 +304,19 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                     setMedicines(prev => {
                         const existingIdx = prev.findIndex(m => m.itemCd === newItem.itemCd && m.batch === newItem.batch);
+                        let next;
                         if (existingIdx !== -1) {
                             const updated = [...prev];
                             updated[existingIdx] = { 
                                 ...updated[existingIdx], 
                                 quantity: Math.min(updated[existingIdx].quantity + 1, newItem.currQty) 
                             };
-                            return updated;
+                            next = updated;
+                        } else {
+                            next = [newItem, ...prev];
                         }
-                        return [newItem, ...prev];
+                        medicinesRef.current = next; // Instant sync
+                        return next;
                     });
                     
                     return { added: true };
@@ -437,26 +447,34 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
 
     const updateQuantity = (id, change) => {
-        setMedicines(medicines.map(med => {
-            if (med.id === id) {
-                const newQty = med.quantity + change;
-                const maxQty = med.currQty !== undefined && med.currQty !== null 
-                                ? med.currQty 
-                                : (med.stockingUnit || 999999);
-                
-                if (newQty > 0 && newQty <= maxQty) {
-                    return { ...med, quantity: newQty };
-                } else if (newQty > maxQty) {
-                    showToast(`Oops! 😬 Item out of stock (${maxQty})`);
-                    return med;
+        setMedicines(prev => {
+            const next = prev.map(med => {
+                if (med.id === id) {
+                    const newQty = med.quantity + change;
+                    const maxQty = med.currQty !== undefined && med.currQty !== null 
+                                    ? med.currQty 
+                                    : (med.stockingUnit || 999999);
+                    
+                    if (newQty > 0 && newQty <= maxQty) {
+                        return { ...med, quantity: newQty };
+                    } else if (newQty > maxQty) {
+                        showToast(`Oops! 😬 Item out of stock (${maxQty})`);
+                        return med;
+                    }
                 }
-            }
-            return med;
-        }));
+                return med;
+            });
+            medicinesRef.current = next; // Sync Ref instantly so scanner sees it
+            return next;
+        });
     };
 
     const removeMedicine = (id) => {
-        setMedicines(medicines.filter(med => med.id !== id));
+        setMedicines(prev => {
+            const next = prev.filter(med => med.id !== id);
+            medicinesRef.current = next;
+            return next;
+        });
     };
 
     const updateBatchSelection = (batchKey, change, maxQty) => {
@@ -497,7 +515,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         });
 
         if (newItems.length > 0) {
-            setMedicines(prev => [...newItems, ...prev]);
+            setMedicines(prev => {
+                const next = [...newItems, ...prev];
+                medicinesRef.current = next; // Instant sync so scanner sees these manual additions
+                return next;
+            });
             setShowBatchModal(false);
             showToast(`${newItems.length} batch(es) added to cart!`);
         } else {
