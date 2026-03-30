@@ -39,7 +39,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [selectedMedForBatch, setSelectedMedForBatch] = useState(null);
     const [batchSelections, setBatchSelections] = useState({}); // { batchKey: quantity }
     const [isProcessingScan, setIsProcessingScan] = useState(false);
-    const [showQuickSuccess, setShowQuickSuccess] = useState(false);
     const lastDetectedRef = useRef(null);
 
     const showToast = (message) => {
@@ -104,25 +103,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 } catch (err) {
                     console.error("Scanner Error:", err);
                     if (isMounted) {
-                        if (!window.isSecureContext) {
-                            setScannerError(
-                                <>
-                                    <div style={{ color: '#ef4444', marginBottom: '12px' }}>⚠️ Browser Security: HTTPS is required for camera access.</div>
-                                    <div style={{ fontSize: '11px', color: '#94a3b8', background: '#1e293b', padding: '12px', borderRadius: '8px', textAlign: 'left' }}>
-                                        <p style={{ margin: '0 0 6px 0', fontWeight: 'bold', color: '#fff' }}>Quick Fix (Chrome Desktop):</p>
-                                        <ol style={{ paddingLeft: '15px', margin: 0 }}>
-                                            <li>Go to <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code></li>
-                                            <li>Add <code>{window.location.origin}</code> to the list.</li>
-                                            <li>Set to "Enabled" and Relaunch Chrome.</li>
-                                        </ol>
-                                        <p style={{ margin: '8px 0 0 0', fontWeight: 'bold' }}>Mobile Tip:</p>
-                                        <p style={{ margin: 0 }}>Use an <strong>HTTPS</strong> URL or deploy to Vercel/similar host.</p>
-                                    </div>
-                                </>
-                            );
-                        } else {
-                            setScannerError("Camera could not be started. Please check permissions.");
-                        }
+                        setIsScannerOpen(false);
+                        setShowNoCameraModal(true);
+                        setScannerError('');
                     }
                 }
             }, 300);
@@ -284,9 +267,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             return [newItem, ...prev];
                         });
 
-                        // Feedback
-                        setShowQuickSuccess(true);
-                        setTimeout(() => setShowQuickSuccess(false), 1200);
                         return; // Done
                     }
                 }
@@ -327,8 +307,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         setScannerError('');
         
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            setScannerError("Camera access not supported or connection is insecure.");
-            setIsScannerOpen(true);
+            setShowNoCameraModal(true);
             return;
         }
 
@@ -339,13 +318,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             
             setIsScannerOpen(true);
         } catch (err) {
-            console.error("Camera Permission Request Failed:", err);
-            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                setScannerError("Camera permission denied. Please allow it in settings.");
-            } else {
-                setScannerError("Camera could not be started: " + err.message);
-            }
-            setIsScannerOpen(true);
+            console.error("Camera Permission Request or Start Failed:", err);
+            setShowNoCameraModal(true);
         }
     };
 
@@ -386,12 +360,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     stockingUnit: parseFloat(main.currQty || extra.currQty || 0)
                 };
 
-                // TRUE = Silent Scan (Background Add)
-                await handleAddMedicine(mapped, main.bchNo || null, true);
-                
                 console.log("Captured Successful Barcode:", barCd);
             } else {
-                showToast("Item not found. Please try scanning again.");
+                showToast("No data found. Try scanning again.");
             }
         } catch (err) {
             console.error("Barcode lookup failed:", err);
@@ -693,28 +664,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             </div>
                         </div>
                     </div>
-
-                    {/* Quick Success Toast / Modal */}
-                    {showQuickSuccess && (
-                        <div className="quick-success-modal" style={{
-                            position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
-                            background: 'rgba(255,255,255,0.95)', padding: '30px', borderRadius: '24px',
-                            boxShadow: '0 20px 40px rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                            zIndex: 1000, border: '2px solid #10b981', minWidth: '200px'
-                        }}>
-                             <div style={{
-                                width: 60, height: 60, background: '#10b981', borderRadius: '50%',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                animation: 'scaleUp 0.3s ease-out'
-                             }}>
-                                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                             </div>
-                             <span style={{ fontSize: '18px', fontWeight: '800', color: '#065f46' }}>Added!</span>
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -828,35 +777,17 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             {showNoCameraModal && (
                 <div className="adv-overlay" onClick={() => setShowNoCameraModal(false)}>
                     <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 380, padding: '30px 24px' }}>
-                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📷</div>
-                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px' }}>Camera Not Found</h3>
+                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px' }}>Unable to start Camera</h3>
                         <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '24px', lineHeight: 1.5 }}>
-                            We couldn't detect a camera on this device.
+                            Unable to start Camera. Use Device with Back Camera.
                         </p>
-                        
-                        {!window.isSecureContext && (
-                            <div style={{ 
-                                background: '#fff9eb', 
-                                border: '1px solid #ffde8a', 
-                                padding: '14px', 
-                                borderRadius: '12px', 
-                                marginBottom: '24px', 
-                                textAlign: 'left' 
-                            }}>
-                                <span style={{ fontWeight: 800, color: '#9a6b00', fontSize: '13px', display: 'block', marginBottom: '4px' }}>⚠️ HTTPS Required</span>
-                                <p style={{ fontSize: '12px', color: '#966900', margin: 0, lineHeight: 1.4 }}>
-                                    Modern mobile browsers **block** camera access over insecure (HTTP) connections. Please use **HTTPS** to enable scanning.
-                                </p>
-                            </div>
-                        )}
                         
                         <button
                             onClick={() => setShowNoCameraModal(false)}
                             style={{
-                                width: '100%', padding: '16px', borderRadius: 14,
-                                border: 'none', background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
-                                color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-                                boxShadow: '0 8px 16px rgba(0,108,230,0.2)'
+                                width: '100%', padding: '14px', borderRadius: 12,
+                                border: 'none', background: '#006ce6',
+                                color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer'
                             }}
                         >
                             GOT IT
@@ -864,7 +795,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     </div>
                 </div>
             )}
-
 
             {/* Batch Selection Modal */}
             {showBatchModal && (
