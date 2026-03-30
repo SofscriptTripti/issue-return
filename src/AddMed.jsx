@@ -47,6 +47,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [isProcessingScan, setIsProcessingScan] = useState(false);
     const [showScanStatus, setShowScanStatus] = useState({ show: false, msg: '', isError: false });
     const lastDetectedRef = useRef(null);
+    const [detectedMedCode, setDetectedMedCode] = useState('');
 
     const showToast = (message) => {
         setToasts(prev => {
@@ -108,20 +109,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         if (decodedText === lastDetectedRef.current && isProcessingScan) return;
                         
                         // VIBRATE DEVICE ON DETECTION
-                        if (navigator.vibrate) navigator.vibrate(100);
+                        if (decodedText !== lastDetectedRef.current) {
+                            if (navigator.vibrate) navigator.vibrate(50);
+                        }
 
                         lastDetectedRef.current = decodedText;
-                        setIsProcessingScan(true); 
-                        
-                        await handleBarcodeScan(decodedText);
-                        
-                        // Keep locked for 3 seconds so user can see feedback
-                        setTimeout(() => {
-                            if (isMounted) {
-                                setIsProcessingScan(false);
-                                lastDetectedRef.current = null;
-                            }
-                        }, 3000);
+                        setDetectedMedCode(decodedText);
                     },
                     () => { /* Quietly handle frame failures */ }
                 );
@@ -295,8 +288,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
 
     const handleBarcodeScan = async (barCd) => {
-        if (isProcessingScan) return;
         setIsProcessingScan(true);
+        setDetectedMedCode('');
+        lastDetectedRef.current = null;
         try {
             const response = await authService.getItemByBarcode(barCd, storeCd);
             const data = response.data || (Array.isArray(response) ? response : []);
@@ -596,9 +590,22 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                     {showScanStatus.msg}
                                 </p>
                             ) : isProcessingScan ? (
-                                <p className="status-msg blue">Searching Medicine...</p>
+                                <p className="status-msg blue">Processing...</p>
+                            ) : detectedMedCode ? (
+                                <div className="capture-workflow">
+                                    <div className="detection-badge">
+                                        <span className="badge-dot"></span>
+                                        <span className="badge-text">Detected: {detectedMedCode}</span>
+                                    </div>
+                                    <button 
+                                        className="capture-btn"
+                                        onClick={() => handleBarcodeScan(detectedMedCode)}
+                                    >
+                                        CAPTURE & IDENTIFY
+                                    </button>
+                                </div>
                             ) : (
-                                <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Center QR code within frame</p>
+                                <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Focus QR code to identify</p>
                             )}
                         </div>
                     </div>

@@ -63,6 +63,7 @@ function PatientList({
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showNoCameraModal, setShowNoCameraModal] = useState(false);
     const [isProcessingScan, setIsProcessingScan] = useState(false);
+    const [scannedPtnCode, setScannedPtnCode] = useState('');
     const [activeCode, setActiveCode] = useState('');
     const [capturedPtn, setCapturedPtn] = useState('');
     const lastDetectedRef = useRef(null);
@@ -101,21 +102,16 @@ function PatientList({
                     { facingMode: "environment" },
                     { fps: 15, qrbox: { width: 280, height: 280 } },
                     async (decodedText) => {
-                        if (!isMounted || isProcessingQr) return;
-                        // 3-SECOND SCAN COOLDOWN
-                        if (decodedText === lastDetectedRef.current && isProcessingQr) return;
+                        // VIBRATE DEVICE ON DETECTION
+                        if (decodedText !== lastDetectedRef.current) {
+                            if (navigator.vibrate) navigator.vibrate(50);
+                        }
+                        
                         lastDetectedRef.current = decodedText;
+                        setScannedPtnCode(decodedText);
                         
-                        setIsProcessingQr(true);
+                        // DIRECT CALL API AS REQUESTED
                         handleIdentifyPatient(decodedText);
-                        
-                        // Keep locked for feedback
-                        setTimeout(() => {
-                            if (isMounted) {
-                                setIsProcessingQr(false);
-                                lastDetectedRef.current = null;
-                            }
-                        }, 3000);
                     },
                     () => {}
                 );
@@ -231,7 +227,9 @@ function PatientList({
     };
 
     const handleIdentifyPatient = async (barCd) => {
-        setIsProcessingQr(true);
+        setIsProcessingScan(true);
+        setScannedPtnCode('');
+        lastDetectedRef.current = null;
         try {
             setSearchTerm(barCd);
             if (onSearch) onSearch(barCd);
@@ -451,12 +449,18 @@ function PatientList({
                         </div>
 
                         <div className="scanner-footer-msg">
-                            {isProcessingQr ? (
-                                <p className="status-msg blue">Searching Patient...</p>
-                            ) : activeCode ? (
-                                <p className="status-msg blue">Target: {activeCode}</p>
+                            {isProcessingScan ? (
+                                <p className="status-msg blue">Identifying Patient...</p>
+                            ) : scannedPtnCode ? (
+                                <div className="capture-workflow">
+                                    <div className="detection-badge">
+                                        <span className="badge-dot"></span>
+                                        <span className="badge-text">Detected: {scannedPtnCode}</span>
+                                    </div>
+                                    <p className="status-msg blue">Loading data...</p>
+                                </div>
                             ) : (
-                                <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Center PTN barcode in frame</p>
+                                <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Focus PTN barcode in frame</p>
                             )}
                         </div>
                     </div>

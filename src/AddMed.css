@@ -710,7 +710,7 @@
     height: 100% !important;
 }
 
-/* Center QR code with Frame */
+/* Center QR code with Premium Frame */
 .scanning-frame {
     position: absolute;
     top: 50%;
@@ -720,35 +720,38 @@
     height: 220px;
     z-index: 5;
     pointer-events: none;
+    transition: all 0.3s ease;
 }
 
 .corner {
     position: absolute;
-    width: 30px;
-    height: 30px;
-    border: 4px solid #006ce6;
-    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    border: 5px solid #006ce6;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 108, 230, 0.4);
 }
 
-.top-left { top: 0; left: 0; border-right: none; border-bottom: none; }
-.top-right { top: 0; right: 0; border-left: none; border-bottom: none; }
-.bottom-left { bottom: 0; left: 0; border-right: none; border-top: none; }
-.bottom-right { bottom: 0; right: 0; border-left: none; border-top: none; }
+.top-left { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+.top-right { top: -2px; right: -2px; border-left: none; border-bottom: none; }
+.bottom-left { bottom: -2px; left: -2px; border-right: none; border-top: none; }
+.bottom-right { bottom: -2px; right: -2px; border-left: none; border-top: none; }
 
 .scanning-laser {
     position: absolute;
     top: 0;
-    left: 5px;
-    right: 5px;
-    height: 2px;
-    background: #006ce6;
-    box-shadow: 0 0 12px 1px #006ce6;
-    animation: laser-bounce 2s infinite ease-in-out;
+    left: 4px;
+    right: 4px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #00c7ff, #006ce6, #00c7ff, transparent);
+    box-shadow: 0 0 15px 3px rgba(0, 199, 255, 0.6);
+    border-radius: 100%;
+    animation: laser-scan 2.2s infinite ease-in-out;
 }
 
-@keyframes laser-bounce {
-    0%, 100% { top: 0; }
-    50% { top: 100%; }
+@keyframes laser-scan {
+    0%, 100% { top: 0%; opacity: 0.3; }
+    50% { top: 100%; opacity: 1; }
 }
 
 .scanner-footer-msg {
@@ -1394,3 +1397,13 @@
     box-shadow: none;
     cursor: not-allowed;
 }
+.capture-workflow { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 10px; }
+.capture-btn { background: linear-gradient(135deg, #006ce6, #00c7ff); color: #fff; border: none; padding: 12px 32px; border-radius: 100px; font-weight: 800; font-size: 14px; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 108, 230, 0.25); transition: all 0.2s ease-in-out; text-transform: uppercase; letter-spacing: 0.5px; }
+.capture-btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0, 108, 230, 0.35); }
+.capture-btn:active { transform: scale(0.98); }
+
+.detection-badge { display: flex; align-items: center; gap: 8px; background: #eef6ff; border: 1.5px solid #dae8f7; padding: 6px 14px; border-radius: 12px; margin-bottom: 12px; animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.badge-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; animation: pulseGlow 1.5s infinite; }
+.badge-text { font-size: 13px; font-weight: 800; color: #005bb7; letter-spacing: -0.2px; }
+@keyframes pulseGlow { 0%, 100% { opacity: 0.5; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
+@keyframes bounceIn { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
