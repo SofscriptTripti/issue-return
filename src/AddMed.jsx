@@ -268,7 +268,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             return [newItem, ...prev];
                         });
 
-                        return; // Done
+                        return true; // Added successfully in background
                     }
                 }
 
@@ -287,13 +287,15 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     document.activeElement.blur();
                 }
                 setShowBatchModal(true);
-                batchModalOpened = true;
+                return false; // Opened modal, not added directly yet
             } else {
                 showToast("No stock available.");
+                return false;
             }
         } catch (err) {
             console.error("Failed to load batches:", err);
             showToast("Failed to fetch medicine batches.");
+            return false;
         } finally {
             setIsFetchingBatch(false);
             // No longer forcing focus to prevent keyboard popup on mobile after scan
@@ -363,7 +365,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 };
 
                 // Trigger the addition flow (silent scan if batch found)
-                await handleAddMedicine(mapped, main.bchNo || null, true);
+                const added = await handleAddMedicine(mapped, main.bchNo || null, true);
+                if (added) {
+                    setShowScanStatus({ show: true, msg: `${mapped.name} Added.`, isError: false });
+                    setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
+                }
                 
                 console.log("Captured Successful Barcode:", barCd);
             } else {
@@ -671,7 +677,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         {showScanStatus.show && (
                             <div className="scanner-status-hint animate-fade-in" style={{
                                 position: 'absolute', bottom: '130px', left: '50%', transform: 'translateX(-50%)',
-                                background: showScanStatus.isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)',
+                                background: 'rgba(0, 108, 230, 0.95)',
                                 padding: '10px 20px', borderRadius: '12px', color: '#fff', fontSize: '13px',
                                 fontWeight: '800', backdropFilter: 'blur(8px)', zIndex: 1001,
                                 boxShadow: '0 8px 30px rgba(0,0,0,0.3)', minWidth: '220px', textAlign: 'center',

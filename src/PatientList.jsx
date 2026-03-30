@@ -426,7 +426,7 @@ function PatientList({
 
                 <div className="patient-cards-list">
                     {!selectedCostCenter && selectedStore && !isLoadingCC ? (
-                        <div className="no-results" style={{ color: '#ef4444', fontWeight: 800 }}>
+                        <div className="no-results" style={{ color: '#000' }}>
                             No Cost Center available for "{selectedStore}"
                         </div>
                     ) : !isPatientsLoading && displayedPatients.length === 0 ? (
