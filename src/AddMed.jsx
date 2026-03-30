@@ -171,7 +171,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         setSearchItems(items.map((item) => ({
                             id: item.itemCd,
                             name: item.itemDescription || "Unnamed Item",
-                            sub: item.gen_nm ? item.gen_nm.trim() : "N/A",
                             dose: item.stockUnitCd || item.itemCd,
                             currQty: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0,
                             shelf: item.shelf_No || "N/A",
@@ -261,7 +260,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             id: Date.now() + Math.random(),
                             itemCd: med.id,
                             name: med.name,
-                            sub: med.sub,
                             batch: targetBatch,
                             expiry: foundBatch.expiryDate || "N/A",
                             price: parseFloat(foundBatch.trnRate || foundBatch.trnSellPrice || med.price || 0),
@@ -317,10 +315,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             showToast("Failed to fetch medicine batches.");
         } finally {
             setIsFetchingBatch(false);
-            // Only focus if we didn't open the batch modal
-            if (!batchModalOpened && medSearchInputRef.current) {
-                medSearchInputRef.current.focus();
-            }
+            // No longer forcing focus to prevent keyboard popup on mobile after scan
         }
     };
 
@@ -381,7 +376,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const mapped = {
                     id: itemCd,
                     name: extra.itemDescription || main.itemDescription || "Unnamed Item",
-                    sub: extra.gen_nm || main.gen_nm || "N/A",
                     dose: extra.stockUnitCd || main.stockUnitCd || itemCd,
                     currQty: parseFloat(main.currQty || extra.currQty || 0),
                     shelf: main.shelf_No || extra.shelf_No || "N/A",
@@ -456,7 +450,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     id: Date.now() + Math.random(), // Unique ID for cart row
                     itemCd: selectedMedForBatch.id,
                     name: selectedMedForBatch.name,
-                    sub: selectedMedForBatch.sub,
                     dose: selectedMedForBatch.dose,
                     currQty: parseFloat(batch.qty !== undefined ? batch.qty : (batch.currQty || 0)),
                     expiry: batch.expiryDate || batch.expDt || "N/A",
@@ -503,7 +496,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         <h3 className="patient-name">{patient.name}</h3>
                     </div>
                     <div className="am-patient-row">
-                        <span className="am-ptn-no">PTN: <span className="am-ptn-val">#{patient.ptnNo}</span></span>
+                        <span className="am-ptn-no">PTN: <span className="am-ptn-val">{patient.ptnNo}</span></span>
                     </div>
                 </div>
             </div>
@@ -889,7 +882,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             {selectedMedForBatch && (
                                 <div className="batch-med-details-white">
                                     <div className="med-info-line" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div className="med-sub-dose-white">
+                                        <div className="med-dose-white">
                                             {selectedMedForBatch.dose}
                                         </div>
                                         <div className="total-units-badge-white">

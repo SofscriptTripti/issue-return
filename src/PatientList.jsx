@@ -63,7 +63,6 @@ function PatientList({
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showNoCameraModal, setShowNoCameraModal] = useState(false);
     const [isProcessingScan, setIsProcessingScan] = useState(false);
-    const [showQuickSuccess, setShowQuickSuccess] = useState(false);
     const [activeCode, setActiveCode] = useState('');
     const [capturedPtn, setCapturedPtn] = useState('');
     const lastDetectedRef = useRef(null);
@@ -523,31 +522,6 @@ function PatientList({
                             </div>
                         </div>
                     </div>
-
-                    {/* Quick Success Toast / Modal */}
-                    {showQuickSuccess && (
-                        <div className="quick-success-modal" style={{
-                            position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
-                            background: 'rgba(255,255,255,0.95)', padding: '30px', borderRadius: '24px',
-                            boxShadow: '0 20px 40px rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                            zIndex: 1000, border: '2px solid #1e3a8a', minWidth: '200px'
-                        }}>
-                             <div style={{
-                                width: 60, height: 60, background: '#1e3a8a', borderRadius: '50%',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                animation: 'scaleUp 0.3s ease-out'
-                             }}>
-                                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                             </div>
-                             <div style={{ textAlign: 'center' }}>
-                                <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a8a', display: 'block' }}>Identify Success!</span>
-                                <span style={{ fontSize: '15px', fontWeight: '800', color: '#475569', marginTop: '6px', display: 'block', background: '#f1f5f9', padding: '4px 12px', borderRadius: '12px' }}>PTN No: {capturedPtn}</span>
-                             </div>
-                        </div>
-                    )}
                 </div>
             )}
 
