@@ -324,13 +324,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             const data = response.data || (Array.isArray(response) ? response : []);
             
             const isSuccess = response.success === "true" || response.status === 200 || response.success === true;
+            const apiMessage = response.message || "";
             
             if (isSuccess && Array.isArray(data) && data.length > 0) {
                 const apiResult = data[0]; 
                 const main = apiResult.mainData || {};
                 const extra = (apiResult.extraData && apiResult.extraData[0]) || {};
                 
-                // Priority: extraData for name, mainData for ID/batch
                 const itemCd = main.itemCd || extra.itemCd || apiResult.itemCd;
                 const itemName = extra.itemDescription || main.itemDescription || apiResult.itemDescription || "Unnamed Medicine";
                 const unitCd = extra.stockUnitCd || main.stockUnitCd || apiResult.stockUnitCd || itemCd;
@@ -339,7 +339,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const itemQty = parseFloat(main.currQty || extra.currQty || apiResult.currQty || 0);
 
                 if (!itemCd) {
-                    setShowScanStatus({ show: true, msg: "Scan QR correctly", isError: true });
+                    setShowScanStatus({ show: true, msg: apiMessage || "Scan QR correctly", isError: true });
                     return;
                 }
 
@@ -362,14 +362,15 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 } else if (result.reason === 'OUT_OF_STOCK') {
                     setShowScanStatus({ show: true, msg: "Out of stock", isError: true });
                 } else {
-                    setShowScanStatus({ show: true, msg: "Already in Cart", isError: true });
+                    setShowScanStatus({ show: true, msg: apiMessage || "Already in Cart", isError: true });
                 }
             } else {
-                setShowScanStatus({ show: true, msg: `Not Found: ${barCd}`, isError: true });
+                setShowScanStatus({ show: true, msg: apiMessage || `Not Found: ${barCd}`, isError: true });
             }
         } catch (err) {
             console.error("Barcode lookup error:", err);
-            setShowScanStatus({ show: true, msg: `Error: ${err.message || 'Lookup failed'}`, isError: true });
+            alert(`Scan Error: ${err.message || 'Lookup failed'}`);
+            setShowScanStatus({ show: true, msg: "Scan Error", isError: true });
         } finally {
             // Reset after 3 seconds to allow user to see the result
             setTimeout(() => {
