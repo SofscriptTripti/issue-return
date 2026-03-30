@@ -108,13 +108,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         aspectRatio: 1.0 
                     },
                     async (decodedText) => {
-                        if (!isMounted || isProcessingScan) return;
-                        setNoScanTimer(0); // Reset timer on success
-                        
                         // 3-SECOND SCAN COOLDOWN: Prevent rapid re-scanning
-                        if (decodedText === lastDetectedRef.current && isProcessingScan) return;
+                        if (isProcessingScan) return;
                         
-                        // VIBRATE DEVICE ON DETECTION
+                        // VIBRATE DEVICE ON NEW DETECTION
                         if (decodedText !== lastDetectedRef.current) {
                             if (navigator.vibrate) navigator.vibrate(50);
                         }
@@ -358,7 +355,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                 const result = await handleAddMedicine(mapped, mapped.batch, true);
                 if (result.added) {
-                    setShowScanStatus({ show: true, msg: "Added Sucessfully", isError: false });
+                    setShowScanStatus({ show: true, msg: `${itemName} Added Successfully`, isError: false });
                 } else if (result.reason === 'OUT_OF_STOCK') {
                     setShowScanStatus({ show: true, msg: "Out of stock", isError: true });
                 } else {
@@ -376,7 +373,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             setTimeout(() => {
                 setShowScanStatus({ show: false, msg: '', isError: false });
                 setIsProcessingScan(false);
-                lastDetectedRef.current = null; // IMPORTANT: Clear memory so it can re-scan
+                lastDetectedRef.current = null; // Clear so it can re-scan SAME medicine if needed
                 setNoScanTimer(0);
             }, 3000);
         }
