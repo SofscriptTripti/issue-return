@@ -309,12 +309,17 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         }
     };
 
-    const handleBarcodeScan = async (barCd) => {
+    const handleBarcodeScan = async (rawBarCd) => {
         if (isProcessingScan) return;
+        
+        const barCd = rawBarCd?.trim();
+        if (!barCd) return;
+
         setIsProcessingScan(true);
-        setDetectedMedCode('');
-        // No need to null lastDetectedRef here, we want it to stay for the 3s cooldown
+        setDetectedMedCode(barCd);
+        
         try {
+            console.log(`Starting lookup for Barcode: "${barCd}" in Store: ${storeCd}`);
             const response = await authService.getItemByBarcode(barCd, storeCd);
             const data = response.data || (Array.isArray(response) ? response : []);
             
@@ -325,9 +330,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const main = apiResult.mainData || {};
                 const extra = (apiResult.extraData && apiResult.extraData[0]) || {};
                 
-                // USER JSON PRIORITY: extraData for name, mainData for batch
+                // Priority: extraData for name, mainData for ID/batch
                 const itemCd = main.itemCd || extra.itemCd || apiResult.itemCd;
-                const itemName = extra.itemDescription || main.itemDescription || apiResult.itemDescription || "Unnamed Item";
+                const itemName = extra.itemDescription || main.itemDescription || apiResult.itemDescription || "Unnamed Medicine";
                 const unitCd = extra.stockUnitCd || main.stockUnitCd || apiResult.stockUnitCd || itemCd;
                 const batchNo = main.bchNo || extra.bchNo || apiResult.bchNo || "N/A";
                 const itemPrice = parseFloat(main.trnRate || extra.trnRate || apiResult.trnRate || 0);
@@ -360,7 +365,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     setShowScanStatus({ show: true, msg: "Already in Cart", isError: true });
                 }
             } else {
-                setShowScanStatus({ show: true, msg: "Scan QR correctly", isError: true });
+                setShowScanStatus({ show: true, msg: `Not Found: ${barCd}`, isError: true });
             }
         } catch (err) {
             console.error("Barcode lookup error:", err);
