@@ -660,49 +660,42 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 </div>
             )}
 
-            {/* Confirm Modal */}
+            {/* Order Summary / Confirm Modal */}
             {showConfirmModal && (
                 <div className="confirm-overlay" onClick={() => setShowConfirmModal(false)}>
                     <div className="confirm-modal" onClick={e => e.stopPropagation()}>
-
-                        {/* Modal Header */}
                         <div className="confirm-header">
                             <span className="confirm-title">📋 Order Summary</span>
                             <button className="confirm-close" onClick={() => setShowConfirmModal(false)}>✕</button>
                         </div>
 
-                        {/* Patient info strip */}
                         <div className="confirm-patient-strip">
-                            <span className="confirm-patient-name">{patient.name}</span>
-                            <span className="confirm-patient-ptn">PTN {patient.ptnNo}</span>
+                            <span>{patient.name}</span>
+                            <span>PTN {patient.ptnNo}</span>
                         </div>
 
-                        {/* Medicine list — read-only */}
                         <div className="confirm-med-list">
                             {medicines.map((med, i) => (
                                 <div key={med.id} className="confirm-med-row">
-                                    <div className="confirm-med-left">
-                                        <span className="confirm-med-num">{i + 1}.</span>
-                                        <div className="confirm-med-content-stack">
-                                            <div className="confirm-med-name-qty-row">
-                                                <span className="confirm-med-name">{med.name}</span>
-                                                <span className="confirm-med-qty-badge">x{med.quantity}</span>
-                                            </div>
-                                            <div className="confirm-med-dose">{med.dose} &nbsp;|&nbsp; Unit: {med.stockingUnit * med.quantity} &nbsp;|&nbsp; Rate: ₹{med.price.toFixed(2)}</div>
+                                    <div className="confirm-med-left" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <span className="confirm-med-name">{i + 1}. {med.name}</span>
+                                        <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                            Batch: {med.batch} | Rate: ₹{med.price.toFixed(2)}
                                         </div>
                                     </div>
-                                    <span className="confirm-med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#0f172a' }}>x{med.quantity}</div>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#059669' }}>₹{(med.price * med.quantity).toFixed(2)}</div>
+                                    </div>
                                 </div>
                             ))}
                         </div>
 
-                        {/* Total */}
                         <div className="confirm-total-row">
                             <span className="confirm-total-label">Total Amount</span>
                             <span className="confirm-total-value">₹{calculateTotal().toFixed(2)}</span>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="confirm-actions">
                             <button className="confirm-btn-edit" onClick={() => setShowConfirmModal(false)}>
                                 EDIT
@@ -724,27 +717,21 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                             trnDate: new Date().toISOString()
                                         }))
                                     };
-                                    
                                     const response = await authService.addIssueHoldVch(payload);
-                                    
-                                    // Capture the Voucher Number from API response data
                                     const vch = response.data || (response.data && response.data.data) || "0000";
                                     setVoucherNo(vch);
-
-                                    // Clear the saved cart for this patient on confirm
                                     if (cartKey) sessionStorage.removeItem(cartKey);
-                                    console.log(`Cart confirmed & cleared for PTN ${patient.ptnNo}`);
                                     setShowConfirmModal(false);
-                                    setMedicines([]); // Clear current medicines from state
+                                    setMedicines([]); 
                                     setShowSuccessModal(true);
                                 } catch (error) {
                                     console.error("Confirm error:", error);
-                                    showToast("Failed to confirm: " + (error.message || "Unknown error"));
+                                    showToast("Failed: " + (error.message || "Unknown error"));
                                 } finally {
                                     setIsConfirming(false);
                                 }
                             }}>
-                                {isConfirming ? "CONFIRMING..." : "CONFIRM"}
+                                {isConfirming ? "SAVING..." : "CONFIRM"}
                             </button>
                         </div>
                     </div>
@@ -755,9 +742,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             {showSuccessModal && (
                 <div className="success-overlay">
                     <div className="success-modal-small">
-                        {/* No Icon as requested */}
-                        <h3 className="success-msg-text" style={{fontSize: '15px', color: '#1e3a8a', padding: '10px 0'}}>
-                            Hold Voucher No ({voucherNo}) created successfully.
+                        <div className="success-icon" style={{ fontSize: '32px', marginBottom: '12px' }}>✅</div>
+                        <h3 className="success-msg-text" style={{ fontSize: '17px', fontWeight: '800', color: '#1e3a8a', margin: '0 0 20px 0' }}>
+                            Voucher No ({voucherNo}) Created Successfully!
                         </h3>
                         <button className="success-ok-btn" onClick={() => {
                             setShowSuccessModal(false);
