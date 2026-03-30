@@ -40,6 +40,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [batchSelections, setBatchSelections] = useState({}); // { batchKey: quantity }
     const [isProcessingScan, setIsProcessingScan] = useState(false);
     const [showQuickSuccess, setShowQuickSuccess] = useState(false);
+    const [showNothingFound, setShowNothingFound] = useState(false);
     const lastDetectedRef = useRef(null);
 
     const showToast = (message) => {
@@ -104,25 +105,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 } catch (err) {
                     console.error("Scanner Error:", err);
                     if (isMounted) {
-                        if (!window.isSecureContext) {
-                            setScannerError(
-                                <>
-                                    <div style={{ color: '#ef4444', marginBottom: '12px' }}>⚠️ Browser Security: HTTPS is required for camera access.</div>
-                                    <div style={{ fontSize: '11px', color: '#94a3b8', background: '#1e293b', padding: '12px', borderRadius: '8px', textAlign: 'left' }}>
-                                        <p style={{ margin: '0 0 6px 0', fontWeight: 'bold', color: '#fff' }}>Quick Fix (Chrome Desktop):</p>
-                                        <ol style={{ paddingLeft: '15px', margin: 0 }}>
-                                            <li>Go to <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code></li>
-                                            <li>Add <code>{window.location.origin}</code> to the list.</li>
-                                            <li>Set to "Enabled" and Relaunch Chrome.</li>
-                                        </ol>
-                                        <p style={{ margin: '8px 0 0 0', fontWeight: 'bold' }}>Mobile Tip:</p>
-                                        <p style={{ margin: 0 }}>Use an <strong>HTTPS</strong> URL or deploy to Vercel/similar host.</p>
-                                    </div>
-                                </>
-                            );
-                        } else {
-                            setScannerError("Camera could not be started. Please check permissions.");
-                        }
+                        setIsScannerOpen(false);
+                        setShowNoCameraModal(true);
+                        setScannerError('');
                     }
                 }
             }, 300);
@@ -386,12 +371,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     stockingUnit: parseFloat(main.currQty || extra.currQty || 0)
                 };
 
-                // TRUE = Silent Scan (Background Add)
-                await handleAddMedicine(mapped, main.bchNo || null, true);
-                
                 console.log("Captured Successful Barcode:", barCd);
             } else {
-                showToast("Item not found. Please try scanning again.");
+                setShowNothingFound(true);
+                setTimeout(() => setShowNothingFound(false), 2400);
             }
         } catch (err) {
             console.error("Barcode lookup failed:", err);
@@ -715,6 +698,31 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                              <span style={{ fontSize: '18px', fontWeight: '800', color: '#065f46' }}>Added!</span>
                         </div>
                     )}
+
+                    {showNothingFound && (
+                        <div className="quick-success-modal" style={{
+                            position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
+                            background: 'rgba(255,255,255,0.95)', padding: '30px', borderRadius: '24px',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+                            zIndex: 1000, border: '2px solid #ef4444', minWidth: '220px'
+                        }}>
+                             <div style={{
+                                width: 60, height: 60, background: '#ef4444', borderRadius: '50%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                animation: 'scaleUp 0.3s ease-out'
+                             }}>
+                                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                             </div>
+                             <div style={{ textAlign: 'center' }}>
+                                <span style={{ fontSize: '18px', fontWeight: '800', color: '#991b1b', display: 'block' }}>Nothing Found</span>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#b91c1c', marginTop: '4px', display: 'block' }}>Click Clean Picture</span>
+                             </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -829,9 +837,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 <div className="adv-overlay" onClick={() => setShowNoCameraModal(false)}>
                     <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 380, padding: '30px 24px' }}>
                         <div style={{ fontSize: '48px', marginBottom: '16px' }}>📷</div>
-                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px' }}>Camera Not Found</h3>
+                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px' }}>Unable to start Camera</h3>
                         <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '24px', lineHeight: 1.5 }}>
-                            We couldn't detect a camera on this device.
+                            Unable to start Camera. Use Device with Back Camera.
                         </p>
                         
                         {!window.isSecureContext && (

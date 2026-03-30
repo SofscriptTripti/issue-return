@@ -115,25 +115,9 @@ function PatientList({
                 } catch (err) {
                     console.error("Scanner Start Error:", err);
                     if (isMounted) {
-                        if (!window.isSecureContext) {
-                            setScannerError(
-                                <>
-                                    <div style={{ color: '#ef4444', marginBottom: '12px' }}>⚠️ Browser Security: HTTPS is required for camera access.</div>
-                                    <div style={{ fontSize: '12px', color: '#94a3b8', background: '#1e293b', padding: '12px', borderRadius: '8px', textAlign: 'left' }}>
-                                        <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', color: '#fff' }}>Developer Workaround (Chrome Desktop):</p>
-                                        <ol style={{ paddingLeft: '18px', margin: 0 }}>
-                                            <li>Go to <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code></li>
-                                            <li>Add <code>{window.location.origin}</code> to the list.</li>
-                                            <li>Set to "Enabled" and Relaunch.</li>
-                                        </ol>
-                                        <p style={{ margin: '8px 0 0 0', fontWeight: 'bold' }}>Mobile Solution:</p>
-                                        <p style={{ margin: 0 }}>Please use an <strong>HTTPS</strong> URL or deploy to a secure host.</p>
-                                    </div>
-                                </>
-                            );
-                        } else {
-                            setScannerError("Unable to start camera. Please check permissions.");
-                        }
+                        setIsScannerOpen(false);
+                        setShowNoCameraModal(true);
+                        setScannerError('');
                     }
                 }
             }, 300);
@@ -558,13 +542,13 @@ function PatientList({
                     </div>
                 </div>
             )}
-            {showNoCameraModal && (
+             {showNoCameraModal && (
                 <div className="adv-overlay" onClick={() => setShowNoCameraModal(false)}>
                     <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 380, padding: '30px 24px' }}>
                         <div style={{ fontSize: '48px', marginBottom: '16px' }}>📷</div>
-                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px' }}>Camera Not Found</h3>
+                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px' }}>Unable to start Camera</h3>
                         <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '24px', lineHeight: 1.5 }}>
-                            We couldn't detect a camera on this device.
+                            Unable to start Camera. Use Device with Back Camera.
                         </p>
                         
                         {!window.isSecureContext && (
