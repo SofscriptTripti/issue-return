@@ -20,24 +20,24 @@ function Login({ onLoginSuccess }) {
     try {
       // API Integration: Get Token using the username & password typed by user
       const response = await authService.getToken(username, password);
-      
+
       console.log("Login API Response:", response);
-      
+
       // If the API call is successful, proceed to store selection
       if (response && (response.token || response.access_token)) {
         // Save the token for future authenticated requests
         sessionStorage.setItem("authToken", response.token || response.access_token);
         sessionStorage.setItem("username", username);
-        
+
         // Reset and hide modal so it's clean if we ever come back
         setShowLoginModal(false);
         setUsername("");
         setPassword("");
         setError("");
-        
+
         // Notify parent of success
         if (onLoginSuccess) {
-           onLoginSuccess();
+          onLoginSuccess();
         }
       } else if (response && response.success !== false) {
         // Handle cases where the response might be different but successful
@@ -62,13 +62,17 @@ function Login({ onLoginSuccess }) {
         <div className="navbar-logo">
           <img
             className="logo-icon"
-            src="https://cdni.iconscout.com/illustration/premium/thumb/medicine-shopping-basket-illustration-svg-download-png-4391369.png"
-            alt="Inventory Basket"
+            src={`${import.meta.env.BASE_URL}medical-192.png`}
+            alt="CareWorks"
           />
-          <span className="logo-text">
-            <span className="logo-word-1">INVENTORY</span>
-            <span className="logo-word-2">BASKET</span>
-          </span>
+          <div className="logo-text-stack" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span className="logo-text" style={{ fontSize: '28px', lineHeight: '1', color: '#0090ff', fontWeight: '900' }}>
+                CareWorks HMIS
+            </span>
+            <span className="logo-subtitle" style={{ fontSize: '13px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '2px', marginTop: '6px' }}>
+                Inventory Basket
+            </span>
+          </div>
         </div>
         <div className="navbar-links">
         </div>
@@ -99,13 +103,13 @@ function Login({ onLoginSuccess }) {
         <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
           <div className="login-modal-content animated-modal glass-login-modal" onClick={(e) => e.stopPropagation()}>
             <div className="login-modal-header-modern">
-               <div className="glass-brand-sphere"></div>
-               <div className="glass-brand-sphere-small"></div>
+              <div className="glass-brand-sphere"></div>
+              <div className="glass-brand-sphere-small"></div>
             </div>
             <form onSubmit={handleLoginSubmit} className="login-form" autoComplete="off">
               {/* Fake fields to trick most browsers */}
-              <input style={{display:'none'}} type="text" name="fakeusernameremembered"/>
-              <input style={{display:'none'}} type="password" name="fakepasswordremembered"/>
+              <input style={{ display: 'none' }} type="text" name="fakeusernameremembered" />
+              <input style={{ display: 'none' }} type="password" name="fakepasswordremembered" />
 
               <div className="input-group">
                 <input
@@ -133,7 +137,7 @@ function Login({ onLoginSuccess }) {
                     {showPassword ? (
                       /* Eye Open Icon - Shown when password is visible, click to hide */
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="eye-icon">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <path d="M1 12s4-8 11-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                       </svg>
                     ) : (
@@ -154,6 +158,11 @@ function Login({ onLoginSuccess }) {
           </div>
         </div>
       )}
+
+      {/* Powered By Footer */}
+      <div className="login-powered-by">
+        Powered By Softscript
+      </div>
     </div>
   );
 }
