@@ -86,55 +86,55 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         }
     };
 
-    // Scanner logic
+    // Scanner logic - Now automated and premium
     useEffect(() => {
         let isMounted = true;
         let html5QrCode = null;
 
-        if (isScannerOpen) {
-            const timer = setTimeout(async () => {
-                try {
-                    html5QrCode = new Html5Qrcode("reader");
-                    html5QrCodeRef.current = html5QrCode;
-                    const config = { fps: 10, qrbox: { width: 250, height: 240 } };
+        const startScanner = async () => {
+            if (!isScannerOpen) return;
+            
+            try {
+                html5QrCode = new Html5Qrcode("reader");
+                html5QrCodeRef.current = html5QrCode;
+                
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 15, qrbox: { width: 280, height: 280 } },
+                    async (decodedText) => {
+                        if (!isMounted || isProcessingScan) return;
+                        
+                        // Prevent rapid re-scanning of the same item instantly
+                        if (decodedText === lastDetectedRef.current && isProcessingScan) return;
+                        
+                        lastDetectedRef.current = decodedText;
+                        await handleBarcodeScan(decodedText);
+                    },
+                    () => { /* Quietly handle frame failures */ }
+                );
+            } catch (err) {
+                console.warn("Scanner init failed:", err);
+                if (isMounted) setIsScannerOpen(false);
+            }
+        };
 
-                    await html5QrCode.start(
-                        { facingMode: "environment" }, 
-                        config, 
-                        (decodedText) => {
-                            // Silently update the ref with the latest detection
-                            lastDetectedRef.current = decodedText;
-                        }, 
-                        (errorMessage) => { /* quiet noise */ }
-                    );
-                } catch (err) {
-                    console.error("Scanner Error:", err);
-                    if (isMounted) {
-                        setIsScannerOpen(false);
-                        setShowNoCameraModal(true);
-                        setScannerError('');
+        if (isScannerOpen) {
+            startScanner();
+        }
+
+        return () => {
+            isMounted = false;
+            const stop = async () => {
+                if (html5QrCode && html5QrCode.isScanning) {
+                    try {
+                        await html5QrCode.stop();
+                    } catch (e) {
+                        console.error("Cleanup stop fail", e);
                     }
                 }
-            }, 300);
-
-            return () => {
-                isMounted = false;
-                clearTimeout(timer);
-                if (html5QrCodeRef.current) {
-                    const stopScanner = async () => {
-                        if (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2) {
-                            try {
-                                await html5QrCodeRef.current.stop();
-                                html5QrCodeRef.current = null;
-                            } catch (e) {
-                                console.error("Scanner stop fail:", e);
-                            }
-                        }
-                    };
-                    stopScanner();
-                }
             };
-        }
+            stop();
+        };
     }, [isScannerOpen]);
 
     // Auto-save cart to sessionStorage whenever medicines change
@@ -185,121 +185,44 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm, storeCd, ccCd]);
 
-
-    const handleScanComplete = () => {
-        if (searchItems.length === 0) return;
-        const med = searchItems[0];
-        const newItem = {
-            id: Date.now(),
-            ...med,
-            itemCd: med.id,
-            quantity: 1
-        };
-        setMedicines(prev => {
-            const maxQty = newItem.currQty !== undefined && newItem.currQty !== null ? newItem.currQty : (newItem.stockingUnit || 999999);
-            const existingIndex = prev.findIndex(m => m.itemCd === newItem.itemCd && m.batch === newItem.batch && m.expiry === newItem.expiry);
-            
-            if (1 <= maxQty) {
-                const next = [newItem, ...prev];
-                medicinesRef.current = next; // Instant sync for rapid scanning
-                return next;
-            }
-            return prev;
-        });
-        setLastScanned(med.name);
-        setTimeout(() => setLastScanned(null), 2000);
-        return { added: true };
-    };
-
     const handleAddMedicine = async (med, targetBatch = null, isSilent = false) => {
-        // Only prevent adding if the EXACT SAME medicine ID is already present (regardless of batch)
         const targetBatchToUse = targetBatch || (med.batch !== 'N/A' ? med.batch : null);
         
-        // Sync check before doing anything
         if (!isSilent && medicinesRef.current.some(m => (m.itemCd || m.id) === med.id)) {
             showToast(`${med.name} is already in your list.`);
             return { added: false, reason: 'ALREADY_PRESENT' };
         }
 
-        console.log(`Medicine ${isSilent ? 'scanned' : 'selected'}, fetching batches:`, med.id);
         setIsFetchingBatch(true);
         setSearchTerm('');
         setSearchItems([]);
         
-        let batchModalOpened = false;
         try {
             const response = await authService.getItemBatchList(storeCd, med.id);
-            console.log("Batch API full response:", response);
-            
             const batches = response.data || (Array.isArray(response) ? response : []);
             if (Array.isArray(batches) && batches.length > 0) {
-                // Determine which batch we are dealing with (specific or first one)
                 const chosenBatch = targetBatchToUse || (batches[0].bchNo || batches[0].batchNo) || "N/A";
-                
-                // OUT-OF-STOCK CHECK (using Ref for latest state)
                 const existingInCart = medicinesRef.current.find(m => (m.itemCd || m.id) === med.id && m.batch === chosenBatch);
                 const firstBatchStock = parseFloat(batches.find(b => (b.bchNo || b.batchNo) === chosenBatch)?.qty || batches[0]?.qty || batches[0]?.currQty || 0);
                 
-                // If the specific batch we would add is already full, stop here.
                 if (isSilent && existingInCart && parseFloat(existingInCart.quantity) >= firstBatchStock) {
-                    console.log("Blocking Scan: Out of Stock", { quantity: existingInCart.quantity, stock: firstBatchStock });
                     return { added: false, reason: 'OUT_OF_STOCK' };
                 }
 
-                // SILENT BACKGROUND ADD (FOR QR SCANS)
-                if (isSilent && targetBatchToUse) {
-                    const foundBatch = batches.find(b => (b.bchNo || b.batchNo) === targetBatchToUse);
-                    if (foundBatch) {
-                        const newItem = {
-                            id: Date.now() + Math.random(),
-                            itemCd: med.id,
-                            name: med.name,
-                            batch: targetBatchToUse,
-                            expiry: foundBatch.expiryDate || "N/A",
-                            price: parseFloat(foundBatch.trnRate || foundBatch.trnSellPrice || med.price || 0),
-                            currQty: parseFloat(foundBatch.qty || foundBatch.currQty || 0),
-                            quantity: 1,
-                            shelf: med.shelf || "N/A",
-                            rack: foundBatch.rack_No || med.rack || "N/A",
-                            stockingUnit: parseFloat(foundBatch.qty || foundBatch.currQty || 0)
-                        };
-
-                        setMedicines(prev => {
-                            const existingIdx = prev.findIndex(m => m.itemCd === newItem.itemCd && m.batch === newItem.batch);
-                            let next;
-                            if (existingIdx !== -1) {
-                                const updated = [...prev];
-                                updated[existingIdx] = { 
-                                    ...updated[existingIdx], 
-                                    quantity: Math.min(updated[existingIdx].quantity + 1, newItem.currQty) 
-                                };
-                                next = updated;
-                            } else {
-                                next = [newItem, ...prev];
-                            }
-                            medicinesRef.current = next; // Instant sync
-                            return next;
-                        });
-
-                        return { added: true }; // Added successfully in background
-                    }
-                }
-
-                if (isSilent && batches.length > 0) {
-                    // QR SCANNED (DEFAULT BATCH)
-                    const b = batches[0];
+                if (isSilent) {
+                    const foundBatch = batches.find(b => (b.bchNo || b.batchNo) === (targetBatchToUse || (batches[0].bchNo || batches[0].batchNo))) || batches[0];
                     const newItem = {
                         id: Date.now() + Math.random(),
                         itemCd: med.id,
                         name: med.name,
-                        batch: b.bchNo || b.batchNo || "N/A",
-                        expiry: b.expiryDate || "N/A",
-                        price: parseFloat(b.trnRate || b.trnSellPrice || med.price || 0),
-                        currQty: parseFloat(b.qty || b.currQty || 0),
+                        batch: foundBatch.bchNo || foundBatch.batchNo || "N/A",
+                        expiry: foundBatch.expiryDate || "N/A",
+                        price: parseFloat(foundBatch.trnRate || foundBatch.trnSellPrice || med.price || 0),
+                        currQty: parseFloat(foundBatch.qty || foundBatch.currQty || 0),
                         quantity: 1,
                         shelf: med.shelf || "N/A",
-                        rack: b.rack_No || med.rack || "N/A",
-                        stockingUnit: parseFloat(b.qty || b.currQty || 0)
+                        rack: foundBatch.rack_No || med.rack || "N/A",
+                        stockingUnit: parseFloat(foundBatch.qty || foundBatch.currQty || 0)
                     };
 
                     setMedicines(prev => {
@@ -315,83 +238,51 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         } else {
                             next = [newItem, ...prev];
                         }
-                        medicinesRef.current = next; // Instant sync
+                        medicinesRef.current = next;
                         return next;
                     });
-                    
                     return { added: true };
                 }
 
-                // If not silent or batch not found, open the batch modal as usual
                 setAvailableBatches(batches);
                 setSelectedMedForBatch(med);
-                
                 const initialSelections = {};
                 batches.forEach(b => {
                     const bchKey = b.bchNo || b.batchNo || "no-batch";
                     initialSelections[bchKey] = (targetBatch && bchKey === targetBatch) ? 1 : 0;
                 });
                 setBatchSelections(initialSelections);
-                
-                if (document.activeElement instanceof HTMLElement) {
-                    document.activeElement.blur();
-                }
                 setShowBatchModal(true);
                 return { added: false, reason: 'MODAL_OPENED' };
             } else {
                 return { added: false, reason: 'OUT_OF_STOCK' };
             }
         } catch (err) {
-            console.error("Failed to load batches:", err);
             showToast("Failed to fetch medicine batches.");
             return { added: false, reason: 'ERROR' };
         } finally {
             setIsFetchingBatch(false);
-            // No longer forcing focus to prevent keyboard popup on mobile after scan
         }
     };
 
     const handleScannerClick = async () => {
-        if (document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-        }
-        
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
         setScannerError('');
-        
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             setShowNoCameraModal(true);
             return;
         }
-
         try {
-            // Explicitly request permission
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             stream.getTracks().forEach(track => track.stop());
-            
             setIsScannerOpen(true);
         } catch (err) {
-            console.error("Camera Permission Request or Start Failed:", err);
             setShowNoCameraModal(true);
         }
     };
 
     const handleBarcodeScan = async (barCd) => {
         if (isProcessingScan) return;
-        
-        if (!barCd) {
-            setShowScanStatus({ show: true, msg: "Scan QR correctly. No data Found.", isError: true });
-            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
-            return;
-        }
-
-        // PRE-API CHECK: If the barcode itself matches an item already in the cart and at its limit
-        const existingFull = medicines.find(m => m.itemCd === barCd && m.quantity >= m.currQty);
-        if (existingFull) {
-            setShowScanStatus({ show: true, msg: `${barCd} is Out of Stock for this Store`, isError: true });
-            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
-            return;
-        }
-        
         setIsProcessingScan(true);
         try {
             const response = await authService.getItemByBarcode(barCd, storeCd);
@@ -401,13 +292,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const apiResult = data[0]; 
                 const main = apiResult.mainData || {};
                 const extra = (apiResult.extraData && apiResult.extraData[0]) || {};
-
                 const itemCd = main.itemCd || extra.itemCd;
-                if (!itemCd) {
-                    showToast("No valid item details found for this barcode.");
-                    return;
-                }
-
+                
                 const mapped = {
                     id: itemCd,
                     name: extra.itemDescription || main.itemDescription || "Unnamed Item",
@@ -421,28 +307,20 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     stockingUnit: parseFloat(main.currQty || extra.currQty || 0)
                 };
 
-                // Trigger the addition flow (silent scan if batch found)
                 const result = await handleAddMedicine(mapped, main.bchNo || null, true);
                 if (result.added) {
                     setShowScanStatus({ show: true, msg: `${mapped.name} Added.`, isError: false });
-                    setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
-                } else if (result.reason === 'OUT_OF_STOCK') {
-                    setShowScanStatus({ show: true, msg: `${mapped.id} is Out of Stock for this Store`, isError: true });
-                    setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
+                } else {
+                    setShowScanStatus({ show: true, msg: "Out of Stock or Already Added", isError: true });
                 }
-                
-                console.log("Captured Successful Barcode:", barCd);
             } else {
-                const apiMsg = response.message || (response.data && response.data.message) || "No medicine found. Click QR properly.";
-                setShowScanStatus({ show: true, msg: apiMsg, isError: true });
-                setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
+                setShowScanStatus({ show: true, msg: "Medicine not found.", isError: true });
             }
         } catch (err) {
-            console.error("Barcode lookup failed:", err);
-            setShowScanStatus({ show: true, msg: "Failed to lookup barcode. Try again.", isError: true });
-            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
+            setShowScanStatus({ show: true, msg: "Lookup failed.", isError: true });
         } finally {
             setIsProcessingScan(false);
+            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 2000);
         }
     };
 
@@ -451,20 +329,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             const next = prev.map(med => {
                 if (med.id === id) {
                     const newQty = med.quantity + change;
-                    const maxQty = med.currQty !== undefined && med.currQty !== null 
-                                    ? med.currQty 
-                                    : (med.stockingUnit || 999999);
-                    
-                    if (newQty > 0 && newQty <= maxQty) {
-                        return { ...med, quantity: newQty };
-                    } else if (newQty > maxQty) {
-                        showToast(`Oops! 😬 Item out of stock (${maxQty})`);
-                        return med;
-                    }
+                    const maxQty = med.currQty !== undefined && med.currQty !== null ? med.currQty : (med.stockingUnit || 999999);
+                    if (newQty > 0 && newQty <= maxQty) return { ...med, quantity: newQty };
+                    else if (newQty > maxQty) showToast(`Oops! 😬 Item out of stock (${maxQty})`);
                 }
                 return med;
             });
-            medicinesRef.current = next; // Sync Ref instantly so scanner sees it
+            medicinesRef.current = next;
             return next;
         });
     };
@@ -492,15 +363,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     const commitBatchesToCart = () => {
         if (!selectedMedForBatch) return;
-
         const newItems = [];
         availableBatches.forEach(batch => {
             const bchKey = batch.bchNo || batch.batchNo || "no-batch";
             const qty = batchSelections[bchKey] || 0;
-
             if (qty > 0) {
                 newItems.push({
-                    id: Date.now() + Math.random(), // Unique ID for cart row
+                    id: Date.now() + Math.random(),
                     itemCd: selectedMedForBatch.id,
                     name: selectedMedForBatch.name,
                     dose: selectedMedForBatch.dose,
@@ -513,11 +382,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 });
             }
         });
-
         if (newItems.length > 0) {
             setMedicines(prev => {
                 const next = [...newItems, ...prev];
-                medicinesRef.current = next; // Instant sync so scanner sees these manual additions
+                medicinesRef.current = next;
                 return next;
             });
             setShowBatchModal(false);
@@ -532,9 +400,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
 
     const handleSave = () => {
-        if (document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-        }
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
         setShowConfirmModal(true);
     };
 
@@ -559,8 +425,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             </div>
 
             <div className="add-med-content">
-
-            {/* Batch fetch loading toast */}
             {isFetchingBatch && (
                 <div style={{
                     position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
@@ -575,7 +439,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 </div>
             )}
 
-            {/* Search and Scanner */}
             <div className="search-scanner-row">
                 <div className="search-box">
                     <span className="search-icon">🔍</span>
@@ -588,7 +451,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <button className="scanner-button" onClick={handleScannerClick} style={{ position: 'relative' }}>
+                <button className="scanner-button" onClick={handleScannerClick}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="3" width="5" height="5" rx="1" /><rect x="16" y="3" width="5" height="5" rx="1" />
                         <rect x="3" y="16" width="5" height="5" rx="1" />
@@ -622,7 +485,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 )}
             </div>
 
-            {/* Prescribed Items Header */}
             <div className="prescribed-header">
                 {medicines.length > 0 && (
                     <span className="added-badge">🛒 Added: {medicines.reduce((sum, m) => sum + m.quantity, 0)}</span>
@@ -669,7 +531,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 </div>
             </div>
 
-            {/* Footer */}
             <div className="add-med-footer">
                 <div className="footer-total">
                     <span className="total-label">Total Amount</span>
@@ -687,77 +548,52 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 </div>
             </div>
 
-            {/* Scanner Modal */}
+            {/* QR Scanner Modal - Redesigned to be Big & Full Screen like GPay */}
             {isScannerOpen && (
-                <div className="scanner-modal-overlay">
-                    <div className="scanner-modal">
-                        <button className="close-scanner" onClick={() => { setIsScannerOpen(false); lastDetectedRef.current = null; }}>×</button>
-                        <div className="scanner-view">
-                            <h3 className="scanner-instructions">Click To Scan Medicine</h3>
+                <div className="scanner-fullscreen-overlay">
+                    <div className="scanner-header-top">
+                        <span className="scanner-brand">Inventory Basket</span>
+                        <button className="scanner-exit-btn" onClick={() => setIsScannerOpen(false)}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
 
-                            <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column', background: '#000', borderRadius: '16px', boxShadow: '0 0 0 1px rgba(255,255,255,0.1)' }}>
-                                {scannerError ? (
-                                    <div style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{scannerError}</div>
-                                ) : (
-                                    <div id="reader" style={{ width: '100%', flex: 1 }}></div>
-                                )}
-                                <div className="scanner-crosshair" style={{
-                                    position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                                    width: '180px', height: '180px', border: '2px solid rgba(255,255,255,0.3)',
-                                    borderRadius: '24px', pointerEvents: 'none', zIndex: 5
-                                }}>
-                                    <div style={{ position: 'absolute', top: -2, left: -2, width: 20, height: 20, borderTop: '4px solid #fff', borderLeft: '4px solid #fff', borderTopLeftRadius: 10 }}></div>
-                                    <div style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderTop: '4px solid #fff', borderRight: '4px solid #fff', borderTopRightRadius: 10 }}></div>
-                                    <div style={{ position: 'absolute', bottom: -2, left: -2, width: 20, height: 20, borderBottom: '4px solid #fff', borderLeft: '4px solid #fff', borderBottomLeftRadius: 10 }}></div>
-                                    <div style={{ position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, borderBottom: '4px solid #fff', borderRight: '4px solid #fff', borderBottomRightRadius: 10 }}></div>
-                                </div>
-                            </div>
-
-                            <div className="scanner-actions" style={{ padding: '24px 0 10px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <button
-                                    className="capture-btn"
-                                    disabled={isProcessingScan}
-                                    onClick={() => handleBarcodeScan(lastDetectedRef.current)}
-                                    style={{
-                                        width: '80px', height: '80px', borderRadius: '50%',
-                                        background: '#fff', border: '8px solid #cbd5e1',
-                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        boxShadow: '0 0 20px rgba(0,0,0,0.2)', transition: 'all 0.2s',
-                                        padding: 0
-                                    }}
-                                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'}
-                                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                >
-                                    <div style={{ 
-                                        width: '56px', height: '56px', borderRadius: '50%', 
-                                        background: isProcessingScan ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}>
-                                        {isProcessingScan ? (
-                                            <div className="search-circle-loader white" style={{ width: 20, height: 20 }}></div>
-                                        ) : (
-                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                                                <circle cx="12" cy="13" r="4"></circle>
-                                            </svg>
-                                        )}
-                                    </div>
-                                </button>
-                            </div>
+                    <div className="scanner-viewport-container">
+                        <div id="reader" className="full-qr-reader"></div>
+                        
+                        {/* GPay Style Scanning Frame */}
+                        <div className="scanning-frame">
+                            <div className="corner top-left"></div>
+                            <div className="corner top-right"></div>
+                            <div className="corner bottom-left"></div>
+                            <div className="corner bottom-right"></div>
+                            <div className="scanning-laser"></div>
                         </div>
 
-                        {showScanStatus.show && (
-                            <div className="scanner-status-hint animate-fade-in" style={{
-                                position: 'absolute', bottom: '130px', left: '50%', transform: 'translateX(-50%)',
-                                background: 'transparent', padding: '0', borderRadius: '0', 
-                                color: '#006ce6', fontSize: '15px', fontWeight: '800', 
-                                zIndex: 1001, boxShadow: 'none', textAlign: 'center',
-                                display: 'block', minWidth: '300px', whiteSpace: 'nowrap'
-                            }}>
-                                {showScanStatus.msg}
-                            </div>
-                        )}
+                        <div className="scanner-instruction-overlay">
+                            {isProcessingScan ? (
+                                <div className="scanner-searching-msg">
+                                    <div className="pulse-loader"></div>
+                                    Searching Med...
+                                </div>
+                            ) : (
+                                "Center QR code within frame"
+                            )}
+                        </div>
                     </div>
+
+                    {showScanStatus.show ? (
+                        <div className="scanner-status-toast animate-slide-up">
+                            {showScanStatus.msg}
+                        </div>
+                    ) : (
+                        <div className="scanner-footer-hint">
+                            Auto-detecting Medicine...
+                        </div>
+                    )}
                 </div>
             )}
 

@@ -636,168 +636,217 @@
     box-shadow: none;
 }
 
-/* Scanner Modal */
-.scanner-modal-overlay {
-    background: rgba(0, 30, 60, 0.4);
-    backdrop-filter: blur(10px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Scanner Modal - New GPay Style Full Screen Implementation */
+.scanner-fullscreen-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3000;
-}
-
-.scanner-modal {
-    background: #ffffff;
-    border-radius: 24px;
-    padding: 32px;
-    border: 1px solid rgba(0, 80, 200, 0.2);
-    width: 90%;
-    max-width: 420px;
-    box-shadow: 0 25px 60px rgba(0, 50, 100, 0.2);
-    position: relative;
-    text-align: center;
-}
-
-.close-scanner {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background: #f1f5f9;
-    border: none;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    color: #64748b;
-    cursor: pointer;
-    font-size: 18px;
+    width: 100vw;
+    height: 100vh;
+    background: #000000;
+    z-index: 5000;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: 'Outfit', sans-serif;
 }
 
-.scanner-instructions {
-    font-size: 20px;
-    font-weight: 800;
-    color: #005bb7;
-    margin-bottom: 8px;
-}
-
-.scanner-box-container {
-    width: 220px;
-    height: 220px;
-    margin: 24px auto;
-    position: relative;
-    padding: 15px;
-}
-
-.qr-guide-box {
+.scanner-header-top {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
-    border: 3px solid #006ce6;
-    border-radius: 20px;
-    opacity: 0.3;
+    height: 80px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 5010;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
 }
 
-.dummy-qr {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 8px;
+.scanner-brand {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
 }
 
-.scan-action-btn {
-    background: #006ce6;
-    color: white;
-    border: none;
-    width: 72px;
-    height: 72px;
+.scanner-exit-btn {
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0, 108, 230, 0.3);
+    backdrop-filter: blur(5px);
+    transition: all 0.2s;
 }
 
-.scan-inner {
+.scanner-exit-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.1);
+}
+
+.scanner-viewport-container {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+
+.full-qr-reader {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.full-qr-reader video {
+    object-fit: cover !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* GPay Style Focus Frame */
+.scanning-frame {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    z-index: 5005;
+    pointer-events: none;
+}
+
+.corner {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border: 4px solid #006ce6;
+    filter: drop-shadow(0 0 8px rgba(0, 108, 230, 0.8));
+}
+
+.top-left { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 20px; }
+.top-right { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 20px; }
+.bottom-left { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 20px; }
+.bottom-right { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 20px; }
+
+.scanning-laser {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    right: 10px;
+    height: 2px;
+    background: #006ce6;
+    box-shadow: 0 0 15px 2px #006ce6;
+    animation: laser-move 2.5s infinite ease-in-out;
+    opacity: 0.6;
+}
+
+@keyframes laser-move {
+    0%, 100% { transform: translateY(-110px); }
+    50% { transform: translateY(110px); }
+}
+
+.scanner-instruction-overlay {
+    position: absolute;
+    bottom: 20%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    z-index: 5010;
+}
+
+.scanner-searching-msg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: #00c7ff;
+    font-weight: 800;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.pulse-loader {
     width: 24px;
     height: 24px;
-    background: white;
-    border-radius: 4px;
+    border: 3px solid #00c7ff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
 }
 
-.scan-btn-hint {
-    margin-top: 12px;
-    font-weight: 700;
-    color: #006ce6;
-    font-size: 13px;
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
-/* Modals (Confirm/Success) */
-.confirm-overlay,
-.success-overlay {
-    background: rgba(0, 30, 60, 0.4);
-    backdrop-filter: blur(8px);
-    position: fixed;
-    top: 0;
+.scanner-footer-hint {
+    position: absolute;
+    bottom: 40px;
     left: 0;
     right: 0;
-    bottom: 0;
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 5010;
 }
 
-.confirm-modal {
+.scanner-status-toast {
+    position: absolute;
+    bottom: 60px;
+    left: 20px;
+    right: 20px;
     background: #ffffff;
-    border-radius: 20px;
-    width: 92%;
-    max-width: 500px;
-    padding: 0;
-    overflow: hidden;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-}
-
-.confirm-header {
-    background: linear-gradient(135deg, #006ce6, #00c7ff);
-    color: white;
-    padding: 20px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.confirm-title {
-    font-size: 18px;
+    color: #006ce6;
+    padding: 16px 24px;
+    border-radius: 16px;
+    text-align: center;
     font-weight: 800;
-    color: white;
+    font-size: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    z-index: 5020;
 }
 
-.confirm-close {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
+/* Animations */
+.animate-slide-up {
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.confirm-patient-strip {
-    background: #f0f7ff;
-    padding: 12px 24px;
-    border-bottom: 1px solid #dae8f7;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+@keyframes slideUp {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Mobile optimizations for the wide detail bar */
+@media (max-width: 600px) {
+    .patient-detail-wide .patient-card {
+        padding: 10px 16px;
+    }
+    .patient-detail-wide .patient-name {
+        font-size: 15px;
+    }
+    .add-med-footer {
+        padding: 12px 20px;
+    }
+    .total-value {
+        font-size: 20px;
+    }
+    .process-button {
+        padding: 12px 24px;
+        font-size: 15px;
+    }
 }
 
 .confirm-patient-name {

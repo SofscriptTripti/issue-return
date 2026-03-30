@@ -88,59 +88,39 @@ function PatientList({
         }
     };
 
-    // Scanner logic
+    // Scanner Logic - Automated & Premium
     useEffect(() => {
         let isMounted = true;
         let html5QrCode = null;
 
-        if (isScannerOpen) {
-            const timer = setTimeout(async () => {
-                try {
-                    html5QrCode = new Html5Qrcode("reader-patient");
-                    html5QrCodeRef.current = html5QrCode;
-                    const config = { fps: 10, qrbox: { width: 250, height: 240 } };
+        const startScanner = async () => {
+            if (!isScannerOpen) return;
+            try {
+                html5QrCode = new Html5Qrcode("patient-reader");
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 15, qrbox: { width: 280, height: 280 } },
+                    async (decodedText) => {
+                        if (!isMounted || isProcessingQr) return;
+                        if (decodedText === lastDetectedRef.current && isProcessingQr) return;
+                        lastDetectedRef.current = decodedText;
+                        handleIdentifyPatient(decodedText);
+                    },
+                    () => {}
+                );
+            } catch (err) {
+                if (isMounted) setIsScannerOpen(false);
+            }
+        };
 
-                    await html5QrCode.start(
-                        { facingMode: "environment" },
-                        config,
-                        (decodedText) => {
-                            if (decodedText && !isProcessingScan) {
-                                lastDetectedRef.current = decodedText;
-                                setActiveCode(decodedText);
-                                handleBarcodeLookup(decodedText);
-                            }
-                        },
-                        (errorMessage) => { /* ignore normal decode noise */ }
-                    );
-                } catch (err) {
-                    console.error("Scanner Start Error:", err);
-                    if (isMounted) {
-                        setIsScannerOpen(false);
-                        setShowNoCameraModal(true);
-                        setScannerError('');
-                    }
-                }
-            }, 300);
+        if (isScannerOpen) startScanner();
 
-            return () => {
-                isMounted = false;
-                clearTimeout(timer);
-                if (html5QrCodeRef.current) {
-                    const stopScanner = async () => {
-                        if (html5QrCodeRef.current.isScanning || html5QrCodeRef.current.getState() === 2) {
-                            try {
-                                await html5QrCodeRef.current.stop();
-                                html5QrCodeRef.current = null;
-                                console.log("Scanner stopped and cleaned up.");
-                            } catch (e) {
-                                console.error("Scanner stop fail:", e);
-                            }
-                        }
-                    };
-                    stopScanner();
-                }
-            };
-        }
+        return () => {
+            isMounted = false;
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().catch(console.error);
+            }
+        };
     }, [isScannerOpen]);
 
     useEffect(() => {
@@ -160,7 +140,6 @@ function PatientList({
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
-            console.log("PatientList: Debounced search triggered for:", searchTerm);
             if (onSearchRef.current) {
                 onSearchRef.current(searchTerm);
             }
@@ -171,7 +150,6 @@ function PatientList({
 
     const handleSearchSubmit = (e) => {
         if (e) e.preventDefault();
-        console.log("PatientList: handleSearchSubmit triggered. Term:", searchTerm);
         if (onSearch) {
             onSearch(searchTerm);
         }
@@ -203,12 +181,11 @@ function PatientList({
                 } else {
                     setErroredStoreId(store.id);
                     onStoreAndCCChange(store, null);
-                    setIsDropdownOpen(false); // Close dropdown to show message in main view
+                    setIsDropdownOpen(false);
                 }
             } catch (err) {
-                console.error("Failed to fetch CCs in dropdown:", err);
                 setErroredStoreId(store.id);
-                setIsDropdownOpen(false); // Close dropdown on major error
+                setIsDropdownOpen(false);
             } finally {
                 setIsLoadingCC(false);
             }
@@ -228,62 +205,30 @@ function PatientList({
         if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur();
         }
-
         setScannerError('');
-
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             setShowNoCameraModal(true);
             return;
         }
-
         try {
-            // Force browser to show permission prompt
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            // Permission granted! Stop the temporary stream
             stream.getTracks().forEach(track => track.stop());
-
             setIsScannerOpen(true);
         } catch (err) {
-            console.error("Camera Permission Request or Start Failed:", err);
             setShowNoCameraModal(true);
         }
     };
 
-    const handleBarcodeLookup = async (barCd) => {
-        if (isProcessingScan) return;
-
-        if (!barCd) {
-            // No code in ref yet, user clicked blindly
-            return;
-        }
-
-        setIsProcessingScan(true);
-        setCapturedPtn(barCd);
-
+    const handleIdentifyPatient = async (barCd) => {
+        setIsProcessingQr(true);
         try {
-            // Trigger search immediately as requested by user
-            setSearchTerm(barCd);
-            if (onSearch) {
-                console.log("PatientList: Calling search API with PTN:", barCd);
-                onSearch(barCd);
-            }
-
-            // Close scanner immediately so user can see the results
-            setIsScannerOpen(false);
-            lastDetectedRef.current = null;
-            setActiveCode('');
-        } catch (e) {
-            console.error("Scanner action error:", e);
-
-            // Fallback: Just trigger search anyway
             setSearchTerm(barCd);
             if (onSearch) onSearch(barCd);
-
             setIsScannerOpen(false);
-            lastDetectedRef.current = null;
-            setActiveCode('');
+        } catch (e) {
+            console.error(e);
         } finally {
-            setIsProcessingScan(false);
+            setIsProcessingQr(false);
         }
     };
 
@@ -295,13 +240,10 @@ function PatientList({
     const getDisplayedPatients = () => {
         return apiPatients.map((p, idx) => {
             const formatVal = (val) => (val && val !== "." && String(val).trim() !== "") ? val : "-";
-
-            // Prefer the backend's pre-formatted Full Name if available
             const fullNameFallback = [p.ptnFName, p.ptnMName, p.ptnLName]
                 .filter(part => part && part.trim() !== "." && part.trim() !== "")
                 .map(part => part.trim())
                 .join(" ");
-
             const displayTitle = formatVal(p.ptnFullLName) !== "-" ? p.ptnFullLName : (fullNameFallback || "-");
 
             return {
@@ -468,40 +410,44 @@ function PatientList({
                 </div>
             </div>
 
+            {/* Premium Full-Screen QR Scanner for Patient List */}
             {isScannerOpen && (
-                <div className="scanner-modal-overlay">
-                    <div className="scanner-modal">
-                        <button className="close-scanner" onClick={() => { setIsScannerOpen(false); lastDetectedRef.current = null; setActiveCode(''); }}>×</button>
-                        <div className="scanner-view">
-                            <h3 className="scanner-instructions" style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '800' }}>
-                                {activeCode ? `Detected: ${activeCode}` : "Align QR Code to Scan"}
-                            </h3>
-                            <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column', background: '#000', borderRadius: '16px', boxShadow: '0 0 0 1px rgba(255,255,255,0.1)' }}>
-                                {scannerError ? (
-                                    <div style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{scannerError}</div>
-                                ) : (
-                                    <div id="reader-patient" style={{ width: '100%', flex: 1 }}></div>
-                                )}
-                                <div className="scanner-crosshair" style={{
-                                    position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                                    width: '200px', height: '200px', border: '2px solid rgba(255,255,255,0.25)',
-                                    borderRadius: '30px', pointerEvents: 'none', zIndex: 5
-                                }}>
-                                    <div style={{ position: 'absolute', top: -2, left: -2, width: 25, height: 25, borderTop: '4px solid #fff', borderLeft: '4px solid #fff', borderTopLeftRadius: 12 }}></div>
-                                    <div style={{ position: 'absolute', top: -2, right: -2, width: 25, height: 25, borderTop: '4px solid #fff', borderRight: '4px solid #fff', borderTopRightRadius: 12 }}></div>
-                                    <div style={{ position: 'absolute', bottom: -2, left: -2, width: 25, height: 25, borderBottom: '4px solid #fff', borderLeft: '4px solid #fff', borderBottomLeftRadius: 12 }}></div>
-                                    <div style={{ position: 'absolute', bottom: -2, right: -2, width: 25, height: 25, borderBottom: '4px solid #fff', borderRight: '4px solid #fff', borderBottomRightRadius: 12 }}></div>
-                                </div>
-                            </div>
-                            <div className="scanner-actions" style={{ padding: '16px 0 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                {isProcessingScan && (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1e3a8a', fontWeight: '800' }}>
-                                        <div className="search-circle-loader" style={{ width: 20, height: 20, margin: 0 }}></div>
-                                        <span>Processing ID...</span>
-                                    </div>
-                                )}
-                            </div>
+                <div className="scanner-fullscreen-overlay">
+                    <div className="scanner-header-top">
+                        <span className="scanner-brand">Identify Patient</span>
+                        <button className="scanner-exit-btn" onClick={() => setIsScannerOpen(false)}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div className="scanner-viewport-container">
+                        <div id="patient-reader" className="full-qr-reader"></div>
+                        
+                        <div className="scanning-frame">
+                            <div className="corner top-left"></div>
+                            <div className="corner top-right"></div>
+                            <div className="corner bottom-left"></div>
+                            <div className="corner bottom-right"></div>
+                            <div className="scanning-laser"></div>
                         </div>
+
+                        <div className="scanner-instruction-overlay">
+                            {isProcessingQr ? (
+                                <div className="scanner-searching-msg">
+                                    <div className="pulse-loader"></div>
+                                    Searching Patient...
+                                </div>
+                            ) : (
+                                "Centering PTN barcode in frame"
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="scanner-footer-hint">
+                        Auto-detecting ID...
                     </div>
                 </div>
             )}
