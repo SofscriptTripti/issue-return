@@ -105,9 +105,11 @@ function PatientList({
                         { facingMode: "environment" },
                         config,
                         (decodedText) => {
-                            // Update ref silently and state for UI visibility
-                            lastDetectedRef.current = decodedText;
-                            setActiveCode(decodedText);
+                            if (decodedText && !isProcessingScan) {
+                                lastDetectedRef.current = decodedText;
+                                setActiveCode(decodedText);
+                                handleBarcodeLookup(decodedText);
+                            }
                         }, 
                         (errorMessage) => { /* ignore normal decode noise */ }
                     );
@@ -287,20 +289,10 @@ function PatientList({
                 onSearch(barCd);
             }
 
-            // Optional background lookup for validation/logging
-            try {
-                await authService.getItemByBarcode(barCd);
-            } catch(e) { /* ignore validation failure */ }
-
-            setShowQuickSuccess(true);
-            
             // Close scanner immediately so user can see the results
-            setTimeout(() => {
-                setShowQuickSuccess(false);
-                setIsScannerOpen(false);
-                lastDetectedRef.current = null;
-                setActiveCode('');
-            }, 800);
+            setIsScannerOpen(false);
+            lastDetectedRef.current = null;
+            setActiveCode('');
         } catch (e) {
             console.error("Scanner action error:", e);
             
@@ -308,13 +300,9 @@ function PatientList({
             setSearchTerm(barCd);
             if (onSearch) onSearch(barCd);
             
-            setShowQuickSuccess(true);
-            setTimeout(() => {
-                setShowQuickSuccess(false);
-                setIsScannerOpen(false);
-                lastDetectedRef.current = null;
-                setActiveCode('');
-            }, 800);
+            setIsScannerOpen(false);
+            lastDetectedRef.current = null;
+            setActiveCode('');
         } finally {
             setIsProcessingScan(false);
         }
@@ -505,7 +493,9 @@ function PatientList({
                     <div className="scanner-modal">
                         <button className="close-scanner" onClick={() => { setIsScannerOpen(false); lastDetectedRef.current = null; setActiveCode(''); }}>×</button>
                         <div className="scanner-view">
-                            <h3 className="scanner-instructions">Scanner Active</h3>
+                            <h3 className="scanner-instructions" style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '800' }}>
+                                {activeCode ? `Detected: ${activeCode}` : "Align QR Code to Scan"}
+                            </h3>
                             <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column', background: '#000', borderRadius: '16px', boxShadow: '0 0 0 1px rgba(255,255,255,0.1)' }}>
                                 {scannerError ? (
                                     <div style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{scannerError}</div>
@@ -523,59 +513,13 @@ function PatientList({
                                     <div style={{ position: 'absolute', bottom: -2, right: -2, width: 25, height: 25, borderBottom: '4px solid #fff', borderRight: '4px solid #fff', borderBottomRightRadius: 12 }}></div>
                                 </div>
                             </div>
-                            <div className="scanner-actions" style={{ padding: '24px 0 10px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <button
-                                    className="capture-btn"
-                                    disabled={isProcessingScan}
-                                    onClick={() => handleBarcodeLookup(lastDetectedRef.current)}
-                                    style={{
-                                        width: '80px', height: '80px', borderRadius: '50%',
-                                        background: '#fff', border: '8px solid #dae8f7',
-                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        boxShadow: '0 0 20px rgba(0,0,0,0.15)', transition: 'all 0.2s',
-                                        padding: 0
-                                    }}
-                                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'}
-                                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                >
-                                    <div style={{ 
-                                        width: '56px', height: '56px', borderRadius: '50%', 
-                                        background: isProcessingScan ? '#cbd5e1' : 'linear-gradient(135deg, #1e3a8a, #3b82f6)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}>
-                                        {isProcessingScan ? (
-                                            <div className="search-circle-loader white" style={{ width: 20, height: 20 }}></div>
-                                        ) : (
-                                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                                <circle cx="12" cy="13" r="3"></circle>
-                                            </svg>
-                                        )}
+                            <div className="scanner-actions" style={{ padding: '16px 0 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                {isProcessingScan && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1e3a8a', fontWeight: '800' }}>
+                                        <div className="search-circle-loader" style={{ width: 20, height: 20, margin: 0 }}></div>
+                                        <span>Processing ID...</span>
                                     </div>
-                                </button>
-                                <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                                    {activeCode && (
-                                        <div style={{ 
-                                            background: '#f1f5f9', 
-                                            padding: '8px 16px', 
-                                            borderRadius: '24px', 
-                                            marginBottom: '12px',
-                                            border: '2px solid #1e3a8a',
-                                            color: '#1e3a8a',
-                                            fontSize: '17px',
-                                            fontWeight: '900',
-                                            animation: 'fadeIn 0.2s ease-out',
-                                            boxShadow: '0 4px 12px rgba(30,58,138,0.15)'
-                                        }}>
-                                            <span style={{ fontSize: '10px', color: '#64748b', display: 'block', fontWeight: '800', marginBottom: '1px', letterSpacing: '0.5px' }}>TARGET PTN NO</span>
-                                            {activeCode}
-                                        </div>
-                                    )}
-                                    <p className="scan-btn-hint" style={{ fontSize: '16px', color: '#1e3a8a', fontWeight: '900' }}>
-                                        {isProcessingScan ? "Checking ID..." : "Tap to Capture"}
-                                    </p>
-                                </div>
-                                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '6px', fontWeight: '500' }}>Center the QR and click above to identify</p>
+                                )}
                             </div>
                         </div>
                     </div>
