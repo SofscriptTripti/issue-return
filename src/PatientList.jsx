@@ -203,10 +203,12 @@ function PatientList({
                 } else {
                     setErroredStoreId(store.id);
                     onStoreAndCCChange(store, null);
+                    setIsDropdownOpen(false); // Close dropdown to show message in main view
                 }
             } catch (err) {
                 console.error("Failed to fetch CCs in dropdown:", err);
                 setErroredStoreId(store.id);
+                setIsDropdownOpen(false); // Close dropdown on major error
             } finally {
                 setIsLoadingCC(false);
             }
@@ -363,10 +365,7 @@ function PatientList({
                                                     <span className="store-indicator" style={{ background: store.color }}></span>
                                                     <div className="store-text-stack" style={{ display: 'flex', flexDirection: 'column' }}>
                                                         <span className="store-option-name">{store.name}</span>
-                                                        {erroredStoreId === store.id && (
-                                                            <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>No Cost Center available</span>
-                                                        )}
-                                                        {isLoadingCC && !costCenters.length && !erroredStoreId && (
+                                                        {isLoadingCC && !costCenters.length && (
                                                             <span style={{ fontSize: '10px', color: '#94a3b8' }}>Checking...</span>
                                                         )}
                                                     </div>
@@ -426,7 +425,11 @@ function PatientList({
                 )}
 
                 <div className="patient-cards-list">
-                    {!isPatientsLoading && displayedPatients.length === 0 ? (
+                    {!selectedCostCenter && selectedStore && !isLoadingCC ? (
+                        <div className="no-results" style={{ color: '#ef4444', fontWeight: 800 }}>
+                            No Cost Center available for "{selectedStore}"
+                        </div>
+                    ) : !isPatientsLoading && displayedPatients.length === 0 ? (
                         <div className="no-results">No patients matching your search</div>
                     ) : (
                         displayedPatients.map((patient) => (

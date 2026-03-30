@@ -175,6 +175,11 @@ function App() {
       setSelectedCCCd(cc.id);
       setSavedPtnTypFlg(cc.ptnTypFlg);
       fetchPatients(cc.ptnTypFlg);
+    } else if (store) {
+      // Clear CC if user selected a store with no CCs or is switching
+      setSelectedCostCenter("");
+      setSelectedCCCd("");
+      setApiPatients([]); // Clear the list
     }
   };
 

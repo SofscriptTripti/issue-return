@@ -328,7 +328,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         if (isProcessingScan) return;
         
         if (!barCd) {
-            showToast("No QR code detected. Please center the QR in frame and try again.");
+            setShowScanStatus({ show: true, msg: "Scan QR correctly. No data Found.", isError: true });
+            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
             return;
         }
         
@@ -668,41 +669,26 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         </div>
 
                         {showScanStatus.show && (
-                            <div className="quick-success-modal" style={{
-                                position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
-                                background: 'rgba(255,255,255,0.95)', padding: '24px', borderRadius: '24px',
-                                boxShadow: '0 20px 40px rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                                zIndex: 1000, border: showScanStatus.isError ? '2px solid #ef4444' : '2px solid #10b981', 
-                                minWidth: '220px', maxWidth: '300px'
+                            <div className="scanner-status-hint animate-fade-in" style={{
+                                position: 'absolute', bottom: '130px', left: '50%', transform: 'translateX(-50%)',
+                                background: showScanStatus.isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)',
+                                padding: '10px 20px', borderRadius: '12px', color: '#fff', fontSize: '13px',
+                                fontWeight: '800', backdropFilter: 'blur(8px)', zIndex: 1001,
+                                boxShadow: '0 8px 30px rgba(0,0,0,0.3)', minWidth: '220px', textAlign: 'center',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                             }}>
-                                <div style={{
-                                    width: 50, height: 50, background: showScanStatus.isError ? '#ef4444' : '#10b981', 
-                                    borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    animation: 'scaleUp 0.3s ease-out'
-                                }}>
-                                    {showScanStatus.isError ? (
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                                        </svg>
-                                    ) : (
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                    )}
-                                </div>
-                                <div style={{ textAlign: 'center' }}>
-                                    <span style={{ 
-                                        fontSize: '15px', 
-                                        fontWeight: '800', 
-                                        color: showScanStatus.isError ? '#991b1b' : '#065f46', 
-                                        display: 'block',
-                                        lineHeight: 1.4
-                                    }}>
-                                        {showScanStatus.msg}
-                                    </span>
-                                </div>
+                                {showScanStatus.isError ? (
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                ) : (
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                )}
+                                {showScanStatus.msg}
                             </div>
                         )}
                     </div>
@@ -723,7 +709,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         {/* Patient info strip */}
                         <div className="confirm-patient-strip">
                             <span className="confirm-patient-name">{patient.name}</span>
-                            <span className="confirm-patient-ptn">PTN #{patient.ptnNo}</span>
+                            <span className="confirm-patient-ptn">PTN {patient.ptnNo}</span>
                         </div>
 
                         {/* Medicine list — read-only */}
