@@ -266,12 +266,46 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                         return { added: true }; // Added successfully in background
                     }
-                } else {
-                    // SILENT SCAN CHECK: If it was silent but item is already maxed out
+                }
+
+                if (isSilent && batches.length > 0) {
+                    // QR SCANNED: Directly add the first available batch instead of asking
+                    const b = batches[0];
+                    const newItem = {
+                        id: Date.now() + Math.random(),
+                        itemCd: med.id,
+                        name: med.name,
+                        batch: b.bchNo || b.batchNo || "N/A",
+                        expiry: b.expiryDate || "N/A",
+                        price: parseFloat(b.trnRate || b.trnSellPrice || med.price || 0),
+                        currQty: parseFloat(b.qty || b.currQty || 0),
+                        quantity: 1,
+                        shelf: med.shelf || "N/A",
+                        rack: med.rack || "N/A",
+                        stockingUnit: parseFloat(b.qty || b.currQty || 0)
+                    };
+
+                    setMedicines(prev => {
+                        const existingIdx = prev.findIndex(m => m.itemCd === newItem.itemCd && m.batch === newItem.batch);
+                        if (existingIdx !== -1) {
+                            const updated = [...prev];
+                            updated[existingIdx] = { 
+                                ...updated[existingIdx], 
+                                quantity: Math.min(updated[existingIdx].quantity + 1, newItem.currQty) 
+                            };
+                            return updated;
+                        }
+                        return [newItem, ...prev];
+                    });
+                    
+                    return { added: true };
+                } else if (isSilent) {
+                    // SILENT SCAN CHECK: If it was silent but item is already maxed out or no batches found
                     const existing = medicines.find(m => (m.itemCd || m.id) === med.id && m.batch === (targetBatch || (med.batch !== 'N/A' ? med.batch : null)));
                     if (existing && existing.quantity >= (existing.currQty || med.currQty)) {
                         return { added: false, reason: 'OUT_OF_STOCK' };
                     }
+                    if (batches.length === 0) return { added: false, reason: 'OUT_OF_STOCK' };
                 }
 
                 // If not silent or batch not found, open the batch modal as usual
