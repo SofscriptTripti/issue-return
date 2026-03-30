@@ -45,6 +45,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [selectedMedForBatch, setSelectedMedForBatch] = useState(null);
     const [batchSelections, setBatchSelections] = useState({}); // { batchKey: quantity }
     const [isProcessingScan, setIsProcessingScan] = useState(false);
+    const isProcessingRef = useRef(false); // Synchronous lock for frames
     const [showScanStatus, setShowScanStatus] = useState({ show: false, msg: '', isError: false });
     const lastDetectedRef = useRef(null);
     const [noScanTimer, setNoScanTimer] = useState(0); // Timer to detect "no result"
@@ -108,8 +109,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         aspectRatio: 1.0 
                     },
                     async (decodedText) => {
-                        // 3-SECOND SCAN COOLDOWN: Prevent rapid re-scanning
-                        if (isProcessingScan) return;
+                        // SYNCHRONOUS LOCK: Absolute frame rejection
+                        if (isProcessingRef.current) return;
                         
                         // VIBRATE DEVICE ON NEW DETECTION
                         if (decodedText !== lastDetectedRef.current) {
@@ -119,7 +120,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         lastDetectedRef.current = decodedText;
                         setDetectedMedCode(decodedText);
                         
-                        // AUTO-PROCESS ON DETECTION
+                        // AUTO-PROCESS ON DETECTION (Synchronous Lock)
+                        isProcessingRef.current = true;
                         handleBarcodeScan(decodedText);
                     },
                     () => { /* Quietly handle frame failures */ }
@@ -373,6 +375,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             setTimeout(() => {
                 setShowScanStatus({ show: false, msg: '', isError: false });
                 setIsProcessingScan(false);
+                isProcessingRef.current = false; // HARD UNLOCK
                 lastDetectedRef.current = null; // Clear so it can re-scan SAME medicine if needed
                 setNoScanTimer(0);
             }, 3000);
