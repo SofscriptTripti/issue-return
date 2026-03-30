@@ -39,7 +39,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [selectedMedForBatch, setSelectedMedForBatch] = useState(null);
     const [batchSelections, setBatchSelections] = useState({}); // { batchKey: quantity }
     const [isProcessingScan, setIsProcessingScan] = useState(false);
-    const [showNothingFound, setShowNothingFound] = useState(false);
+    const [showScanStatus, setShowScanStatus] = useState({ show: false, msg: '', isError: false });
     const lastDetectedRef = useRef(null);
 
     const showToast = (message) => {
@@ -366,12 +366,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 
                 console.log("Captured Successful Barcode:", barCd);
             } else {
-                setShowNothingFound(true);
-                setTimeout(() => setShowNothingFound(false), 2400);
+                const apiMsg = response.message || (response.data && response.data.message) || "No medicine found. Click QR properly.";
+                setShowScanStatus({ show: true, msg: apiMsg, isError: true });
+                setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
             }
         } catch (err) {
             console.error("Barcode lookup failed:", err);
-            showToast("Failed to lookup barcode.");
+            setShowScanStatus({ show: true, msg: "Failed to lookup barcode. Try again.", isError: true });
+            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
         } finally {
             setIsProcessingScan(false);
         }
@@ -612,7 +614,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     <div className="scanner-modal">
                         <button className="close-scanner" onClick={() => { setIsScannerOpen(false); lastDetectedRef.current = null; }}>×</button>
                         <div className="scanner-view">
-                            <h3 className="scanner-instructions">Scanner Active</h3>
+                            <h3 className="scanner-instructions">Click To Scan Medicine</h3>
 
                             <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column', background: '#000', borderRadius: '16px', boxShadow: '0 0 0 1px rgba(255,255,255,0.1)' }}>
                                 {scannerError ? (
@@ -662,36 +664,44 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         )}
                                     </div>
                                 </button>
-                                <div style={{ textAlign: 'center' }}>
-                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>
-                                        {isProcessingScan ? "Adding..." : "Click to Scan Medicine"}
-                                    </span>
-                                    <p style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>Center QR code in frame and tap the white button</p>
-                                </div>
                             </div>
                         </div>
 
-                        {showNothingFound && (
+                        {showScanStatus.show && (
                             <div className="quick-success-modal" style={{
                                 position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
                                 background: 'rgba(255,255,255,0.95)', padding: '24px', borderRadius: '24px',
                                 boxShadow: '0 20px 40px rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)',
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                                zIndex: 1000, border: '2px solid #ef4444', minWidth: '220px'
+                                zIndex: 1000, border: showScanStatus.isError ? '2px solid #ef4444' : '2px solid #10b981', 
+                                minWidth: '220px', maxWidth: '300px'
                             }}>
                                 <div style={{
-                                    width: 50, height: 50, background: '#ef4444', borderRadius: '50%',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    width: 50, height: 50, background: showScanStatus.isError ? '#ef4444' : '#10b981', 
+                                    borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     animation: 'scaleUp 0.3s ease-out'
                                 }}>
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                    </svg>
+                                    {showScanStatus.isError ? (
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                    ) : (
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    )}
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
-                                    <span style={{ fontSize: '16px', fontWeight: '800', color: '#991b1b', display: 'block' }}>No medicine found</span>
-                                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#b91c1c', marginTop: '4px', display: 'block' }}>Click QR properly.</span>
+                                    <span style={{ 
+                                        fontSize: '15px', 
+                                        fontWeight: '800', 
+                                        color: showScanStatus.isError ? '#991b1b' : '#065f46', 
+                                        display: 'block',
+                                        lineHeight: 1.4
+                                    }}>
+                                        {showScanStatus.msg}
+                                    </span>
                                 </div>
                             </div>
                         )}
