@@ -39,6 +39,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [selectedMedForBatch, setSelectedMedForBatch] = useState(null);
     const [batchSelections, setBatchSelections] = useState({}); // { batchKey: quantity }
     const [isProcessingScan, setIsProcessingScan] = useState(false);
+    const [showNothingFound, setShowNothingFound] = useState(false);
     const lastDetectedRef = useRef(null);
 
     const showToast = (message) => {
@@ -360,9 +361,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     stockingUnit: parseFloat(main.currQty || extra.currQty || 0)
                 };
 
+                // Trigger the addition flow (silent scan if batch found)
+                await handleAddMedicine(mapped, main.bchNo || null, true);
+                
                 console.log("Captured Successful Barcode:", barCd);
             } else {
-                showToast("No data found. Try scanning again.");
+                setShowNothingFound(true);
+                setTimeout(() => setShowNothingFound(false), 2400);
             }
         } catch (err) {
             console.error("Barcode lookup failed:", err);
@@ -657,12 +662,39 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         )}
                                     </div>
                                 </button>
-                                <p className="scan-btn-hint" style={{ fontSize: '14px', color: '#1e293b', fontWeight: '800', marginTop: '16px' }}>
-                                    {isProcessingScan ? "Adding..." : "Click to Scan Medicine"}
-                                </p>
-                                <p style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Center QR code in frame and tap the white button</p>
+                                <div style={{ textAlign: 'center' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>
+                                        {isProcessingScan ? "Adding..." : "Click to Scan Medicine"}
+                                    </span>
+                                    <p style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>Center QR code in frame and tap the white button</p>
+                                </div>
                             </div>
                         </div>
+
+                        {showNothingFound && (
+                            <div className="quick-success-modal" style={{
+                                position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
+                                background: 'rgba(255,255,255,0.95)', padding: '24px', borderRadius: '24px',
+                                boxShadow: '0 20px 40px rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+                                zIndex: 1000, border: '2px solid #ef4444', minWidth: '220px'
+                            }}>
+                                <div style={{
+                                    width: 50, height: 50, background: '#ef4444', borderRadius: '50%',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    animation: 'scaleUp 0.3s ease-out'
+                                }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <span style={{ fontSize: '16px', fontWeight: '800', color: '#991b1b', display: 'block' }}>No medicine found</span>
+                                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#b91c1c', marginTop: '4px', display: 'block' }}>Click QR properly.</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
