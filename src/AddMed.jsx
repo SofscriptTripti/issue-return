@@ -21,6 +21,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         } catch (e) { /* ignore */ }
         return [];
     });
+    const medicinesRef = useRef(medicines);
+    // Sync Ref with state
+    useEffect(() => {
+        medicinesRef.current = medicines;
+    }, [medicines]);
+
     const [searchItems, setSearchItems] = useState([]);
     const [isSearchingItems, setIsSearchingItems] = useState(false);
     const [isFetchingBatch, setIsFetchingBatch] = useState(false);
@@ -215,7 +221,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     const handleAddMedicine = async (med, targetBatch = null, isSilent = false) => {
         // Only prevent adding if the EXACT SAME medicine ID is already present (regardless of batch)
-        if (!isSilent && medicines.some(m => (m.itemCd || m.id) === med.id)) {
+        const targetBatchToUse = targetBatch || (med.batch !== 'N/A' ? med.batch : null);
+        
+        // Sync check before doing anything
+        if (!isSilent && medicinesRef.current.some(m => (m.itemCd || m.id) === med.id)) {
             showToast(`${med.name} is already in your list.`);
             return { added: false, reason: 'ALREADY_PRESENT' };
         }
@@ -233,10 +242,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             const batches = response.data || (Array.isArray(response) ? response : []);
             if (Array.isArray(batches) && batches.length > 0) {
                 // Determine which batch we are dealing with (specific or first one)
-                let bchToValidate = targetBatch || (med.batch !== 'N/A' ? med.batch : null) || (batches.length > 0 ? (batches[0].bchNo || batches[0].batchNo) : null);
+                let bchToValidate = targetBatchToUse || (batches.length > 0 ? (batches[0].bchNo || batches[0].batchNo) : null);
                 
-                // OUT-OF-STOCK CHECK: check if THIS specific batch is already full in the cart
-                const existing = medicines.find(m => (m.itemCd || m.id) === med.id && m.batch === bchToValidate);
+                // OUT-OF-STOCK CHECK: check if THIS specific batch is already full in the cart (using Ref for latest state)
+                const existing = medicinesRef.current.find(m => (m.itemCd || m.id) === med.id && m.batch === bchToValidate);
                 const maxAvailable = parseFloat(existing?.currQty || (batches.find(b => (b.bchNo || b.batchNo) === bchToValidate)?.qty || 0));
                 
                 if (isSilent && existing && existing.quantity >= maxAvailable) {
