@@ -96,8 +96,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         { facingMode: "environment" }, 
                         config, 
                         (decodedText) => {
-                            // Silently update the ref with the latest detection
-                            lastDetectedRef.current = decodedText;
+                            if (decodedText && !isProcessingScan) {
+                                lastDetectedRef.current = decodedText;
+                                handleBarcodeScan(decodedText);
+                            }
                         }, 
                         (errorMessage) => { /* quiet noise */ }
                     );
@@ -643,7 +645,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     <div className="scanner-modal">
                         <button className="close-scanner" onClick={() => { setIsScannerOpen(false); lastDetectedRef.current = null; }}>×</button>
                         <div className="scanner-view">
-                            <h3 className="scanner-instructions">Scanner Active</h3>
+                            <h3 className="scanner-instructions" style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '800' }}>Align QR Code to Scan</h3>
 
                             <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column', background: '#000', borderRadius: '16px', boxShadow: '0 0 0 1px rgba(255,255,255,0.1)' }}>
                                 {scannerError ? (
@@ -663,40 +665,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 </div>
                             </div>
 
-                            <div className="scanner-actions" style={{ padding: '24px 0 10px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <button
-                                    className="capture-btn"
-                                    disabled={isProcessingScan}
-                                    onClick={() => handleBarcodeScan(lastDetectedRef.current)}
-                                    style={{
-                                        width: '80px', height: '80px', borderRadius: '50%',
-                                        background: '#fff', border: '8px solid #cbd5e1',
-                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        boxShadow: '0 0 20px rgba(0,0,0,0.2)', transition: 'all 0.2s',
-                                        padding: 0
-                                    }}
-                                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'}
-                                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                >
-                                    <div style={{ 
-                                        width: '56px', height: '56px', borderRadius: '50%', 
-                                        background: isProcessingScan ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}>
-                                        {isProcessingScan ? (
-                                            <div className="search-circle-loader white" style={{ width: 20, height: 20 }}></div>
-                                        ) : (
-                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                                                <circle cx="12" cy="13" r="4"></circle>
-                                            </svg>
-                                        )}
+                            <div className="scanner-actions" style={{ padding: '16px 0 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                {isProcessingScan && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#059669', fontWeight: '800' }}>
+                                        <div className="search-circle-loader" style={{ width: 20, height: 20, margin: 0 }}></div>
+                                        <span>Adding Medicine...</span>
                                     </div>
-                                </button>
-                                <p className="scan-btn-hint" style={{ fontSize: '14px', color: '#1e293b', fontWeight: '800', marginTop: '16px' }}>
-                                    {isProcessingScan ? "Adding..." : "Click to Scan Medicine"}
-                                </p>
-                                <p style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Center QR code in frame and tap the white button</p>
+                                )}
                             </div>
                         </div>
                     </div>
