@@ -363,10 +363,16 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 setShowScanStatus({ show: true, msg: "Scan QR correctly", isError: true });
             }
         } catch (err) {
-            setShowScanStatus({ show: true, msg: "Lookup failed.", isError: true });
+            console.error("Barcode lookup error:", err);
+            setShowScanStatus({ show: true, msg: `Error: ${err.message || 'Lookup failed'}`, isError: true });
         } finally {
-            // isProcessingScan stays true for 3s (handled in useEffect timer)
-            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
+            // Reset after 3 seconds to allow user to see the result
+            setTimeout(() => {
+                setShowScanStatus({ show: false, msg: '', isError: false });
+                setIsProcessingScan(false);
+                lastDetectedRef.current = null; // IMPORTANT: Clear memory so it can re-scan
+                setNoScanTimer(0);
+            }, 3000);
         }
     };
 
