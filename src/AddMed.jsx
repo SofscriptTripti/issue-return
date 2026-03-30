@@ -318,35 +318,49 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             const response = await authService.getItemByBarcode(barCd, storeCd);
             const data = response.data || (Array.isArray(response) ? response : []);
             
-            if (Array.isArray(data) && data.length > 0) {
+            const isSuccess = response.success === "true" || response.status === 200 || response.success === true;
+            
+            if (isSuccess && Array.isArray(data) && data.length > 0) {
                 const apiResult = data[0]; 
                 const main = apiResult.mainData || {};
                 const extra = (apiResult.extraData && apiResult.extraData[0]) || {};
-                const itemCd = main.itemCd || extra.itemCd;
                 
+                // USER JSON PRIORITY: extraData for name, mainData for batch
+                const itemCd = main.itemCd || extra.itemCd || apiResult.itemCd;
+                const itemName = extra.itemDescription || main.itemDescription || apiResult.itemDescription || "Unnamed Item";
+                const unitCd = extra.stockUnitCd || main.stockUnitCd || apiResult.stockUnitCd || itemCd;
+                const batchNo = main.bchNo || extra.bchNo || apiResult.bchNo || "N/A";
+                const itemPrice = parseFloat(main.trnRate || extra.trnRate || apiResult.trnRate || 0);
+                const itemQty = parseFloat(main.currQty || extra.currQty || apiResult.currQty || 0);
+
+                if (!itemCd) {
+                    setShowScanStatus({ show: true, msg: "Scan QR correctly", isError: true });
+                    return;
+                }
+
                 const mapped = {
                     id: itemCd,
-                    name: extra.itemDescription || main.itemDescription || "Unnamed Item",
-                    dose: extra.stockUnitCd || main.stockUnitCd || itemCd,
-                    currQty: parseFloat(main.currQty || extra.currQty || 0),
+                    name: itemName,
+                    dose: unitCd,
+                    currQty: Math.max(0, itemQty),
                     shelf: main.shelf_No || extra.shelf_No || "N/A",
                     rack: main.rack_No || extra.rack_No || "N/A",
-                    price: parseFloat(main.trnRate || extra.trnRate || main.trnMRP || 0),
+                    price: itemPrice,
                     expiry: main.expiryDate || extra.expiryDate || "N/A",
-                    batch: main.bchNo || "N/A",
-                    stockingUnit: parseFloat(main.currQty || extra.currQty || 0)
+                    batch: batchNo,
+                    stockingUnit: itemQty
                 };
 
                 const result = await handleAddMedicine(mapped, mapped.batch, true);
                 if (result.added) {
-                    setShowScanStatus({ show: true, msg: `${mapped.name} Added!`, isError: false });
+                    setShowScanStatus({ show: true, msg: "Added Sucessfully", isError: false });
                 } else if (result.reason === 'OUT_OF_STOCK') {
-                    setShowScanStatus({ show: true, msg: `${mapped.id} is Out of Stock`, isError: true });
+                    setShowScanStatus({ show: true, msg: "Out of stock", isError: true });
                 } else {
-                    setShowScanStatus({ show: true, msg: "Already in Cart or Error", isError: true });
+                    setShowScanStatus({ show: true, msg: "Already in Cart", isError: true });
                 }
             } else {
-                setShowScanStatus({ show: true, msg: "Medicine not found.", isError: true });
+                setShowScanStatus({ show: true, msg: "Scan QR correctly", isError: true });
             }
         } catch (err) {
             setShowScanStatus({ show: true, msg: "Lookup failed.", isError: true });
