@@ -320,6 +320,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     stockingUnit: parseFloat(main.currQty || extra.currQty || 0)
                 };
 
+                const result = await handleAddMedicine(mapped, mapped.batch, true);
                 if (result.added) {
                     setShowScanStatus({ show: true, msg: `${mapped.name} Added!`, isError: false });
                 } else if (result.reason === 'OUT_OF_STOCK') {
@@ -562,52 +563,45 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 </div>
             </div>
 
-            {/* QR Scanner Modal - Redesigned to be Big & Full Screen like GPay */}
+            {/* QR Scanner Modal - Redesigned to be a Modal with Background Transparency */}
             {isScannerOpen && (
                 <div className="scanner-fullscreen-overlay">
-                    <div className="scanner-header-top">
-                        <span className="scanner-brand">Inventory Basket</span>
-                        <button className="scanner-exit-btn" onClick={() => setIsScannerOpen(false)}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <div className="scanner-viewport-container">
-                        <div id="reader" className="full-qr-reader"></div>
-                        
-                        {/* GPay Style Scanning Frame */}
-                        <div className="scanning-frame">
-                            <div className="corner top-left"></div>
-                            <div className="corner top-right"></div>
-                            <div className="corner bottom-left"></div>
-                            <div className="corner bottom-right"></div>
-                            <div className="scanning-laser"></div>
+                    <div className="scanner-modal animate-modal">
+                        <div className="scanner-header-compact">
+                            <span className="scanner-modal-title">Identify Medicine</span>
+                            <button className="scanner-close-btn" onClick={() => setIsScannerOpen(false)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
                         </div>
 
-                        <div className="scanner-instruction-overlay">
-                            {isProcessingScan ? (
-                                <div className="scanner-searching-msg">
-                                    <div className="pulse-loader"></div>
-                                    Searching Med...
-                                </div>
+                        <div className="scanner-viewport-container">
+                            <div id="reader" className="full-qr-reader"></div>
+                            
+                            {/* Centered QR code with Frame */}
+                            <div className="scanning-frame">
+                                <div className="corner top-left"></div>
+                                <div className="corner top-right"></div>
+                                <div className="corner bottom-left"></div>
+                                <div className="corner bottom-right"></div>
+                                <div className="scanning-laser"></div>
+                            </div>
+                        </div>
+
+                        <div className="scanner-footer-msg">
+                            {showScanStatus.show ? (
+                                <p className={`status-msg ${showScanStatus.isError ? 'red' : 'blue'}`}>
+                                    {showScanStatus.msg}
+                                </p>
+                            ) : isProcessingScan ? (
+                                <p className="status-msg blue">Searching Medicine...</p>
                             ) : (
-                                "Center QR code within frame"
+                                <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Center QR code within frame</p>
                             )}
                         </div>
                     </div>
-
-                    {showScanStatus.show ? (
-                        <div className="scanner-status-toast animate-slide-up">
-                            {showScanStatus.msg}
-                        </div>
-                    ) : (
-                        <div className="scanner-footer-hint">
-                            Auto-detecting Medicine...
-                        </div>
-                    )}
                 </div>
             )}
 

@@ -423,44 +423,42 @@ function PatientList({
                 </div>
             </div>
 
-            {/* Premium Full-Screen QR Scanner for Patient List */}
+            {/* Premium QR Scanner Modal for Patient List */}
             {isScannerOpen && (
                 <div className="scanner-fullscreen-overlay">
-                    <div className="scanner-header-top">
-                        <span className="scanner-brand">Identify Patient</span>
-                        <button className="scanner-exit-btn" onClick={() => setIsScannerOpen(false)}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <div className="scanner-viewport-container">
-                        <div id="patient-reader" className="full-qr-reader"></div>
-                        
-                        <div className="scanning-frame">
-                            <div className="corner top-left"></div>
-                            <div className="corner top-right"></div>
-                            <div className="corner bottom-left"></div>
-                            <div className="corner bottom-right"></div>
-                            <div className="scanning-laser"></div>
+                    <div className="scanner-modal animate-modal">
+                        <div className="scanner-header-compact">
+                            <span className="scanner-modal-title">Identify Patient</span>
+                            <button className="scanner-close-btn" onClick={() => setIsScannerOpen(false)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
                         </div>
 
-                        <div className="scanner-instruction-overlay">
+                        <div className="scanner-viewport-container">
+                            <div id="patient-reader" className="full-qr-reader"></div>
+                            
+                            {/* Centered QR code with Frame */}
+                            <div className="scanning-frame">
+                                <div className="corner top-left"></div>
+                                <div className="corner top-right"></div>
+                                <div className="corner bottom-left"></div>
+                                <div className="corner bottom-right"></div>
+                                <div className="scanning-laser"></div>
+                            </div>
+                        </div>
+
+                        <div className="scanner-footer-msg">
                             {isProcessingQr ? (
-                                <div className="scanner-searching-msg">
-                                    <div className="pulse-loader"></div>
-                                    Searching Patient...
-                                </div>
+                                <p className="status-msg blue">Searching Patient...</p>
+                            ) : activeCode ? (
+                                <p className="status-msg blue">Target: {activeCode}</p>
                             ) : (
-                                "Centering PTN barcode in frame"
+                                <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Center PTN barcode in frame</p>
                             )}
                         </div>
-                    </div>
-
-                    <div className="scanner-footer-hint">
-                        Auto-detecting ID...
                     </div>
                 </div>
             )}

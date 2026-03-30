@@ -1163,147 +1163,142 @@
     cursor: pointer;
 }
 
-/* Modal Styling Improvements (Scanner) */
-.scanner-modal-overlay {
-    background: rgba(0, 30, 60, 0.5);
-    backdrop-filter: blur(12px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Unified Scanner Modal Styles */
+.scanner-fullscreen-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3000;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.45); /* Semi-transparent */
+    backdrop-filter: blur(4px);
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', sans-serif;
 }
 
 .scanner-modal {
     background: #ffffff;
-    border-radius: 24px;
-    padding: 32px;
-    border: 1px solid rgba(0, 80, 200, 0.2);
-    width: 90%;
-    max-width: 420px;
-    box-shadow: 0 25px 60px rgba(0, 50, 100, 0.2);
+    width: 70%; /* 70% of screen as requested */
+    max-width: 320px;
+    border-radius: 28px;
+    overflow: hidden;
     position: relative;
-    text-align: center;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+    animation: modalPopUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.scanner-title {
-    font-size: 20px;
+.scanner-header-compact {
+    padding: 18px 24px 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.scanner-modal-title {
+    font-size: 17px;
     font-weight: 800;
-    color: var(--theme-text-blue);
-    margin-bottom: 8px;
-    margin-top: 0;
+    color: #005bb7;
 }
 
-.scanner-subtitle {
-    font-size: 14px;
-    color: var(--theme-text-muted);
-    margin-bottom: 24px;
-}
-
-.qr-frame {
-    width: 220px;
-    height: 220px;
-    margin: 0 auto 24px;
-    position: relative;
-    padding: 15px;
-}
-
-.dummy-qr-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    cursor: pointer;
-    border: 2px solid #f1f5f9;
-    border-radius: 8px;
-    padding: 10px;
-    background: #ffffff;
-}
-
-.qr-corner {
-    position: absolute;
-    width: 40px;
-    height: 40px;
-}
-
-.qr-corner.tl {
-    top: 0;
-    left: 0;
-    border-left: 3px solid var(--theme-text-blue);
-    border-top: 3px solid var(--theme-text-blue);
-}
-
-.qr-corner.tr {
-    top: 0;
-    right: 0;
-    border-right: 3px solid var(--theme-text-blue);
-    border-top: 3px solid var(--theme-text-blue);
-}
-
-.qr-corner.bl {
-    bottom: 0;
-    left: 0;
-    border-left: 3px solid var(--theme-text-blue);
-    border-bottom: 3px solid var(--theme-text-blue);
-}
-
-.qr-corner.br {
-    bottom: 0;
-    right: 0;
-    border-right: 3px solid var(--theme-text-blue);
-    border-bottom: 3px solid var(--theme-text-blue);
-}
-
-.scan-line {
-    position: absolute;
-    left: 15px;
-    right: 15px;
-    height: 2px;
-    background: var(--theme-text-blue);
-    box-shadow: 0 0 8px var(--theme-text-blue);
-    z-index: 10;
-    top: 15px;
-    animation: scanMove 3s infinite linear;
-}
-
-@keyframes scanMove {
-    0% {
-        top: 15px;
-    }
-
-    50% {
-        top: 205px;
-    }
-
-    100% {
-        top: 15px;
-    }
-}
-
-.tap-hint {
-    font-size: 13px;
-    color: var(--theme-text-blue);
-    font-weight: 600;
-}
-
-.close-scanner-btn {
-    position: absolute;
-    top: 16px;
-    right: 16px;
+.scanner-close-btn {
     background: #f1f5f9;
     border: none;
     width: 32px;
     height: 32px;
     border-radius: 50%;
     color: #64748b;
-    cursor: pointer;
-    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+}
+
+.scanner-viewport-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1/1;
+    background: #000;
+    overflow: hidden;
+}
+
+.full-qr-reader {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.full-qr-reader video {
+    object-fit: cover !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Center QR code with Frame */
+.scanning-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 220px;
+    height: 220px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.corner {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 4px solid #006ce6;
+    border-radius: 4px;
+}
+
+.top-left { top: 0; left: 0; border-right: none; border-bottom: none; }
+.top-right { top: 0; right: 0; border-left: none; border-bottom: none; }
+.bottom-left { bottom: 0; left: 0; border-right: none; border-top: none; }
+.bottom-right { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+.scanning-laser {
+    position: absolute;
+    top: 50%;
+    left: 5px;
+    right: 5px;
+    height: 2px;
+    background: #006ce6;
+    box-shadow: 0 0 12px 1px #006ce6;
+    animation: laser-bounce 2s infinite ease-in-out;
+}
+
+@keyframes laser-bounce {
+    0%, 100% { top: 0; }
+    50% { top: 100%; }
+}
+
+.scanner-footer-msg {
+    padding: 16px 20px 24px 20px;
+    text-align: center;
+    min-height: 24px;
+}
+
+.status-msg {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-msg.blue { color: #005bb7; }
+.status-msg.red { color: #ef4444; }
+
+@keyframes modalPopUp {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 /* Responsive fixes */
