@@ -317,10 +317,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             showToast("Failed to fetch medicine batches.");
         } finally {
             setIsFetchingBatch(false);
-            // Only focus if we didn't open the batch modal
-            if (!batchModalOpened && medSearchInputRef.current) {
-                medSearchInputRef.current.focus();
-            }
+            // No longer forcing focus to prevent keyboard popup on mobile after scan
         }
     };
 
