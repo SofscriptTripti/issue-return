@@ -143,10 +143,10 @@ export const authService = {
   /**
    * Get Item/Patient details by Barcode/QR
    */
-  getItemByBarcode: async (barCd) => {
+  getItemByBarcode: async (barCd, strCd) => {
     try {
-      console.log("Fetching details by barcode:", barCd);
-      const endpoint = `${ENDPOINTS.GET_ITEM_BY_BARCODE}?BarCd=${barCd}`;
+      console.log(`Fetching details by barcode: ${barCd} for Store: ${strCd}`);
+      const endpoint = `${ENDPOINTS.GET_ITEM_BY_BARCODE}?BarCd=${barCd}&StrCd=${strCd}`;
       const response = await apiClient(endpoint, { method: "GET" });
       console.log("Barcode API Response:", response);
       return response;

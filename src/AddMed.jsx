@@ -337,7 +337,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         
         setIsProcessingScan(true);
         try {
-            const response = await authService.getItemByBarcode(barCd);
+            const response = await authService.getItemByBarcode(barCd, storeCd);
             const data = response.data || (Array.isArray(response) ? response : []);
             
             if (Array.isArray(data) && data.length > 0) {
