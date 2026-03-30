@@ -104,11 +104,24 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     async (decodedText) => {
                         if (!isMounted || isProcessingScan) return;
                         
-                        // Prevent rapid re-scanning of the same item instantly
+                        // 3-SECOND SCAN COOLDOWN: Prevent rapid re-scanning
                         if (decodedText === lastDetectedRef.current && isProcessingScan) return;
                         
+                        // VIBRATE DEVICE ON DETECTION
+                        if (navigator.vibrate) navigator.vibrate(100);
+
                         lastDetectedRef.current = decodedText;
+                        setIsProcessingScan(true); 
+                        
                         await handleBarcodeScan(decodedText);
+                        
+                        // Keep locked for 3 seconds so user can see feedback
+                        setTimeout(() => {
+                            if (isMounted) {
+                                setIsProcessingScan(false);
+                                lastDetectedRef.current = null;
+                            }
+                        }, 3000);
                     },
                     () => { /* Quietly handle frame failures */ }
                 );
@@ -307,11 +320,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     stockingUnit: parseFloat(main.currQty || extra.currQty || 0)
                 };
 
-                const result = await handleAddMedicine(mapped, main.bchNo || null, true);
                 if (result.added) {
-                    setShowScanStatus({ show: true, msg: `${mapped.name} Added.`, isError: false });
+                    setShowScanStatus({ show: true, msg: `${mapped.name} Added!`, isError: false });
+                } else if (result.reason === 'OUT_OF_STOCK') {
+                    setShowScanStatus({ show: true, msg: `${mapped.id} is Out of Stock`, isError: true });
                 } else {
-                    setShowScanStatus({ show: true, msg: "Out of Stock or Already Added", isError: true });
+                    setShowScanStatus({ show: true, msg: "Already in Cart or Error", isError: true });
                 }
             } else {
                 setShowScanStatus({ show: true, msg: "Medicine not found.", isError: true });
@@ -319,8 +333,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         } catch (err) {
             setShowScanStatus({ show: true, msg: "Lookup failed.", isError: true });
         } finally {
-            setIsProcessingScan(false);
-            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 2000);
+            // isProcessingScan stays true for 3s (handled in useEffect timer)
+            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
         }
     };
 

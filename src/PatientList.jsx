@@ -102,9 +102,20 @@ function PatientList({
                     { fps: 15, qrbox: { width: 280, height: 280 } },
                     async (decodedText) => {
                         if (!isMounted || isProcessingQr) return;
+                        // 3-SECOND SCAN COOLDOWN
                         if (decodedText === lastDetectedRef.current && isProcessingQr) return;
                         lastDetectedRef.current = decodedText;
+                        
+                        setIsProcessingQr(true);
                         handleIdentifyPatient(decodedText);
+                        
+                        // Keep locked for feedback
+                        setTimeout(() => {
+                            if (isMounted) {
+                                setIsProcessingQr(false);
+                                lastDetectedRef.current = null;
+                            }
+                        }, 3000);
                     },
                     () => {}
                 );
@@ -224,11 +235,13 @@ function PatientList({
         try {
             setSearchTerm(barCd);
             if (onSearch) onSearch(barCd);
+            // We only close scanner if explicitly desired, but let's close for now as per previous logic
+            // To keep it open for multiple scans, we'd remove setIsScannerOpen(false)
             setIsScannerOpen(false);
         } catch (e) {
             console.error(e);
         } finally {
-            setIsProcessingQr(false);
+            // isProcessingQr stays true for 3s (handled in useEffect timer)
         }
     };
 
