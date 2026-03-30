@@ -232,6 +232,17 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             
             const batches = response.data || (Array.isArray(response) ? response : []);
             if (Array.isArray(batches) && batches.length > 0) {
+                // Determine which batch we are dealing with (specific or first one)
+                let bchToValidate = targetBatch || (med.batch !== 'N/A' ? med.batch : null) || (batches.length > 0 ? (batches[0].bchNo || batches[0].batchNo) : null);
+                
+                // OUT-OF-STOCK CHECK: check if THIS specific batch is already full in the cart
+                const existing = medicines.find(m => (m.itemCd || m.id) === med.id && m.batch === bchToValidate);
+                const maxAvailable = parseFloat(existing?.currQty || (batches.find(b => (b.bchNo || b.batchNo) === bchToValidate)?.qty || 0));
+                
+                if (isSilent && existing && existing.quantity >= maxAvailable) {
+                    return { added: false, reason: 'OUT_OF_STOCK' };
+                }
+
                 // SILENT BACKGROUND ADD (FOR QR SCANS)
                 if (isSilent && targetBatch) {
                     const foundBatch = batches.find(b => (b.bchNo || b.batchNo) === targetBatch);
@@ -281,7 +292,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         currQty: parseFloat(b.qty || b.currQty || 0),
                         quantity: 1,
                         shelf: med.shelf || "N/A",
-                        rack: med.rack || "N/A",
+                        rack: b.rack_No || med.rack || "N/A",
                         stockingUnit: parseFloat(b.qty || b.currQty || 0)
                     };
 
@@ -299,13 +310,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     });
                     
                     return { added: true };
-                } else if (isSilent) {
-                    // SILENT SCAN CHECK: If it was silent but item is already maxed out or no batches found
-                    const existing = medicines.find(m => (m.itemCd || m.id) === med.id && m.batch === (targetBatch || (med.batch !== 'N/A' ? med.batch : null)));
-                    if (existing && existing.quantity >= (existing.currQty || med.currQty)) {
-                        return { added: false, reason: 'OUT_OF_STOCK' };
-                    }
-                    if (batches.length === 0) return { added: false, reason: 'OUT_OF_STOCK' };
                 }
 
                 // If not silent or batch not found, open the batch modal as usual
