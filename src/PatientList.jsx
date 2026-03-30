@@ -100,7 +100,7 @@ function PatientList({
                 html5QrCode = new Html5Qrcode("patient-reader");
                 await html5QrCode.start(
                     { facingMode: "environment" },
-                    { fps: 15, qrbox: { width: 280, height: 280 } },
+                    { fps: 20, qrbox: { width: 280, height: 280 } },
                     async (decodedText) => {
                         // VIBRATE DEVICE ON DETECTION
                         if (decodedText !== lastDetectedRef.current) {
@@ -426,7 +426,7 @@ function PatientList({
                 <div className="scanner-fullscreen-overlay">
                     <div className="scanner-modal animate-modal">
                         <div className="scanner-header-compact">
-                            <span className="scanner-modal-title">Identify Patient</span>
+                            <span className="scanner-modal-title">Scan patient QR.</span>
                             <button className="scanner-close-btn" onClick={() => setIsScannerOpen(false)}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>

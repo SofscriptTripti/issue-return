@@ -101,7 +101,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 
                 await html5QrCode.start(
                     { facingMode: "environment" },
-                    { fps: 15, qrbox: { width: 280, height: 280 } },
+                    { fps: 20, qrbox: { width: 280, height: 280 } },
                     async (decodedText) => {
                         if (!isMounted || isProcessingScan) return;
                         
@@ -115,6 +115,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                         lastDetectedRef.current = decodedText;
                         setDetectedMedCode(decodedText);
+                        
+                        // AUTO-PROCESS ON DETECTION
+                        handleBarcodeScan(decodedText);
                     },
                     () => { /* Quietly handle frame failures */ }
                 );
@@ -288,9 +291,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
 
     const handleBarcodeScan = async (barCd) => {
+        if (isProcessingScan) return;
         setIsProcessingScan(true);
         setDetectedMedCode('');
-        lastDetectedRef.current = null;
+        // No need to null lastDetectedRef here, we want it to stay for the 3s cooldown
         try {
             const response = await authService.getItemByBarcode(barCd, storeCd);
             const data = response.data || (Array.isArray(response) ? response : []);
@@ -562,7 +566,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 <div className="scanner-fullscreen-overlay">
                     <div className="scanner-modal animate-modal">
                         <div className="scanner-header-compact">
-                            <span className="scanner-modal-title">Identify Medicine</span>
+                            <span className="scanner-modal-title">SCAN Medicine Qr</span>
                             <button className="scanner-close-btn" onClick={() => setIsScannerOpen(false)}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -580,32 +584,27 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 <div className="corner top-right"></div>
                                 <div className="corner bottom-left"></div>
                                 <div className="corner bottom-right"></div>
-                                <div className="scanning-laser"></div>
+                                {!showScanStatus.show && <div className="scanning-laser"></div>}
                             </div>
+
+                            {/* Centered Status Message Overlay */}
+                            {showScanStatus.show && (
+                                <div className={`center-status-overlay ${showScanStatus.isError ? 'err' : 'ok'}`}>
+                                    {showScanStatus.msg}
+                                </div>
+                            )}
                         </div>
 
-                        <div className="scanner-footer-msg">
-                            {showScanStatus.show ? (
-                                <p className={`status-msg ${showScanStatus.isError ? 'red' : 'blue'}`}>
-                                    {showScanStatus.msg}
-                                </p>
-                            ) : isProcessingScan ? (
-                                <p className="status-msg blue">Processing...</p>
-                            ) : detectedMedCode ? (
-                                <div className="capture-workflow">
-                                    <div className="detection-badge">
-                                        <span className="badge-dot"></span>
-                                        <span className="badge-text">Detected: {detectedMedCode}</span>
-                                    </div>
-                                    <button 
-                                        className="capture-btn"
-                                        onClick={() => handleBarcodeScan(detectedMedCode)}
-                                    >
-                                        CAPTURE & IDENTIFY
-                                    </button>
+                        <div className="scanner-footer-msg" style={{minHeight: '40px'}}>
+                            {isProcessingScan && !showScanStatus.show ? (
+                                <p className="status-msg blue">Lookup in progress...</p>
+                            ) : detectedMedCode && !showScanStatus.show ? (
+                                <div className="detection-badge">
+                                    <span className="badge-dot"></span>
+                                    <span className="badge-text">Detected: {detectedMedCode}</span>
                                 </div>
                             ) : (
-                                <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Focus QR code to identify</p>
+                                !showScanStatus.show && <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Focus medicine QR code</p>
                             )}
                         </div>
                     </div>

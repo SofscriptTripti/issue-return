@@ -656,8 +656,8 @@
 
 .scanner-modal {
     background: #ffffff;
-    width: 70%; /* 70% of screen as requested */
-    max-width: 320px;
+    width: 90%;
+    max-width: 420px;
     border-radius: 28px;
     overflow: hidden;
     position: relative;
@@ -716,8 +716,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 220px;
-    height: 220px;
+    width: 280px;
+    height: 280px;
     z-index: 5;
     pointer-events: none;
     transition: all 0.3s ease;
@@ -1407,3 +1407,8 @@
 .badge-text { font-size: 13px; font-weight: 800; color: #005bb7; letter-spacing: -0.2px; }
 @keyframes pulseGlow { 0%, 100% { opacity: 0.5; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
 @keyframes bounceIn { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+
+.center-status-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 255, 255, 0.96); padding: 20px 32px; border-radius: 20px; box-shadow: 0 15px 45px rgba(0,0,0,0.4); z-index: 200; text-align: center; font-weight: 800; font-size: 19px; width: 85%; animation: centerPopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.center-status-overlay.ok { color: #006ce6; border: 2.5px solid #006ce6; }
+.center-status-overlay.err { color: #ef4444; border: 2.5px solid #ef4444; }
+@keyframes centerPopIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.7); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }

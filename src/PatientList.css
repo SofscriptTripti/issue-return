@@ -1183,8 +1183,8 @@
 
 .scanner-modal {
     background: #ffffff;
-    width: 70%; /* 70% of screen as requested */
-    max-width: 320px;
+    width: 90%;
+    max-width: 420px;
     border-radius: 28px;
     overflow: hidden;
     position: relative;
@@ -1243,8 +1243,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 220px;
-    height: 220px;
+    width: 280px;
+    height: 280px;
     z-index: 5;
     pointer-events: none;
     transition: all 0.3s ease;
