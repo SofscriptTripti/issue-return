@@ -64,6 +64,8 @@ function PatientList({
     const [showNoCameraModal, setShowNoCameraModal] = useState(false);
     const [isProcessingScan, setIsProcessingScan] = useState(false);
     const [showQuickSuccess, setShowQuickSuccess] = useState(false);
+    const [activeCode, setActiveCode] = useState('');
+    const [capturedPtn, setCapturedPtn] = useState('');
     const lastDetectedRef = useRef(null);
 
     // Hardware-aware Camera Check
@@ -103,8 +105,9 @@ function PatientList({
                         { facingMode: "environment" },
                         config,
                         (decodedText) => {
-                            // Update ref silently
+                            // Update ref silently and state for UI visibility
                             lastDetectedRef.current = decodedText;
+                            setActiveCode(decodedText);
                         }, 
                         (errorMessage) => { /* ignore normal decode noise */ }
                     );
@@ -274,27 +277,44 @@ function PatientList({
         }
 
         setIsProcessingScan(true);
+        setCapturedPtn(barCd);
+        
         try {
-            // Call the barcode API upon scan as requested
-            console.log("PatientList: Looking up barcode:", barCd);
-            await authService.getItemByBarcode(barCd);
-            
-            // Proceed with the normal search flow using the scanned barcode as the search term
+            // Trigger search immediately as requested by user
             setSearchTerm(barCd);
-            if (onSearch) onSearch(barCd);
+            if (onSearch) {
+                console.log("PatientList: Calling search API with PTN:", barCd);
+                onSearch(barCd);
+            }
 
-            // Show Success Feedback
+            // Optional background lookup for validation/logging
+            try {
+                await authService.getItemByBarcode(barCd);
+            } catch(e) { /* ignore validation failure */ }
+
             setShowQuickSuccess(true);
-            setTimeout(() => setShowQuickSuccess(false), 1500);
-        } catch (e) {
-            console.error("Barcode lookup failed in PatientList:", e);
             
-            // Proceed anyway if it's a valid ID for offline/search
+            // Close scanner immediately so user can see the results
+            setTimeout(() => {
+                setShowQuickSuccess(false);
+                setIsScannerOpen(false);
+                lastDetectedRef.current = null;
+                setActiveCode('');
+            }, 800);
+        } catch (e) {
+            console.error("Scanner action error:", e);
+            
+            // Fallback: Just trigger search anyway
             setSearchTerm(barCd);
             if (onSearch) onSearch(barCd);
             
             setShowQuickSuccess(true);
-            setTimeout(() => setShowQuickSuccess(false), 1500);
+            setTimeout(() => {
+                setShowQuickSuccess(false);
+                setIsScannerOpen(false);
+                lastDetectedRef.current = null;
+                setActiveCode('');
+            }, 800);
         } finally {
             setIsProcessingScan(false);
         }
@@ -483,7 +503,7 @@ function PatientList({
             {isScannerOpen && (
                 <div className="scanner-modal-overlay">
                     <div className="scanner-modal">
-                        <button className="close-scanner" onClick={() => { setIsScannerOpen(false); lastDetectedRef.current = null; }}>×</button>
+                        <button className="close-scanner" onClick={() => { setIsScannerOpen(false); lastDetectedRef.current = null; setActiveCode(''); }}>×</button>
                         <div className="scanner-view">
                             <h3 className="scanner-instructions">Scanner Active</h3>
                             <div className="scanner-box-container" style={{ position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column', background: '#000', borderRadius: '16px', boxShadow: '0 0 0 1px rgba(255,255,255,0.1)' }}>
@@ -533,10 +553,29 @@ function PatientList({
                                         )}
                                     </div>
                                 </button>
-                                <p className="scan-btn-hint" style={{ fontSize: '15px', color: '#1e3a8a', fontWeight: '800', marginTop: '16px' }}>
-                                    {isProcessingScan ? "Searching..." : "Click to Identify Patient"}
-                                </p>
-                                <p style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Point at QR code and tap the capture button</p>
+                                <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                                    {activeCode && (
+                                        <div style={{ 
+                                            background: '#f1f5f9', 
+                                            padding: '8px 16px', 
+                                            borderRadius: '24px', 
+                                            marginBottom: '12px',
+                                            border: '2px solid #1e3a8a',
+                                            color: '#1e3a8a',
+                                            fontSize: '17px',
+                                            fontWeight: '900',
+                                            animation: 'fadeIn 0.2s ease-out',
+                                            boxShadow: '0 4px 12px rgba(30,58,138,0.15)'
+                                        }}>
+                                            <span style={{ fontSize: '10px', color: '#64748b', display: 'block', fontWeight: '800', marginBottom: '1px', letterSpacing: '0.5px' }}>TARGET PTN NO</span>
+                                            {activeCode}
+                                        </div>
+                                    )}
+                                    <p className="scan-btn-hint" style={{ fontSize: '16px', color: '#1e3a8a', fontWeight: '900' }}>
+                                        {isProcessingScan ? "Checking ID..." : "Tap to Capture"}
+                                    </p>
+                                </div>
+                                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '6px', fontWeight: '500' }}>Center the QR and click above to identify</p>
                             </div>
                         </div>
                     </div>
@@ -559,7 +598,10 @@ function PatientList({
                                     <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
                              </div>
-                             <span style={{ fontSize: '18px', fontWeight: '800', color: '#1e3a8a' }}>Identify Success!</span>
+                             <div style={{ textAlign: 'center' }}>
+                                <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a8a', display: 'block' }}>Identify Success!</span>
+                                <span style={{ fontSize: '15px', fontWeight: '800', color: '#475569', marginTop: '6px', display: 'block', background: '#f1f5f9', padding: '4px 12px', borderRadius: '12px' }}>PTN No: {capturedPtn}</span>
+                             </div>
                         </div>
                     )}
                 </div>
