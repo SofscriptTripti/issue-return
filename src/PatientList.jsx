@@ -72,7 +72,7 @@ function PatientList({
         // We now always return true on mobile/tablet to allow the scanner to at least try.
         // This is to bypass browser 'Insecure Context' reports that might be false or overridden.
         const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
+
         if (isMobileOrTablet) return true;
 
         if (!navigator.mediaDevices) {
@@ -109,7 +109,7 @@ function PatientList({
                                 setActiveCode(decodedText);
                                 handleBarcodeLookup(decodedText);
                             }
-                        }, 
+                        },
                         (errorMessage) => { /* ignore normal decode noise */ }
                     );
                 } catch (err) {
@@ -228,9 +228,9 @@ function PatientList({
         if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur();
         }
-        
+
         setScannerError('');
-        
+
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             setShowNoCameraModal(true);
             return;
@@ -241,7 +241,7 @@ function PatientList({
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             // Permission granted! Stop the temporary stream
             stream.getTracks().forEach(track => track.stop());
-            
+
             setIsScannerOpen(true);
         } catch (err) {
             console.error("Camera Permission Request or Start Failed:", err);
@@ -251,7 +251,7 @@ function PatientList({
 
     const handleBarcodeLookup = async (barCd) => {
         if (isProcessingScan) return;
-        
+
         if (!barCd) {
             // No code in ref yet, user clicked blindly
             return;
@@ -259,7 +259,7 @@ function PatientList({
 
         setIsProcessingScan(true);
         setCapturedPtn(barCd);
-        
+
         try {
             // Trigger search immediately as requested by user
             setSearchTerm(barCd);
@@ -274,11 +274,11 @@ function PatientList({
             setActiveCode('');
         } catch (e) {
             console.error("Scanner action error:", e);
-            
+
             // Fallback: Just trigger search anyway
             setSearchTerm(barCd);
             if (onSearch) onSearch(barCd);
-            
+
             setIsScannerOpen(false);
             lastDetectedRef.current = null;
             setActiveCode('');
@@ -366,7 +366,7 @@ function PatientList({
                                                     <div className="store-text-stack" style={{ display: 'flex', flexDirection: 'column' }}>
                                                         <span className="store-option-name">{store.name}</span>
                                                         {isLoadingCC && !costCenters.length && (
-                                                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>Checking...</span>
+                                                            <span style={{ fontSize: '10px', color: '#94a3b8' }}></span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -539,14 +539,14 @@ function PatientList({
                     </div>
                 </div>
             )}
-             {showNoCameraModal && (
+            {showNoCameraModal && (
                 <div className="adv-overlay" onClick={() => setShowNoCameraModal(false)}>
                     <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 380, padding: '30px 24px' }}>
                         <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px' }}>Unable to start Camera</h3>
                         <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '24px', lineHeight: 1.5 }}>
                             Unable to start Camera. Use Device with Back Camera.
                         </p>
-                        
+
                         <button
                             onClick={() => setShowNoCameraModal(false)}
                             style={{
