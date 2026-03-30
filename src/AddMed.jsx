@@ -677,23 +677,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         {showScanStatus.show && (
                             <div className="scanner-status-hint animate-fade-in" style={{
                                 position: 'absolute', bottom: '130px', left: '50%', transform: 'translateX(-50%)',
-                                background: 'rgba(0, 108, 230, 0.95)',
-                                padding: '10px 20px', borderRadius: '12px', color: '#fff', fontSize: '13px',
-                                fontWeight: '800', backdropFilter: 'blur(8px)', zIndex: 1001,
-                                boxShadow: '0 8px 30px rgba(0,0,0,0.3)', minWidth: '220px', textAlign: 'center',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                                background: 'transparent', padding: '0', borderRadius: '0', 
+                                color: '#006ce6', fontSize: '15px', fontWeight: '800', 
+                                zIndex: 1001, boxShadow: 'none', textAlign: 'center',
+                                display: 'block', minWidth: '300px', whiteSpace: 'nowrap'
                             }}>
-                                {showScanStatus.isError ? (
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                    </svg>
-                                ) : (
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
-                                )}
                                 {showScanStatus.msg}
                             </div>
                         )}
