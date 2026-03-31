@@ -106,14 +106,14 @@ function PatientList({
                         if (decodedText !== lastDetectedRef.current) {
                             if (navigator.vibrate) navigator.vibrate(50);
                         }
-                        
+
                         lastDetectedRef.current = decodedText;
                         setScannedPtnCode(decodedText);
-                        
+
                         // DIRECT CALL API AS REQUESTED
                         handleIdentifyPatient(decodedText);
                     },
-                    () => {}
+                    () => { }
                 );
             } catch (err) {
                 if (isMounted) setIsScannerOpen(false);
@@ -437,7 +437,7 @@ function PatientList({
 
                         <div className="scanner-viewport-container">
                             <div id="patient-reader" className="full-qr-reader"></div>
-                            
+
                             {/* Centered QR code with Frame */}
                             <div className="scanning-frame">
                                 <div className="corner top-left"></div>
@@ -453,14 +453,14 @@ function PatientList({
                                 <p className="status-msg blue">Identifying Patient...</p>
                             ) : scannedPtnCode ? (
                                 <div className="capture-workflow">
-                                    <div className="detection-badge">
+                                    {/* <div className="detection-badge">
                                         <span className="badge-dot"></span>
                                         <span className="badge-text">Detected: {scannedPtnCode}</span>
-                                    </div>
+                                    </div> */}
                                     <p className="status-msg blue">Loading data...</p>
                                 </div>
                             ) : (
-                                <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Focus PTN barcode in frame</p>
+                                <p className="status-msg" style={{ color: '#64748b', opacity: 0.8 }}>Focus PTN barcode in frame</p>
                             )}
                         </div>
                     </div>
