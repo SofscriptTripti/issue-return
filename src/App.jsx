@@ -138,13 +138,20 @@ function App() {
   };
 
   const handleLogout = () => {
-    // Clear ALL localStorage to ensure no credentials or sessions persist
+    // Clear ALL sessions and state
     sessionStorage.clear();
-    localStorage.clear(); // Keep clearing localStorage too just in case old data exists
-
-    // Force a full page reload to the root URL
-    // This is the most reliable way to clear all in-memory React states
-    window.location.href = "/";
+    localStorage.clear();
+    
+    // Instead of a full page reload, we just jump back to login screen in state
+    // This prevents server-side 404 or folder listing errors on various hosting environments
+    setSelectedPatient(null);
+    setSelectedStoreName("");
+    setSelectedCostCenter("");
+    setSelectedStoreCd("");
+    setSelectedCCCd("");
+    setStores([]);
+    setApiPatients([]);
+    setCurrentScreen("login");
   };
 
   const handleSelectPatient = (patient) => {

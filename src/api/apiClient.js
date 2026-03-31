@@ -37,15 +37,19 @@ const apiClient = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, config);
-    console.log(`[API RESPONSE] ${response.status} ${url}`);
-
+    console.log(`[API STATUS CHECK] Status: ${response.status} for ${url}`);
+    
     if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error("No user account is found.");
-      }
-      const errorData = await response.json().catch(() => ({}));
-      console.log("[API ERROR RESPONSE]", errorData);
-      const msg = errorData.message || errorData.error || errorData.errorMessage || `Error ${response.status}`;
+      // Even on error, we want to see the JSON body if it exists
+      const errorData = await response.json().catch(() => null);
+      console.log("[API ERROR BODY RECEIVED]:", errorData);
+      
+      // We prioritize the message provided BY THE SERVER over any hardcoded text
+      // We check for 'message', 'error', and 'errorMessage' fields
+      const msg = errorData?.message || errorData?.error || errorData?.errorMessage 
+                 || (response.status === 401 ? "Unauthorized: Check credentials" : `Error ${response.status}`);
+      
+      console.log("[API THROWING ERROR]:", msg);
       throw new Error(msg);
     }
 
