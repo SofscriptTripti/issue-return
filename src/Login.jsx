@@ -58,18 +58,21 @@ function Login({ onLoginSuccess }) {
   return (
     <div className="landing-wrapper">
       {/* NAVBAR */}
+      {/* NAVBAR */}
       <nav className="navbar">
         <div className="navbar-logo">
-          <img
-            className="logo-icon"
-            src={`${import.meta.env.BASE_URL}medical-192.png`}
-            alt="CareWorks"
-          />
-          <div className="logo-text-stack" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span className="logo-text" style={{ fontSize: '28px', lineHeight: '1', color: '#0090ff', fontWeight: '900' }}>
-                CareWorks HMIS
-            </span>
-            <span className="logo-subtitle" style={{ fontSize: '13px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '2px', marginTop: '6px' }}>
+          <div className="logo-branding-group">
+            <div className="logo-title-line">
+              <img
+                className="logo-mini-icon"
+                src={`${import.meta.env.BASE_URL}medical-192.png`}
+                alt="CareWorks Logo"
+              />
+              <span className="logo-text-main">
+                  CareWorks HMIS
+              </span>
+            </div>
+            <span className="logo-subtitle-tag">
                 Inventory Basket
             </span>
           </div>

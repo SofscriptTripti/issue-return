@@ -30,40 +30,46 @@ body {
 
 .navbar-logo {
   display: flex;
-  align-items: center; /* Vertical center */
+  align-items: center;
   justify-content: flex-start;
-  gap: 20px;
   position: relative;
 }
 
-.logo-icon {
-  width: 100px;
-  height: 100px;
-  color: #38bdf8;
-  animation: bounceInRotate 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+.logo-branding-group {
   display: flex;
-  align-items: center;
-  object-fit: contain;
+  flex-direction: column;
+  align-items: center; /* Centers everything in the group */
 }
 
-.logo-text {
+.logo-title-line {
   display: flex;
-  align-items: center; /* Center text vertically with respect to container */
+  align-items: center;
   gap: 12px;
+}
+
+.logo-mini-icon {
+  width: 42px; /* Large enough for 28-34px font-size equivalent */
+  height: 42px;
+  object-fit: contain;
+  animation: bounceInRotate 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.logo-text-main {
   font-size: 34px;
   font-weight: 900;
-  color: #1e3a8a; /* Deep blue like branding */
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  color: #0090ff;
+  letter-spacing: 1px;
+  text-transform: none; /* User wrote mixed case in request */
   line-height: 1;
 }
 
-.logo-word-1 {
-  color: #1e3a8a;
-}
-
-.logo-word-2 {
-  color: #0077b6; /* Ocean Blue */
+.logo-subtitle-tag {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  margin-top: 6px;
 }
 
 @keyframes bounceInRotate {
