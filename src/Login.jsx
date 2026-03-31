@@ -68,13 +68,15 @@ function Login({ onLoginSuccess }) {
                 src={`${import.meta.env.BASE_URL}medical-192.png`}
                 alt="CareWorks Logo"
               />
-              <span className="logo-text-main">
-                  CareWorks HMIS
-              </span>
+              <div className="text-vertical-group">
+                <span className="logo-text-main">
+                    CareWorks HMIS
+                </span>
+                <span className="logo-subtitle-tag">
+                    Inventory Basket
+                </span>
+              </div>
             </div>
-            <span className="logo-subtitle-tag">
-                Inventory Basket
-            </span>
           </div>
         </div>
         <div className="navbar-links">
