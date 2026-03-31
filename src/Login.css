@@ -430,6 +430,13 @@ body {
   box-sizing: border-box;
 }
 
+/* Hide default browser password reveal icon */
+.input-group input::-ms-reveal,
+.input-group input::-ms-clear,
+.input-group input::-webkit-reveal {
+  display: none;
+}
+
 .input-group input::placeholder {
   color: rgba(0, 0, 0, 0.4);
 }
