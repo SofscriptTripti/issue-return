@@ -725,7 +725,10 @@ body {
     bottom: 30px;
     left: 0;
     right: 0;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     color: #000000;
     font-size: 14px;
     font-weight: 800;
@@ -733,6 +736,12 @@ body {
     letter-spacing: 0.5px;
     opacity: 0.9;
     animation: fadeInDelayed 1s ease forwards;
+}
+
+.powered-by-logo {
+    height: 24px;
+    width: auto;
+    object-fit: contain;
 }
 
 @keyframes fadeInDelayed {

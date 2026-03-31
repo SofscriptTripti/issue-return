@@ -161,7 +161,12 @@ function Login({ onLoginSuccess }) {
 
       {/* Powered By Footer */}
       <div className="login-powered-by">
-        Powered By Softscript
+        <span>Powered By Sofscript</span>
+        <img 
+          src={`${import.meta.env.BASE_URL}product-logo (2) - Copy.png`} 
+          alt="Sofscript Logo" 
+          className="powered-by-logo"
+        />
       </div>
     </div>
   );
