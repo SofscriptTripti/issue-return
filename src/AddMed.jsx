@@ -665,34 +665,44 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 <div className="confirm-overlay" onClick={() => setShowConfirmModal(false)}>
                     <div className="confirm-modal" onClick={e => e.stopPropagation()}>
                         <div className="confirm-header">
-                            <span className="confirm-title">📋 Order Summary</span>
+                            <span className="confirm-title">Order Summary</span>
                             <button className="confirm-close" onClick={() => setShowConfirmModal(false)}>✕</button>
                         </div>
 
                         <div className="confirm-patient-strip">
-                            <span>{patient.name}</span>
-                            <span>PTN {patient.ptnNo}</span>
+                            <div className="confirm-pt-info">
+                                <span className="confirm-pt-label">PATIENT</span>
+                                <span className="confirm-pt-name">{patient.name}</span>
+                            </div>
+                            <div className="confirm-pt-info align-right">
+                                <span className="confirm-pt-label">PTN NO</span>
+                                <span className="confirm-pt-val">{patient.ptnNo}</span>
+                            </div>
+                        </div>
+
+                        <div className="confirm-med-list-header">
+                            <span className="col-med">Medicine</span>
+                            <span className="col-qty">Qty</span>
+                            <span className="col-price">Total</span>
                         </div>
 
                         <div className="confirm-med-list">
                             {medicines.map((med, i) => (
                                 <div key={med.id} className="confirm-med-row">
-                                    <div className="confirm-med-left" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span className="confirm-med-name">{i + 1}. {med.name}</span>
-                                        <div style={{ fontSize: '11px', color: '#64748b' }}>
-                                            Batch: {med.batch}}
-                                        </div>
+                                    <div className="confirm-med-info">
+                                        <div className="confirm-med-name">{i + 1}. {med.name}</div>
+                                        <div className="confirm-med-batch">Batch: {med.batch}</div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#0f172a' }}>x{med.quantity}</div>
-                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#059669' }}>₹{(med.price * med.quantity).toFixed(2)}</div>
-                                    </div>
+                                    <div className="confirm-med-qty">x{med.quantity}</div>
+                                    <div className="confirm-med-price">₹{(med.price * med.quantity).toFixed(2)}</div>
                                 </div>
                             ))}
                         </div>
 
                         <div className="confirm-total-row">
-                            <span className="confirm-total-label">Total Amount</span>
+                            <div className="confirm-total-label-stack">
+                                <span className="confirm-total-label">Grand Total Amount</span>
+                            </div>
                             <span className="confirm-total-value">₹{calculateTotal().toFixed(2)}</span>
                         </div>
 
