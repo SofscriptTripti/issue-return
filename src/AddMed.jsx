@@ -38,7 +38,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [toasts, setToasts] = useState([]);
     const [showNoCameraModal, setShowNoCameraModal] = useState(false);
     const [voucherNo, setVoucherNo] = useState('');
-    
+
     // Batch Selection Modal States
     const [showBatchModal, setShowBatchModal] = useState(false);
     const [availableBatches, setAvailableBatches] = useState([]);
@@ -73,7 +73,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         // We now always return true on mobile/tablet to allow the scanner to at least try.
         // This is to bypass browser 'Insecure Context' reports that might be false or overridden.
         const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
+
         if (isMobileOrTablet) return true;
 
         if (!navigator.mediaDevices) {
@@ -96,22 +96,22 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
         const startScanner = async () => {
             if (!isScannerOpen) return;
-            
+
             try {
                 html5QrCode = new Html5Qrcode("reader");
                 html5QrCodeRef.current = html5QrCode;
-                
+
                 await html5QrCode.start(
                     { facingMode: "environment" },
-                    { 
+                    {
                         fps: 30, // Faster 30fps scanning
                         qrbox: { width: 280, height: 280 },
-                        aspectRatio: 1.0 
+                        aspectRatio: 1.0
                     },
                     async (decodedText) => {
                         // SYNCHRONOUS LOCK: Absolute frame rejection
                         if (isProcessingRef.current) return;
-                        
+
                         // VIBRATE DEVICE ON NEW DETECTION
                         if (decodedText !== lastDetectedRef.current) {
                             if (navigator.vibrate) navigator.vibrate(50);
@@ -119,7 +119,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                         lastDetectedRef.current = decodedText;
                         setDetectedMedCode(decodedText);
-                        
+
                         // AUTO-PROCESS ON DETECTION (Synchronous Lock)
                         isProcessingRef.current = true;
                         handleBarcodeScan(decodedText);
@@ -214,7 +214,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     const handleAddMedicine = async (med, targetBatch = null, isSilent = false) => {
         const targetBatchToUse = targetBatch || (med.batch !== 'N/A' ? med.batch : null);
-        
+
         if (!isSilent && medicinesRef.current.some(m => (m.itemCd || m.id) === med.id)) {
             showToast(`${med.name} is already in your list.`);
             return { added: false, reason: 'ALREADY_PRESENT' };
@@ -223,7 +223,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         setIsFetchingBatch(true);
         setSearchTerm('');
         setSearchItems([]);
-        
+
         try {
             const response = await authService.getItemBatchList(storeCd, med.id);
             const batches = response.data || (Array.isArray(response) ? response : []);
@@ -231,7 +231,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const chosenBatch = targetBatchToUse || (batches[0].bchNo || batches[0].batchNo) || "N/A";
                 const existingInCart = medicinesRef.current.find(m => (m.itemCd || m.id) === med.id && m.batch === chosenBatch);
                 const firstBatchStock = parseFloat(batches.find(b => (b.bchNo || b.batchNo) === chosenBatch)?.qty || batches[0]?.qty || batches[0]?.currQty || 0);
-                
+
                 if (isSilent && existingInCart && parseFloat(existingInCart.quantity) >= firstBatchStock) {
                     return { added: false, reason: 'OUT_OF_STOCK' };
                 }
@@ -257,9 +257,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         let next;
                         if (existingIdx !== -1) {
                             const updated = [...prev];
-                            updated[existingIdx] = { 
-                                ...updated[existingIdx], 
-                                quantity: Math.min(updated[existingIdx].quantity + 1, newItem.currQty) 
+                            updated[existingIdx] = {
+                                ...updated[existingIdx],
+                                quantity: Math.min(updated[existingIdx].quantity + 1, newItem.currQty)
                             };
                             next = updated;
                         } else {
@@ -310,26 +310,26 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     const handleBarcodeScan = async (rawBarCd) => {
         if (isProcessingScan) return;
-        
+
         const barCd = rawBarCd?.trim();
         if (!barCd) return;
 
         setIsProcessingScan(true);
         setDetectedMedCode(barCd);
-        
+
         try {
             console.log(`Starting lookup for Barcode: "${barCd}" in Store: ${storeCd}`);
             const response = await authService.getItemByBarcode(barCd, storeCd);
             const data = response.data || (Array.isArray(response) ? response : []);
-            
+
             const isSuccess = response.success === "true" || response.status === 200 || response.success === true;
             const apiMessage = response.message || "";
-            
+
             if (isSuccess && Array.isArray(data) && data.length > 0) {
-                const apiResult = data[0]; 
+                const apiResult = data[0];
                 const main = apiResult.mainData || {};
                 const extra = (apiResult.extraData && apiResult.extraData[0]) || {};
-                
+
                 const itemCd = main.itemCd || extra.itemCd || apiResult.itemCd;
                 const itemName = extra.itemDescription || main.itemDescription || apiResult.itemDescription || "Unnamed Medicine";
                 const unitCd = extra.stockUnitCd || main.stockUnitCd || apiResult.stockUnitCd || itemCd;
@@ -471,7 +471,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     <div className="card-header">
                         <button className="am-back-btn" onClick={onBack} title="Back to list">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M19 12H5M12 19l-7-7 7-7"/>
+                                <path d="M19 12H5M12 19l-7-7 7-7" />
                             </svg>
                         </button>
                         <h3 className="patient-name">{patient.name}</h3>
@@ -483,71 +483,71 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             </div>
 
             <div className="add-med-content">
-            {isFetchingBatch && (
-                <div style={{
-                    position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
-                    background: 'linear-gradient(135deg, #005bb7, #006ce6)',
-                    color: '#fff', padding: '10px 24px', borderRadius: 100,
-                    fontSize: 13, fontWeight: 700, zIndex: 9999,
-                    boxShadow: '0 4px 16px rgba(0,80,200,0.3)',
-                    display: 'flex', alignItems: 'center', gap: 8
-                }}>
-                    <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
-                    Fetching batch details...
-                </div>
-            )}
-
-            <div className="search-scanner-row">
-                <div className="search-box">
-                    <span className="search-icon">🔍</span>
-                    <input
-                        type="text"
-                        placeholder="Search medicines"
-                        className="search-input"
-                        ref={medSearchInputRef}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <button className="scanner-button" onClick={handleScannerClick}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="3" width="5" height="5" rx="1" /><rect x="16" y="3" width="5" height="5" rx="1" />
-                        <rect x="3" y="16" width="5" height="5" rx="1" />
-                        <path d="M16 16h2v2h-2zM18 18h2v2h-2zM20 16h1v1h-1zM16 20h1v1h-1z" />
-                        <path d="M10 3h2v2h-2zM10 8h2v2h-2zM3 10h2v2H3zM8 10h2v2H8z" />
-                    </svg>
-                </button>
-
-                {searchTerm && (
-                    <div className="search-results-dropdown">
-                        {isSearchingItems ? (
-                            <div className="no-res">Searching medicines...</div>
-                        ) : searchItems.length > 0 ? (
-                            searchItems.map((med, idx) => (
-                                <div key={idx} className="search-result-item" onClick={() => handleAddMedicine(med)}>
-                                    <div className="res-info">
-                                        <div className="res-name">{med.name}</div>
-                                    </div>
-                                    <div className="res-meta">
-                                        <div className="res-dose" style={{fontSize:'11px', color:'#888'}}>{med.dose}</div>
-                                        <div className="res-stock" style={{fontSize:'11px', color:'#ef4444', fontWeight: 600}}>Qty: {med.currQty}</div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : searchTerm.length > 2 ? (
-                            <div className="no-res">No medicines found</div>
-                        ) : (
-                            <div className="no-res">Type more characters...</div>
-                        )}
+                {isFetchingBatch && (
+                    <div style={{
+                        position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
+                        background: 'linear-gradient(135deg, #005bb7, #006ce6)',
+                        color: '#fff', padding: '10px 24px', borderRadius: 100,
+                        fontSize: 13, fontWeight: 700, zIndex: 9999,
+                        boxShadow: '0 4px 16px rgba(0,80,200,0.3)',
+                        display: 'flex', alignItems: 'center', gap: 8
+                    }}>
+                        <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
+                        Fetching batch details...
                     </div>
                 )}
-            </div>
 
-            <div className="prescribed-header">
-                {medicines.length > 0 && (
-                    <span className="added-badge">🛒 Added: {medicines.reduce((sum, m) => sum + m.quantity, 0)}</span>
-                )}
-            </div>
+                <div className="search-scanner-row">
+                    <div className="search-box">
+                        <span className="search-icon">🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Search medicines"
+                            className="search-input"
+                            ref={medSearchInputRef}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <button className="scanner-button" onClick={handleScannerClick}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="5" height="5" rx="1" /><rect x="16" y="3" width="5" height="5" rx="1" />
+                            <rect x="3" y="16" width="5" height="5" rx="1" />
+                            <path d="M16 16h2v2h-2zM18 18h2v2h-2zM20 16h1v1h-1zM16 20h1v1h-1z" />
+                            <path d="M10 3h2v2h-2zM10 8h2v2h-2zM3 10h2v2H3zM8 10h2v2H8z" />
+                        </svg>
+                    </button>
+
+                    {searchTerm && (
+                        <div className="search-results-dropdown">
+                            {isSearchingItems ? (
+                                <div className="no-res">Searching medicines...</div>
+                            ) : searchItems.length > 0 ? (
+                                searchItems.map((med, idx) => (
+                                    <div key={idx} className="search-result-item" onClick={() => handleAddMedicine(med)}>
+                                        <div className="res-info">
+                                            <div className="res-name">{med.name}</div>
+                                        </div>
+                                        <div className="res-meta">
+                                            <div className="res-dose" style={{ fontSize: '11px', color: '#888' }}>{med.dose}</div>
+                                            <div className="res-stock" style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>Qty: {med.currQty}</div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : searchTerm.length > 2 ? (
+                                <div className="no-res">No medicines found</div>
+                            ) : (
+                                <div className="no-res">Type more characters...</div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="prescribed-header">
+                    {medicines.length > 0 && (
+                        <span className="added-badge">🛒 Added: {medicines.reduce((sum, m) => sum + m.quantity, 0)}</span>
+                    )}
+                </div>
                 <div className="medicines-list">
                     {medicines.length === 0 ? (
                         <div className="empty-state-container">
@@ -560,13 +560,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 <div className="med-card-left">
                                     <div className="med-name">{med.name}</div>
                                     <div className="med-tags">
-                                        {med.itemCd && <span className="med-tag" style={{background:'#e6f2ff', color:'#005bb7'}}>{med.itemCd}</span>}
+                                        {med.itemCd && <span className="med-tag" style={{ background: '#e6f2ff', color: '#005bb7' }}>{med.itemCd}</span>}
                                     </div>
-                                    <div className="med-meta" style={{marginBottom: '5px'}}>
+                                    <div className="med-meta" style={{ marginBottom: '5px' }}>
                                         Exp: {med.expiry} &nbsp;|&nbsp; Batch: {med.batch}
                                     </div>
-                                    <div className="med-rate" style={{fontSize: '11px', color: '#059669', fontWeight: 700}}>
-                                        Rate: ₹{med.price.toFixed(2)}
+                                    <div className="med-rate" style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
+                                        {/* Rate: ₹{med.price.toFixed(2)} */}
                                     </div>
                                 </div>
                                 <div className="med-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
@@ -594,7 +594,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     <span className="total-label">Total Amount</span>
                     <span className="total-value">₹{calculateTotal().toFixed(2)}</span>
                 </div>
-                
+
                 <div className="footer-right-col">
                     <button
                         className="process-button"
@@ -622,7 +622,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                         <div className="scanner-viewport-container">
                             <div id="reader" className="full-qr-reader"></div>
-                            
+
                             {/* Centered QR code with Frame */}
                             <div className="scanning-frame">
                                 <div className="corner top-left"></div>
@@ -640,7 +640,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             )}
                         </div>
 
-                        <div className="scanner-footer-msg" style={{minHeight: '40px'}}>
+                        <div className="scanner-footer-msg" style={{ minHeight: '40px' }}>
                             {showScanStatus.show ? (
                                 null // Handled by center overlay
                             ) : isProcessingScan ? (
@@ -653,7 +653,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             ) : noScanTimer > 5 ? (
                                 <p className="status-msg red animate-pulse">Focus QR Properly</p>
                             ) : (
-                                <p className="status-msg" style={{color: '#64748b', opacity: 0.8}}>Focus medicine QR code</p>
+                                <p className="status-msg" style={{ color: '#64748b', opacity: 0.8 }}>Focus medicine QR code</p>
                             )}
                         </div>
                     </div>
@@ -680,7 +680,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                     <div className="confirm-med-left" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <span className="confirm-med-name">{i + 1}. {med.name}</span>
                                         <div style={{ fontSize: '11px', color: '#64748b' }}>
-                                            Batch: {med.batch} | Rate: ₹{med.price.toFixed(2)}
+                                            Batch: {med.batch}}
                                         </div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
@@ -722,7 +722,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                     setVoucherNo(vch);
                                     if (cartKey) sessionStorage.removeItem(cartKey);
                                     setShowConfirmModal(false);
-                                    setMedicines([]); 
+                                    setMedicines([]);
                                     setShowSuccessModal(true);
                                 } catch (error) {
                                     console.error("Confirm error:", error);
@@ -761,7 +761,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '24px', lineHeight: 1.5 }}>
                             Unable to start Camera. Use Device with Back Camera.
                         </p>
-                        
+
                         <button
                             onClick={() => setShowNoCameraModal(false)}
                             style={{
@@ -808,7 +808,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 const bchKey = batch.bchNo || batch.batchNo || "no-batch";
                                 const qty = batchSelections[bchKey] || 0;
                                 const maxQty = parseFloat(batch.qty !== undefined ? batch.qty : (batch.currQty || 0));
-                                
+
                                 return (
                                     <div key={index} className={`batch-item-card ${qty > 0 ? "has-qty" : ""}`}>
                                         <div className="batch-info-left">
@@ -833,7 +833,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                                     <button className="qty-btn" onClick={() => updateBatchSelection(bchKey, 1, maxQty)}>+</button>
                                                 </div>
                                                 {qty > 0 && (
-                                                    <button className="delete-button" onClick={() => setBatchSelections({...batchSelections, [bchKey]: 0})}>🗑️</button>
+                                                    <button className="delete-button" onClick={() => setBatchSelections({ ...batchSelections, [bchKey]: 0 })}>🗑️</button>
                                                 )}
                                             </div>
                                             <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: '800', marginRight: '4px' }}>
@@ -846,10 +846,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         </div>
 
                         <div className="batch-add-footer" style={{ padding: '8px 16px', justifyContent: 'center' }}>
-                            <button 
-                                className="batch-confirm-btn" 
+                            <button
+                                className="batch-confirm-btn"
                                 style={{ height: '34px', padding: '0 40px', maxWidth: '140px', fontSize: '13px' }}
-                                onClick={commitBatchesToCart} 
+                                onClick={commitBatchesToCart}
                                 disabled={Object.values(batchSelections).reduce((sum, q) => sum + q, 0) === 0}
                             >
                                 ADD
