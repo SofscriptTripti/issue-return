@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Login from "./Login";
 import PatientList from "./PatientList";
 import AddMed from "./AddMed";
@@ -26,6 +26,11 @@ function App() {
   const [storeType, setStoreType] = useState("INVENTORY");
   const [apiPatients, setApiPatients] = useState([]);
   const [isPatientsLoading, setIsPatientsLoading] = useState(false);
+
+  const currentScreenRef = useRef(currentScreen);
+  useEffect(() => {
+    currentScreenRef.current = currentScreen;
+  }, [currentScreen]);
 
   // Save session to sessionStorage whenever key values change
   useEffect(() => {
@@ -105,6 +110,29 @@ function App() {
     }
 
     const handlePopState = (event) => {
+      // Only handle popstate if there is still a valid auth token
+      const tok = sessionStorage.getItem("authToken");
+      if (!tok) {
+        // No token — force back to login screen and replace history
+        window.history.replaceState({ screen: "login" }, "", "");
+        setCurrentScreen("login");
+        return;
+      }
+
+      if (currentScreenRef.current === "patientList") {
+        const wantsLogout = window.confirm("Do you want to logout?");
+        if (wantsLogout) {
+          sessionStorage.clear();
+          localStorage.clear();
+          window.history.replaceState({ screen: "login" }, "", "");
+          setCurrentScreen("login");
+          return;
+        } else {
+          window.history.pushState({ screen: "patientList" }, "", "");
+          return;
+        }
+      }
+
       if (event.state && event.state.screen) {
         setCurrentScreen(event.state.screen);
         if (event.state.patient) setSelectedPatient(event.state.patient);
@@ -116,7 +144,8 @@ function App() {
 
   const handleLoginSuccess = () => {
     fetchStores();
-    window.history.pushState({ screen: "storeSelection" }, "", "");
+    // Use replaceState so there's no "back" entry pointing to storeSelection
+    window.history.replaceState({ screen: "storeSelection" }, "", "");
     setCurrentScreen("storeSelection");
   };
 
@@ -133,17 +162,21 @@ function App() {
   };
 
   const handleBackToLogin = () => {
-    window.history.pushState({ screen: "storeSelection" }, "", "");
-    setCurrentScreen("storeSelection");
+    const wantsLogout = window.confirm("Do you want to logout?");
+    if (wantsLogout) {
+      sessionStorage.clear();
+      localStorage.clear();
+      window.history.replaceState({ screen: "login" }, "", "");
+      setCurrentScreen("login");
+    }
   };
 
   const handleLogout = () => {
     // Clear ALL sessions and state
     sessionStorage.clear();
     localStorage.clear();
-    
-    // Instead of a full page reload, we just jump back to login screen in state
-    // This prevents server-side 404 or folder listing errors on various hosting environments
+
+    // Reset all React state
     setSelectedPatient(null);
     setSelectedStoreName("");
     setSelectedCostCenter("");
@@ -151,6 +184,10 @@ function App() {
     setSelectedCCCd("");
     setStores([]);
     setApiPatients([]);
+
+    // Replace the entire history stack entry with login so the browser
+    // back-button or popstate cannot navigate back to the previous screen
+    window.history.replaceState({ screen: "login" }, "", "");
     setCurrentScreen("login");
   };
 
@@ -161,7 +198,7 @@ function App() {
   };
 
   const handleBackToPatientList = () => {
-    window.history.pushState({ screen: "patientList" }, "", "");
+    window.history.replaceState({ screen: "patientList" }, "", "");
     setCurrentScreen("patientList");
   };
 

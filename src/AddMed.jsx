@@ -689,9 +689,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         <div className="confirm-med-list">
                             {medicines.map((med, i) => (
                                 <div key={med.id} className="confirm-med-row">
-                                    <div className="confirm-med-info">
-                                        <div className="confirm-med-name">{i + 1}. {med.name}</div>
-                                        <div className="confirm-med-batch">Batch: {med.batch}</div>
+                                    <div className="confirm-med-info" style={{ flexDirection: 'row', gap: '6px', alignItems: 'flex-start' }}>
+                                        <div className="confirm-med-name">{i + 1}.</div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                            <div className="confirm-med-name">{med.name}</div>
+                                            <div className="confirm-med-batch">Batch: {med.batch}</div>
+                                        </div>
                                     </div>
                                     <div className="confirm-med-qty">x{med.quantity}</div>
                                     <div className="confirm-med-price">₹{(med.price * med.quantity).toFixed(2)}</div>
