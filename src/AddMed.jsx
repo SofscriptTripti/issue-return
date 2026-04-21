@@ -386,7 +386,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         setMedicines(prev => {
             const next = prev.map(med => {
                 if (med.id === id) {
-                    const newQty = med.quantity + change;
+                    const currentQty = parseInt(med.quantity) || 0;
+                    const newQty = currentQty + change;
                     const maxQty = med.currQty !== undefined && med.currQty !== null ? med.currQty : (med.stockingUnit || 999999);
                     if (newQty > 0 && newQty <= maxQty) return { ...med, quantity: newQty };
                     else if (newQty > maxQty) showToast(`Oops! 😬 Item out of stock (${maxQty})`);
@@ -398,6 +399,30 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         });
     };
 
+    const setExactQuantity = (id, newQtyStr) => {
+        setMedicines(prev => {
+            const next = prev.map(med => {
+                if (med.id === id) {
+                    const maxQty = med.currQty !== undefined && med.currQty !== null ? med.currQty : (med.stockingUnit || 999999);
+                    if (newQtyStr === '') {
+                        return { ...med, quantity: '' };
+                    }
+                    const parsed = parseInt(newQtyStr, 10);
+                    if (isNaN(parsed)) return med;
+                    const validQty = Math.min(Math.max(0, parsed), maxQty);
+                    if (parsed > maxQty) {
+                        showToast(`Oops! 😬 Item out of stock (${maxQty})`);
+                    }
+                    return { ...med, quantity: validQty };
+                }
+                return med;
+            });
+            medicinesRef.current = next;
+            return next;
+        });
+    };
+
+
     const removeMedicine = (id) => {
         setMedicines(prev => {
             const next = prev.filter(med => med.id !== id);
@@ -408,7 +433,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     const updateBatchSelection = (batchKey, change, maxQty) => {
         setBatchSelections(prev => {
-            const current = prev[batchKey] || 0;
+            const current = parseInt(prev[batchKey]) || 0;
             const newVal = current + change;
             if (newVal < 0) return prev;
             if (newVal > maxQty) {
@@ -419,12 +444,28 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         });
     };
 
+    const setExactBatchSelection = (batchKey, newQtyStr, maxQty) => {
+        setBatchSelections(prev => {
+            if (newQtyStr === '') {
+                return { ...prev, [batchKey]: '' };
+            }
+            const parsed = parseInt(newQtyStr, 10);
+            if (isNaN(parsed)) return prev;
+            const validQty = Math.min(Math.max(0, parsed), maxQty);
+            if (parsed > maxQty) {
+                showToast(`Oops! 😬 Only ${maxQty} available in this batch.`);
+            }
+            return { ...prev, [batchKey]: validQty };
+        });
+    };
+
+
     const commitBatchesToCart = () => {
         if (!selectedMedForBatch) return;
         const newItems = [];
         availableBatches.forEach(batch => {
             const bchKey = batch.bchNo || batch.batchNo || "no-batch";
-            const qty = batchSelections[bchKey] || 0;
+            const qty = parseInt(batchSelections[bchKey]) || 0;
             if (qty > 0) {
                 newItems.push({
                     id: Date.now() + Math.random(),
@@ -454,7 +495,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
 
     const calculateTotal = () => {
-        return medicines.reduce((total, med) => total + (med.price * med.quantity), 0);
+        return medicines.reduce((total, med) => total + (med.price * (parseInt(med.quantity) || 0)), 0);
     };
 
     const handleSave = () => {
@@ -545,7 +586,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                 <div className="prescribed-header">
                     {medicines.length > 0 && (
-                        <span className="added-badge">🛒 Added: {medicines.reduce((sum, m) => sum + m.quantity, 0)}</span>
+                        <span className="added-badge">🛒 Added: {medicines.reduce((sum, m) => sum + (parseInt(m.quantity) || 0), 0)}</span>
                     )}
                 </div>
                 <div className="medicines-list">
@@ -571,12 +612,20 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 </div>
                                 <div className="med-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                                     <div className="med-price-row">
-                                        <span className="med-price">₹{(med.price * med.quantity).toFixed(2)}</span>
+                                        <span className="med-price">₹{(med.price * (parseInt(med.quantity) || 0)).toFixed(2)}</span>
                                         <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
                                     </div>
                                     <div className="qty-control">
                                         <button className="qty-btn" onClick={() => updateQuantity(med.id, -1)}>−</button>
-                                        <span className="qty-value">{med.quantity}</span>
+                                        <input 
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            className="qty-value" 
+                                            value={med.quantity} 
+                                            onChange={(e) => setExactQuantity(med.id, e.target.value.replace(/\D/g, ''))}
+                                            onBlur={(e) => { if (!med.quantity) setExactQuantity(med.id, '1'); }}
+                                        />
                                         <button className="qty-btn" onClick={() => updateQuantity(med.id, 1)}>+</button>
                                     </div>
                                     <div style={{ marginTop: '5px', fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>
@@ -696,8 +745,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                             <div className="confirm-med-batch">Batch: {med.batch}</div>
                                         </div>
                                     </div>
-                                    <div className="confirm-med-qty">x{med.quantity}</div>
-                                    <div className="confirm-med-price">₹{(med.price * med.quantity).toFixed(2)}</div>
+                                    <div className="confirm-med-qty">x{parseInt(med.quantity) || 0}</div>
+                                    <div className="confirm-med-price">₹{(med.price * (parseInt(med.quantity) || 0)).toFixed(2)}</div>
                                 </div>
                             ))}
                         </div>
@@ -726,7 +775,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         items: medicines.map(med => ({
                                             itemCd: med.itemCd,
                                             bchNo: med.batch,
-                                            qty: med.quantity,
+                                            qty: parseInt(med.quantity) || 0,
                                             trnDate: new Date().toISOString()
                                         }))
                                     };
@@ -809,7 +858,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                             {selectedMedForBatch.dose}
                                         </div>
                                         <div className="total-units-badge-white">
-                                            TOTAL UNITS: {Object.values(batchSelections).reduce((sum, q) => sum + q, 0)}
+                                            TOTAL UNITS: {Object.values(batchSelections).reduce((sum, q) => sum + (parseInt(q) || 0), 0)}
                                         </div>
                                     </div>
                                 </div>
@@ -842,7 +891,15 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                             <div className="batch-actions-row">
                                                 <div className="qty-control">
                                                     <button className="qty-btn" onClick={() => updateBatchSelection(bchKey, -1, maxQty)}>−</button>
-                                                    <span className="qty-value">{qty}</span>
+                                                    <input 
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        pattern="[0-9]*"
+                                                        className="qty-value" 
+                                                        value={qty}
+                                                        onChange={(e) => setExactBatchSelection(bchKey, e.target.value.replace(/\D/g, ''), maxQty)}
+                                                        onBlur={() => { if (qty === '') setExactBatchSelection(bchKey, '0', maxQty); }}
+                                                    />
                                                     <button className="qty-btn" onClick={() => updateBatchSelection(bchKey, 1, maxQty)}>+</button>
                                                 </div>
                                                 {qty > 0 && (

@@ -31,6 +31,9 @@ function App() {
   const currentScreenRef = useRef(currentScreen);
   useEffect(() => {
     currentScreenRef.current = currentScreen;
+    if (currentScreen === "patientList" && window.location.hash !== "#active") {
+      window.history.pushState({ screen: "patientList" }, "", "#active");
+    }
   }, [currentScreen]);
 
   // Save session to sessionStorage whenever key values change
@@ -126,7 +129,7 @@ function App() {
       }
 
       if (currentScreenRef.current === "patientList") {
-        window.history.pushState({ screen: "patientList" }, "", "");
+        window.history.pushState({ screen: "patientList" }, "", "#active");
         setShowLogoutConfirm(true);
         return;
       }
@@ -164,11 +167,8 @@ function App() {
   };
 
   const handleLogout = () => {
-    // Clear ALL sessions and state
     sessionStorage.clear();
     localStorage.clear();
-
-    // Reset all React state
     setSelectedPatient(null);
     setSelectedStoreName("");
     setSelectedCostCenter("");
@@ -176,10 +176,7 @@ function App() {
     setSelectedCCCd("");
     setStores([]);
     setApiPatients([]);
-
-    // Replace the entire history stack entry with login so the browser
-    // back-button or popstate cannot navigate back to the previous screen
-    window.history.replaceState({ screen: "login" }, "", "");
+    window.history.replaceState({ screen: "login" }, "", window.location.pathname);
     setCurrentScreen("login");
   };
 
@@ -285,27 +282,36 @@ function App() {
       )}
 
       {showLogoutConfirm && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ background: '#ffffff', width: '100%', maxWidth: '340px', borderRadius: '24px', padding: '32px 24px', textAlign: 'center', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)', transform: 'translateY(0)' }}>
-            <div style={{ fontSize: '36px', marginBottom: '16px' }}>🚪</div>
-            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1e3a8a', margin: '0 0 8px 0' }}>Confirm Logout</h3>
-            <p style={{ fontSize: '14.5px', color: '#64748b', fontWeight: '600', margin: '0 0 24px 0' }}>Are you sure you want to logout?</p>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                onClick={() => setShowLogoutConfirm(false)}
-                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1.5px solid #e2e8f0', background: '#ffffff', color: '#64748b', fontWeight: '800', fontSize: '14px', cursor: 'pointer' }}>
-                CANCEL
-              </button>
-              <button 
-                onClick={() => {
-                  setShowLogoutConfirm(false);
-                  handleLogout();
-                }}
-                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#ffffff', fontWeight: '800', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)' }}>
-                LOGOUT
-              </button>
+        <div className="adv-overlay" onClick={() => setShowLogoutConfirm(false)}>
+            <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 340 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#005bb7', marginBottom: 8, margin: '0 0 8px 0' }}>Confirm Logout</h2>
+                <p style={{ fontSize: 15, fontWeight: 600, color: '#4a4a4a', marginBottom: 24, margin: '0 0 24px 0', lineHeight: 1.5 }}>
+                    Are you sure you want to logout?
+                </p>
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                        onClick={() => setShowLogoutConfirm(false)}
+                        style={{
+                            flex: 1, padding: '12px', borderRadius: 10,
+                            border: '1px solid #dae8f7', background: '#f0f7ff',
+                            color: '#005bb7', fontWeight: 700, fontSize: 14, cursor: 'pointer'
+                        }}
+                    >
+                        No
+                    </button>
+                    <button
+                        onClick={() => { setShowLogoutConfirm(false); handleLogout(); }}
+                        style={{
+                            flex: 1, padding: '12px', borderRadius: 10,
+                            border: 'none', background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
+                            color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(0,108,230,0.2)'
+                        }}
+                    >
+                        Yes
+                    </button>
+                </div>
             </div>
-          </div>
         </div>
       )}
     </>
