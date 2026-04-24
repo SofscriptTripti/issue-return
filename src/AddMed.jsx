@@ -612,7 +612,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 </div>
                                 <div className="med-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                                     <div className="med-price-row">
-                                        <span className="med-price">₹{Math.round(med.price * (parseInt(med.quantity) || 0))}</span>
+                                        <span className="med-price">₹{Math.round(med.price)}</span>
                                         <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
                                     </div>
                                     <div className="qty-control">
