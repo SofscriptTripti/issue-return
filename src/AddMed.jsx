@@ -192,7 +192,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             currQty: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0,
                             shelf: item.shelf_No || "N/A",
                             rack: item.rack_No || "N/A",
-                            price: parseFloat(item.trnRate || item.trnSellPrice || item.trnMRP || 0),
+                            price: parseFloat(item.amount || 0),
                             expiry: item.expiryDate || "N/A",
                             batch: item.bchNo || item.itemCd,
                             stockingUnit: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0
@@ -244,7 +244,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         name: med.name,
                         batch: foundBatch.bchNo || foundBatch.batchNo || "N/A",
                         expiry: foundBatch.expiryDate || "N/A",
-                        price: parseFloat(foundBatch.trnRate || foundBatch.trnSellPrice || med.price || 0),
+                        price: parseFloat(foundBatch.amount || 0),
                         currQty: parseFloat(foundBatch.qty || foundBatch.currQty || 0),
                         quantity: 1,
                         shelf: med.shelf || "N/A",
@@ -334,7 +334,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const itemName = extra.itemDescription || main.itemDescription || apiResult.itemDescription || "Unnamed Medicine";
                 const unitCd = extra.stockUnitCd || main.stockUnitCd || apiResult.stockUnitCd || itemCd;
                 const batchNo = main.bchNo || extra.bchNo || apiResult.bchNo || "N/A";
-                const itemPrice = parseFloat(main.trnRate || extra.trnRate || apiResult.trnRate || 0);
+                const itemPrice = parseFloat(main.amount || extra.amount || apiResult.amount || 0);
                 const itemQty = parseFloat(main.currQty || extra.currQty || apiResult.currQty || 0);
 
                 if (!itemCd) {
@@ -475,7 +475,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     currQty: parseFloat(batch.qty !== undefined ? batch.qty : (batch.currQty || 0)),
                     expiry: batch.expiryDate || batch.expDt || "N/A",
                     batch: bchKey,
-                    price: parseFloat(batch.trnRate || batch.trnSellPrice || batch.trnMRP || 0),
+                    price: parseFloat(batch.amount || 0),
                     stockingUnit: parseFloat(batch.qty !== undefined ? batch.qty : 1),
                     quantity: qty
                 });
@@ -612,17 +612,17 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 </div>
                                 <div className="med-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                                     <div className="med-price-row">
-                                        <span className="med-price">₹{(med.price * (parseInt(med.quantity) || 0)).toFixed(2)}</span>
+                                        <span className="med-price">₹{Math.round(med.price * (parseInt(med.quantity) || 0))}</span>
                                         <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
                                     </div>
                                     <div className="qty-control">
                                         <button className="qty-btn" onClick={() => updateQuantity(med.id, -1)}>−</button>
-                                        <input 
+                                        <input
                                             type="text"
                                             inputMode="numeric"
                                             pattern="[0-9]*"
-                                            className="qty-value" 
-                                            value={med.quantity} 
+                                            className="qty-value"
+                                            value={med.quantity}
                                             onChange={(e) => setExactQuantity(med.id, e.target.value.replace(/\D/g, ''))}
                                             onBlur={(e) => { if (!med.quantity) setExactQuantity(med.id, '1'); }}
                                         />
@@ -641,7 +641,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             <div className="add-med-footer">
                 <div className="footer-total">
                     <span className="total-label">Total Amount</span>
-                    <span className="total-value">₹{calculateTotal().toFixed(2)}</span>
+                    <span className="total-value">₹{Math.round(calculateTotal())}</span>
                 </div>
 
                 <div className="footer-right-col">
@@ -746,7 +746,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         </div>
                                     </div>
                                     <div className="confirm-med-qty">x{parseInt(med.quantity) || 0}</div>
-                                    <div className="confirm-med-price">₹{(med.price * (parseInt(med.quantity) || 0)).toFixed(2)}</div>
+                                    <div className="confirm-med-price">₹{Math.round(med.price * (parseInt(med.quantity) || 0))}</div>
                                 </div>
                             ))}
                         </div>
@@ -755,7 +755,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             <div className="confirm-total-label-stack">
                                 <span className="confirm-total-label">Grand Total Amount</span>
                             </div>
-                            <span className="confirm-total-value">₹{calculateTotal().toFixed(2)}</span>
+                            <span className="confirm-total-value">₹{Math.round(calculateTotal())}</span>
                         </div>
 
                         <div className="confirm-actions">
@@ -883,19 +883,19 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                                 <span className="batch-val">{batch.expiryDate || batch.expDt || "N/A"}</span>
                                             </div>
                                             <div className="batch-data-row">
-                                                <span className="batch-kw">MRP:</span>
-                                                <span className="batch-val">{parseFloat(batch.trnRate || batch.trnSellPrice || 0).toFixed(2)}</span>
+                                                <span className="batch-kw">Amount:</span>
+                                                <span className="batch-val">{Math.round(parseFloat(batch.amount || 0))}</span>
                                             </div>
                                         </div>
                                         <div className="batch-info-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                                             <div className="batch-actions-row">
                                                 <div className="qty-control">
                                                     <button className="qty-btn" onClick={() => updateBatchSelection(bchKey, -1, maxQty)}>−</button>
-                                                    <input 
+                                                    <input
                                                         type="text"
                                                         inputMode="numeric"
                                                         pattern="[0-9]*"
-                                                        className="qty-value" 
+                                                        className="qty-value"
                                                         value={qty}
                                                         onChange={(e) => setExactBatchSelection(bchKey, e.target.value.replace(/\D/g, ''), maxQty)}
                                                         onBlur={() => { if (qty === '') setExactBatchSelection(bchKey, '0', maxQty); }}
