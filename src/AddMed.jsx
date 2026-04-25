@@ -189,13 +189,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             id: item.itemCd,
                             name: item.itemDescription || "Unnamed Item",
                             dose: item.stockUnitCd || item.itemCd,
-                            currQty: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0,
+                            currQty: parseFloat(item.stockQty !== undefined ? item.stockQty : (item.qty !== undefined ? item.qty : item.currQty)) || 0,
                             shelf: item.shelf_No || "N/A",
                             rack: item.rack_No || "N/A",
                             price: parseFloat(item.amount || 0),
                             expiry: item.expiryDate || "N/A",
                             batch: item.bchNo || item.itemCd,
-                            stockingUnit: parseFloat(item.qty !== undefined ? item.qty : item.currQty) || 0
+                            stockingUnit: parseFloat(item.stockQty !== undefined ? item.stockQty : (item.qty !== undefined ? item.qty : item.currQty)) || 0
                         })));
                     }
                 } catch (err) {
@@ -215,11 +215,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const handleAddMedicine = async (med, targetBatch = null, isSilent = false) => {
         const targetBatchToUse = targetBatch || (med.batch !== 'N/A' ? med.batch : null);
 
-        if (!isSilent && medicinesRef.current.some(m => (m.itemCd || m.id) === med.id)) {
-            showToast(`${med.name} is already in your list.`);
-            return { added: false, reason: 'ALREADY_PRESENT' };
-        }
-
         setIsFetchingBatch(true);
         setSearchTerm('');
         setSearchItems([]);
@@ -230,7 +225,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             if (Array.isArray(batches) && batches.length > 0) {
                 const chosenBatch = targetBatchToUse || (batches[0].bchNo || batches[0].batchNo) || "N/A";
                 const existingInCart = medicinesRef.current.find(m => (m.itemCd || m.id) === med.id && m.batch === chosenBatch);
-                const firstBatchStock = parseFloat(batches.find(b => (b.bchNo || b.batchNo) === chosenBatch)?.qty || batches[0]?.qty || batches[0]?.currQty || 0);
+                const firstBatchStock = parseFloat(batches.find(b => (b.bchNo || b.batchNo) === chosenBatch)?.stockQty || batches.find(b => (b.bchNo || b.batchNo) === chosenBatch)?.qty || batches[0]?.stockQty || batches[0]?.qty || batches[0]?.currQty || 0);
 
                 if (isSilent && existingInCart && parseFloat(existingInCart.quantity) >= firstBatchStock) {
                     return { added: false, reason: 'OUT_OF_STOCK' };
@@ -245,11 +240,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         batch: foundBatch.bchNo || foundBatch.batchNo || "N/A",
                         expiry: foundBatch.expiryDate || "N/A",
                         price: parseFloat(foundBatch.amount || 0),
-                        currQty: parseFloat(foundBatch.qty || foundBatch.currQty || 0),
-                        quantity: 1,
+                        currQty: parseFloat(foundBatch.stockQty !== undefined ? foundBatch.stockQty : (foundBatch.qty || foundBatch.currQty || 0)),
+                        quantity: med.scanQtyStep || 1,
+                        scanQtyStep: med.scanQtyStep || 1,
                         shelf: med.shelf || "N/A",
                         rack: foundBatch.rack_No || med.rack || "N/A",
-                        stockingUnit: parseFloat(foundBatch.qty || foundBatch.currQty || 0)
+                        stockingUnit: parseFloat(foundBatch.stockQty !== undefined ? foundBatch.stockQty : (foundBatch.qty || foundBatch.currQty || 0))
                     };
 
                     setMedicines(prev => {
@@ -259,7 +255,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             const updated = [...prev];
                             updated[existingIdx] = {
                                 ...updated[existingIdx],
-                                quantity: Math.min(updated[existingIdx].quantity + 1, newItem.currQty)
+                                quantity: Math.min(updated[existingIdx].quantity + (med.scanQtyStep || 1), newItem.currQty)
                             };
                             next = updated;
                         } else {
@@ -335,7 +331,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const unitCd = extra.stockUnitCd || main.stockUnitCd || apiResult.stockUnitCd || itemCd;
                 const batchNo = main.bchNo || extra.bchNo || apiResult.bchNo || "N/A";
                 const itemPrice = parseFloat(main.amount || extra.amount || apiResult.amount || 0);
-                const itemQty = parseFloat(main.currQty || extra.currQty || apiResult.currQty || 0);
+                const itemQty = parseFloat(main.stockQty || extra.stockQty || apiResult.stockQty || main.currQty || extra.currQty || apiResult.currQty || 0);
 
                 if (!itemCd) {
                     setShowScanStatus({ show: true, msg: apiMessage || "Scan QR correctly", isError: true });
@@ -352,7 +348,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     price: itemPrice,
                     expiry: main.expiryDate || extra.expiryDate || "N/A",
                     batch: batchNo,
-                    stockingUnit: itemQty
+                    stockingUnit: itemQty,
+                    scanQtyStep: parseFloat(main.qty || extra.qty || apiResult.qty || 1)
                 };
 
                 const result = await handleAddMedicine(mapped, mapped.batch, true);
@@ -387,7 +384,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             const next = prev.map(med => {
                 if (med.id === id) {
                     const currentQty = parseInt(med.quantity) || 0;
-                    const newQty = currentQty + change;
+                    const step = med.scanQtyStep || 1;
+                    const actualChange = change > 0 ? step : -step;
+                    const newQty = currentQty + actualChange;
                     const maxQty = med.currQty !== undefined && med.currQty !== null ? med.currQty : (med.stockingUnit || 999999);
                     if (newQty > 0 && newQty <= maxQty) return { ...med, quantity: newQty };
                     else if (newQty > maxQty) showToast(`Oops! 😬 Item out of stock (${maxQty})`);
@@ -472,18 +471,29 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     itemCd: selectedMedForBatch.id,
                     name: selectedMedForBatch.name,
                     dose: selectedMedForBatch.dose,
-                    currQty: parseFloat(batch.qty !== undefined ? batch.qty : (batch.currQty || 0)),
+                    currQty: parseFloat(batch.stockQty !== undefined ? batch.stockQty : (batch.qty !== undefined ? batch.qty : (batch.currQty || 0))),
                     expiry: batch.expiryDate || batch.expDt || "N/A",
                     batch: bchKey,
                     price: parseFloat(batch.amount || 0),
-                    stockingUnit: parseFloat(batch.qty !== undefined ? batch.qty : 1),
+                    stockingUnit: parseFloat(batch.stockQty !== undefined ? batch.stockQty : (batch.qty !== undefined ? batch.qty : 1)),
                     quantity: qty
                 });
             }
         });
         if (newItems.length > 0) {
             setMedicines(prev => {
-                const next = [...newItems, ...prev];
+                let next = [...prev];
+                newItems.forEach(newItem => {
+                    const existingIdx = next.findIndex(m => m.itemCd === newItem.itemCd && m.batch === newItem.batch);
+                    if (existingIdx !== -1) {
+                        next[existingIdx] = {
+                            ...next[existingIdx],
+                            quantity: Math.min(next[existingIdx].quantity + newItem.quantity, next[existingIdx].currQty)
+                        };
+                    } else {
+                        next = [newItem, ...next];
+                    }
+                });
                 medicinesRef.current = next;
                 return next;
             });
@@ -571,7 +581,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         </div>
                                         <div className="res-meta">
                                             <div className="res-dose" style={{ fontSize: '11px', color: '#888' }}>{med.dose}</div>
-                                            <div className="res-stock" style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>Qty: {med.currQty}</div>
+                                            <div className="res-stock" style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>Stock: {med.currQty}</div>
                                         </div>
                                     </div>
                                 ))
@@ -612,7 +622,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 </div>
                                 <div className="med-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                                     <div className="med-price-row">
-                                        <span className="med-price">₹{Math.round(med.price)}</span>
+                                        <span className="med-price">₹{med.price}</span>
                                         <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
                                     </div>
                                     <div className="qty-control">
@@ -746,7 +756,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         </div>
                                     </div>
                                     <div className="confirm-med-qty">x{parseInt(med.quantity) || 0}</div>
-                                    <div className="confirm-med-price">₹{Math.round(med.price * (parseInt(med.quantity) || 0))}</div>
+                                    <div className="confirm-med-price">₹{med.price * (parseInt(med.quantity) || 0)}</div>
                                 </div>
                             ))}
                         </div>
@@ -869,7 +879,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             {availableBatches.map((batch, index) => {
                                 const bchKey = batch.bchNo || batch.batchNo || "no-batch";
                                 const qty = batchSelections[bchKey] || 0;
-                                const maxQty = parseFloat(batch.qty !== undefined ? batch.qty : (batch.currQty || 0));
+                                const maxQty = parseFloat(batch.stockQty !== undefined ? batch.stockQty : (batch.qty !== undefined ? batch.qty : (batch.currQty || 0)));
 
                                 return (
                                     <div key={index} className={`batch-item-card ${qty > 0 ? "has-qty" : ""}`}>
@@ -884,7 +894,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                             </div>
                                             <div className="batch-data-row">
                                                 <span className="batch-kw">Amount:</span>
-                                                <span className="batch-val">{Math.round(parseFloat(batch.amount || 0))}</span>
+                                                <span className="batch-val">{parseFloat(batch.amount || 0)}</span>
                                             </div>
                                         </div>
                                         <div className="batch-info-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
@@ -902,13 +912,15 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                                     />
                                                     <button className="qty-btn" onClick={() => updateBatchSelection(bchKey, 1, maxQty)}>+</button>
                                                 </div>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                                                <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: '800' }}>
+                                                    Stock: {maxQty}
+                                                </span>
                                                 {qty > 0 && (
                                                     <button className="delete-button" onClick={() => setBatchSelections({ ...batchSelections, [bchKey]: 0 })}>🗑️</button>
                                                 )}
                                             </div>
-                                            <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: '800', marginRight: '4px' }}>
-                                                Stock: {maxQty}
-                                            </span>
                                         </div>
                                     </div>
                                 );
