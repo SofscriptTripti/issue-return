@@ -38,7 +38,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [toasts, setToasts] = useState([]);
     const [showNoCameraModal, setShowNoCameraModal] = useState(false);
     const [voucherNo, setVoucherNo] = useState('');
-    const [apiErrorModal, setApiErrorModal] = useState({ show: false, message: '' });
+    const [confirmError, setConfirmError] = useState('');
 
     // Batch Selection Modal States
     const [showBatchModal, setShowBatchModal] = useState(false);
@@ -385,10 +385,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         setMedicines(prev => {
             const next = prev.map(med => {
                 if (med.id === id) {
-                    const currentQty = parseInt(med.quantity) || 0;
+                    const currentQty = Math.round(parseFloat(med.quantity)) || 0;
                     const actualChange = change > 0 ? 1 : -1;
                     const newQty = currentQty + actualChange;
-                    const maxQty = med.currQty !== undefined && med.currQty !== null ? med.currQty : (med.stockingUnit || 999999);
+                    const maxQty = med.currQty !== undefined && med.currQty !== null ? parseFloat(med.currQty) : (parseFloat(med.stockingUnit) || 999999);
                     if (newQty > 0 && newQty <= maxQty) return { ...med, quantity: newQty };
                     else if (newQty > maxQty) showToast(`Oops! 😬 Item out of stock (${maxQty})`);
                 }
@@ -511,6 +511,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     const handleSave = () => {
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+        setConfirmError('');
         setShowConfirmModal(true);
     };
 
@@ -754,6 +755,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                             <div className="confirm-med-name">{med.name}</div>
                                             <div className="confirm-med-batch">Batch: {med.batch}</div>
+                                            {med.itemCd && <div className="confirm-med-batch">Item Code: {med.itemCd}</div>}
                                         </div>
                                     </div>
                                     <div className="confirm-med-qty">x{parseInt(med.quantity) || 0}</div>
@@ -769,12 +771,21 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             <span className="confirm-total-value">₹{Math.round(calculateTotal())}</span>
                         </div>
 
+                        {confirmError ? (
+                            <div style={{ padding: '8px 4px 0', textAlign: 'center' }}>
+                                <p style={{ color: '#dc2626', fontWeight: 700, fontSize: '13px', lineHeight: 1.5, margin: 0 }}>
+                                    ⚠️ {confirmError}
+                                </p>
+                            </div>
+                        ) : null}
+
                         <div className="confirm-actions">
                             <button className="confirm-btn-edit" onClick={() => setShowConfirmModal(false)}>
                                 EDIT
                             </button>
                             <button className="confirm-btn-confirm" disabled={isConfirming} onClick={async () => {
                                 setIsConfirming(true);
+                                setConfirmError('');
                                 try {
                                     const payload = {
                                         strcd: parseInt(storeCd, 10),
@@ -800,11 +811,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         setMedicines([]);
                                         setShowSuccessModal(true);
                                     } else {
-                                        setApiErrorModal({ show: true, message: response.message || "Something went wrong. Please try again." });
+                                        setConfirmError(response.message || "Something went wrong. Please try again.");
                                     }
                                 } catch (error) {
                                     console.error("Confirm error:", error);
-                                    setApiErrorModal({ show: true, message: error.message || "Failed to process. Please try again." });
+                                    setConfirmError(error.message || "Failed to process. Please try again.");
                                 } finally {
                                     setIsConfirming(false);
                                 }
@@ -832,28 +843,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 </div>
             )}
 
-            {/* API Error Modal */}
-            {apiErrorModal.show && (
-                <div className="adv-overlay" onClick={() => setApiErrorModal({ show: false, message: '' })}>
-                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 380, padding: '30px 24px' }}>
-                        <div style={{ fontSize: '38px', marginBottom: '14px' }}>⚠️</div>
-                        <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px', lineHeight: 1.4 }}>Process Failed</h3>
-                        <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '24px', lineHeight: 1.6 }}>
-                            {apiErrorModal.message}
-                        </p>
-                        <button
-                            onClick={() => setApiErrorModal({ show: false, message: '' })}
-                            style={{
-                                width: '100%', padding: '14px', borderRadius: 12,
-                                border: 'none', background: '#006ce6',
-                                color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer'
-                            }}
-                        >
-                            OK
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {showNoCameraModal && (
                 <div className="adv-overlay" onClick={() => setShowNoCameraModal(false)}>
