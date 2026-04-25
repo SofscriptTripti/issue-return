@@ -38,6 +38,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [toasts, setToasts] = useState([]);
     const [showNoCameraModal, setShowNoCameraModal] = useState(false);
     const [voucherNo, setVoucherNo] = useState('');
+    const [apiErrorModal, setApiErrorModal] = useState({ show: false, message: '' });
 
     // Batch Selection Modal States
     const [showBatchModal, setShowBatchModal] = useState(false);
@@ -233,6 +234,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                 if (isSilent) {
                     const foundBatch = batches.find(b => (b.bchNo || b.batchNo) === (targetBatchToUse || (batches[0].bchNo || batches[0].batchNo))) || batches[0];
+                    const batchQtyStep = parseFloat(foundBatch.qty !== undefined ? foundBatch.qty : 1);
                     const newItem = {
                         id: Date.now() + Math.random(),
                         itemCd: med.id,
@@ -241,8 +243,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         expiry: foundBatch.expiryDate || "N/A",
                         price: parseFloat(foundBatch.amount || 0),
                         currQty: parseFloat(foundBatch.stockQty !== undefined ? foundBatch.stockQty : (foundBatch.qty || foundBatch.currQty || 0)),
-                        quantity: med.scanQtyStep || 1,
-                        scanQtyStep: med.scanQtyStep || 1,
+                        quantity: batchQtyStep,
+                        scanQtyStep: batchQtyStep,
                         shelf: med.shelf || "N/A",
                         rack: foundBatch.rack_No || med.rack || "N/A",
                         stockingUnit: parseFloat(foundBatch.stockQty !== undefined ? foundBatch.stockQty : (foundBatch.qty || foundBatch.currQty || 0))
@@ -255,7 +257,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             const updated = [...prev];
                             updated[existingIdx] = {
                                 ...updated[existingIdx],
-                                quantity: Math.min(updated[existingIdx].quantity + (med.scanQtyStep || 1), newItem.currQty)
+                                quantity: Math.min(updated[existingIdx].quantity + batchQtyStep, newItem.currQty)
                             };
                             next = updated;
                         } else {
@@ -384,8 +386,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             const next = prev.map(med => {
                 if (med.id === id) {
                     const currentQty = parseInt(med.quantity) || 0;
-                    const step = med.scanQtyStep || 1;
-                    const actualChange = change > 0 ? step : -step;
+                    const actualChange = change > 0 ? 1 : -1;
                     const newQty = currentQty + actualChange;
                     const maxQty = med.currQty !== undefined && med.currQty !== null ? med.currQty : (med.stockingUnit || 999999);
                     if (newQty > 0 && newQty <= maxQty) return { ...med, quantity: newQty };
@@ -790,15 +791,20 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         }))
                                     };
                                     const response = await authService.addIssueHoldVch(payload);
-                                    const vch = response.data || (response.data && response.data.data) || "0000";
-                                    setVoucherNo(vch);
-                                    if (cartKey) sessionStorage.removeItem(cartKey);
-                                    setShowConfirmModal(false);
-                                    setMedicines([]);
-                                    setShowSuccessModal(true);
+                                    const isSuccess = response.success === "true" || response.success === true;
+                                    if (isSuccess) {
+                                        const vch = response.data || "0000";
+                                        setVoucherNo(vch);
+                                        if (cartKey) sessionStorage.removeItem(cartKey);
+                                        setShowConfirmModal(false);
+                                        setMedicines([]);
+                                        setShowSuccessModal(true);
+                                    } else {
+                                        setApiErrorModal({ show: true, message: response.message || "Something went wrong. Please try again." });
+                                    }
                                 } catch (error) {
                                     console.error("Confirm error:", error);
-                                    showToast("Failed: " + (error.message || "Unknown error"));
+                                    setApiErrorModal({ show: true, message: error.message || "Failed to process. Please try again." });
                                 } finally {
                                     setIsConfirming(false);
                                 }
@@ -822,6 +828,29 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             setShowSuccessModal(false);
                             onBack();
                         }}>OK</button>
+                    </div>
+                </div>
+            )}
+
+            {/* API Error Modal */}
+            {apiErrorModal.show && (
+                <div className="adv-overlay" onClick={() => setApiErrorModal({ show: false, message: '' })}>
+                    <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 380, padding: '30px 24px' }}>
+                        <div style={{ fontSize: '38px', marginBottom: '14px' }}>⚠️</div>
+                        <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px', lineHeight: 1.4 }}>Process Failed</h3>
+                        <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '24px', lineHeight: 1.6 }}>
+                            {apiErrorModal.message}
+                        </p>
+                        <button
+                            onClick={() => setApiErrorModal({ show: false, message: '' })}
+                            style={{
+                                width: '100%', padding: '14px', borderRadius: 12,
+                                border: 'none', background: '#006ce6',
+                                color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer'
+                            }}
+                        >
+                            OK
+                        </button>
                     </div>
                 </div>
             )}
