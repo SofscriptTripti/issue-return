@@ -70,6 +70,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [scannerError, setScannerError] = useState('');
     const html5QrCodeRef = useRef(null);
     const medSearchInputRef = useRef(null);
+    const hiddenInputRef = useRef(null);
+    const timeoutIdRef = useRef(null);
     const [cameras, setCameras] = useState([]);
     const [selectedCameraId, setSelectedCameraId] = useState(null);
 
@@ -432,58 +434,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         handleBarcodeScanRef.current = handleBarcodeScan;
     });
 
-    // Global listener for Hardware Scanner (Keyboard Wedge)
+    // Hardware Scanner focus management
     useEffect(() => {
-        let buffer = '';
-        let lastKeyTime = Date.now();
-        let timeoutId = null;
-
-        const handleKeyDown = (e) => {
-            if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
-
-            const currentTime = Date.now();
-            
-            // If more than 150ms since last key, it's likely a human typing, reset buffer
-            if (currentTime - lastKeyTime > 150) {
-                buffer = '';
-            }
-            
-            lastKeyTime = currentTime;
-            
-            if (e.key === 'Enter' || e.key === 'Tab') {
-                if (buffer.length > 3) {
-                    // Prevent default to avoid unwanted form submission
-                    e.preventDefault();
-                    if (!isProcessingRef.current) {
-                        isProcessingRef.current = true;
-                        handleBarcodeScanRef.current(buffer);
-                    }
-                }
-                buffer = '';
-                if (timeoutId) clearTimeout(timeoutId);
-            } else if (e.key.length === 1) { // Only printable characters
-                buffer += e.key;
-
-                // Backup flush if the scanner doesn't send Enter
-                if (timeoutId) clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => {
-                    if (buffer.length > 4) { // Ensure it's a decent length for a barcode
-                        if (!isProcessingRef.current) {
-                            isProcessingRef.current = true;
-                            handleBarcodeScanRef.current(buffer);
-                        }
-                        buffer = '';
-                    }
-                }, 300);
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-            if (timeoutId) clearTimeout(timeoutId);
-        };
-    }, []);
+        if (selectedCameraId === 'hardware_wedge' && hiddenInputRef.current) {
+            hiddenInputRef.current.focus();
+        }
+    }, [selectedCameraId]);
 
     const updateQuantity = (id, change) => {
         setMedicines(prev => {
@@ -803,10 +759,50 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                         <div className="scanner-viewport-container">
                             {selectedCameraId === 'hardware_wedge' ? (
-                                <div style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: '2px dashed #475569' }}>
+                                <div 
+                                    style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: '2px dashed #475569', cursor: 'pointer' }}
+                                    onClick={() => hiddenInputRef.current?.focus()}
+                                >
                                     <div style={{ fontSize: '48px', marginBottom: '10px' }}>⚡</div>
                                     <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>Hardware Scanner Ready</h3>
                                     <p style={{ color: '#cbd5e1', fontSize: '14px', marginTop: '8px' }}>Press the physical scan button</p>
+                                    
+                                    <input 
+                                        ref={hiddenInputRef}
+                                        type="text" 
+                                        style={{ opacity: 0, position: 'absolute', zIndex: -10, width: '1px', height: '1px' }} 
+                                        autoFocus
+                                        onBlur={(e) => {
+                                            if (selectedCameraId === 'hardware_wedge') {
+                                                setTimeout(() => hiddenInputRef.current?.focus(), 100);
+                                            }
+                                        }}
+                                        onChange={(e) => {
+                                            const val = e.target.value.trim();
+                                            if (val.length > 3) {
+                                                if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+                                                timeoutIdRef.current = setTimeout(() => {
+                                                    if (!isProcessingRef.current && hiddenInputRef.current) {
+                                                        isProcessingRef.current = true;
+                                                        handleBarcodeScanRef.current(hiddenInputRef.current.value.trim());
+                                                        hiddenInputRef.current.value = '';
+                                                    }
+                                                }, 300);
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                const val = e.target.value.trim();
+                                                if (val.length > 3 && !isProcessingRef.current) {
+                                                    if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+                                                    isProcessingRef.current = true;
+                                                    handleBarcodeScanRef.current(val);
+                                                    e.target.value = '';
+                                                }
+                                            }
+                                        }}
+                                    />
                                 </div>
                             ) : (
                                 <>
@@ -858,10 +854,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                     <span className="badge-dot"></span>
                                     <span className="badge-text">Detected: {detectedMedCode}</span>
                                 </div>
-                            ) : noScanTimer > 5 ? (
+                            ) : noScanTimer > 5 && selectedCameraId !== 'hardware_wedge' ? (
                                 <p className="status-msg red animate-pulse">Focus QR Properly</p>
                             ) : (
-                                <p className="status-msg" style={{ color: '#64748b', opacity: 0.8 }}>Focus medicine QR code</p>
+                                <p className="status-msg" style={{ color: '#64748b', opacity: 0.8 }}>
+                                    {selectedCameraId === 'hardware_wedge' ? 'Ready for input' : 'Focus medicine QR code'}
+                                </p>
                             )}
                         </div>
                     </div>
