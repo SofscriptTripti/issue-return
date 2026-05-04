@@ -436,16 +436,21 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     useEffect(() => {
         let buffer = '';
         let lastKeyTime = Date.now();
+        let timeoutId = null;
 
         const handleKeyDown = (e) => {
+            if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
+
             const currentTime = Date.now();
             
-            // If more than 100ms since last key, it's likely a human typing, reset buffer
-            if (currentTime - lastKeyTime > 100) {
+            // If more than 150ms since last key, it's likely a human typing, reset buffer
+            if (currentTime - lastKeyTime > 150) {
                 buffer = '';
             }
             
-            if (e.key === 'Enter') {
+            lastKeyTime = currentTime;
+            
+            if (e.key === 'Enter' || e.key === 'Tab') {
                 if (buffer.length > 3) {
                     // Prevent default to avoid unwanted form submission
                     e.preventDefault();
@@ -455,15 +460,29 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     }
                 }
                 buffer = '';
+                if (timeoutId) clearTimeout(timeoutId);
             } else if (e.key.length === 1) { // Only printable characters
                 buffer += e.key;
+
+                // Backup flush if the scanner doesn't send Enter
+                if (timeoutId) clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    if (buffer.length > 4) { // Ensure it's a decent length for a barcode
+                        if (!isProcessingRef.current) {
+                            isProcessingRef.current = true;
+                            handleBarcodeScanRef.current(buffer);
+                        }
+                        buffer = '';
+                    }
+                }, 300);
             }
-            
-            lastKeyTime = currentTime;
         };
 
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            if (timeoutId) clearTimeout(timeoutId);
+        };
     }, []);
 
     const updateQuantity = (id, change) => {
