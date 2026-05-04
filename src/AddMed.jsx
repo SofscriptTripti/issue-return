@@ -324,8 +324,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             const devices = await Html5Qrcode.getCameras();
             if (devices && devices.length > 0) {
                 setCameras(devices);
-                // Look for "scanner", then "back"/"rear"
-                const scannerCam = devices.find(d => d.label.toLowerCase().includes('scanner') || d.label.toLowerCase().includes('barcode'));
+                // Look for "scanner", "barcode", or "top" (for the top-mounted hardware scanner)
+                const scannerCam = devices.find(d => 
+                    d.label.toLowerCase().includes('scanner') || 
+                    d.label.toLowerCase().includes('barcode') || 
+                    d.label.toLowerCase().includes('top')
+                );
                 const backCam = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment') || d.label.toLowerCase().includes('facing back'));
                 
                 if (scannerCam) {
