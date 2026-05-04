@@ -101,6 +101,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
         const startScanner = async () => {
             if (!isScannerOpen) return;
+            if (selectedCameraId === 'hardware_wedge') return;
 
             try {
                 html5QrCode = new Html5Qrcode("reader");
@@ -323,7 +324,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         try {
             const devices = await Html5Qrcode.getCameras();
             if (devices && devices.length > 0) {
-                setCameras(devices);
+                // Append Hardware Scanner as an option
+                const hardwareOption = { id: 'hardware_wedge', label: 'Hardware Scanner (Physical Button)' };
+                setCameras([...devices, hardwareOption]);
                 // Look for "scanner", "barcode", or "top" (for the top-mounted hardware scanner)
                 const scannerCam = devices.find(d => 
                     d.label.toLowerCase().includes('scanner') || 
@@ -423,6 +426,45 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             }, 3000);
         }
     };
+
+    const handleBarcodeScanRef = useRef(handleBarcodeScan);
+    useEffect(() => {
+        handleBarcodeScanRef.current = handleBarcodeScan;
+    });
+
+    // Global listener for Hardware Scanner (Keyboard Wedge)
+    useEffect(() => {
+        let buffer = '';
+        let lastKeyTime = Date.now();
+
+        const handleKeyDown = (e) => {
+            const currentTime = Date.now();
+            
+            // If more than 50ms since last key, it's likely a human typing, reset buffer
+            if (currentTime - lastKeyTime > 50) {
+                buffer = '';
+            }
+            
+            if (e.key === 'Enter') {
+                if (buffer.length > 3) {
+                    // Prevent default to avoid unwanted form submission
+                    e.preventDefault();
+                    if (!isProcessingRef.current) {
+                        isProcessingRef.current = true;
+                        handleBarcodeScanRef.current(buffer);
+                    }
+                }
+                buffer = '';
+            } else if (e.key.length === 1) { // Only printable characters
+                buffer += e.key;
+            }
+            
+            lastKeyTime = currentTime;
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     const updateQuantity = (id, change) => {
         setMedicines(prev => {
@@ -741,16 +783,26 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         </div>
 
                         <div className="scanner-viewport-container">
-                            <div id="reader" className="full-qr-reader"></div>
+                            {selectedCameraId === 'hardware_wedge' ? (
+                                <div style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: '2px dashed #475569' }}>
+                                    <div style={{ fontSize: '48px', marginBottom: '10px' }}>⚡</div>
+                                    <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>Hardware Scanner Ready</h3>
+                                    <p style={{ color: '#cbd5e1', fontSize: '14px', marginTop: '8px' }}>Press the physical scan button</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div id="reader" className="full-qr-reader"></div>
 
-                            {/* Centered QR code with Frame */}
-                            <div className="scanning-frame">
-                                <div className="corner top-left"></div>
-                                <div className="corner top-right"></div>
-                                <div className="corner bottom-left"></div>
-                                <div className="corner bottom-right"></div>
-                                {!showScanStatus.show && <div className="scanning-laser"></div>}
-                            </div>
+                                    {/* Centered QR code with Frame */}
+                                    <div className="scanning-frame">
+                                        <div className="corner top-left"></div>
+                                        <div className="corner top-right"></div>
+                                        <div className="corner bottom-left"></div>
+                                        <div className="corner bottom-right"></div>
+                                        {!showScanStatus.show && <div className="scanning-laser"></div>}
+                                    </div>
+                                </>
+                            )}
 
                             {cameras.length > 1 && (
                                 <div style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, display: 'flex', gap: '10px', alignItems: 'center' }}>
