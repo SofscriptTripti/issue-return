@@ -39,6 +39,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [showNoCameraModal, setShowNoCameraModal] = useState(false);
     const [voucherNo, setVoucherNo] = useState('');
     const [confirmError, setConfirmError] = useState('');
+    // Set of "itemCd|batch" keys flagged as out-of-stock by the save API
+    const [outOfStockKeys, setOutOfStockKeys] = useState(new Set());
 
     // Batch Selection Modal States
     const [showBatchModal, setShowBatchModal] = useState(false);
@@ -68,6 +70,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const [scannerError, setScannerError] = useState('');
     const html5QrCodeRef = useRef(null);
     const medSearchInputRef = useRef(null);
+    const [cameras, setCameras] = useState([]);
+    const [selectedCameraId, setSelectedCameraId] = useState(null);
 
     // Hardware-aware Camera Check
     const checkBackCamera = async () => {
@@ -102,13 +106,16 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 html5QrCode = new Html5Qrcode("reader");
                 html5QrCodeRef.current = html5QrCode;
 
+                const config = {
+                    fps: 30, // Faster 30fps scanning
+                    qrbox: { width: 280, height: 280 },
+                    aspectRatio: 1.0
+                };
+                const cameraIdOrConfig = selectedCameraId ? selectedCameraId : { facingMode: "environment" };
+
                 await html5QrCode.start(
-                    { facingMode: "environment" },
-                    {
-                        fps: 30, // Faster 30fps scanning
-                        qrbox: { width: 280, height: 280 },
-                        aspectRatio: 1.0
-                    },
+                    cameraIdOrConfig,
+                    config,
                     async (decodedText) => {
                         // SYNCHRONOUS LOCK: Absolute frame rejection
                         if (isProcessingRef.current) return;
@@ -150,7 +157,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             };
             stop();
         };
-    }, [isScannerOpen]);
+    }, [isScannerOpen, selectedCameraId]);
 
     // Auto-save cart to sessionStorage whenever medicines change
     useEffect(() => {
@@ -161,6 +168,26 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         } else {
             sessionStorage.removeItem(cartKey);
         }
+    }, [medicines]);
+
+    // Auto-clear out-of-stock highlight when quantity is brought within stock
+    useEffect(() => {
+        if (outOfStockKeys.size === 0) return;
+        setOutOfStockKeys(prev => {
+            const next = new Set(prev);
+            medicines.forEach(med => {
+                const key = `${med.itemCd || med.id}|${med.batch}`;
+                if (next.has(key)) {
+                    const stockQty = med.currQty !== undefined && med.currQty !== null
+                        ? parseFloat(med.currQty)
+                        : parseFloat(med.stockingUnit || 0);
+                    if ((parseInt(med.quantity) || 0) <= stockQty) {
+                        next.delete(key);
+                    }
+                }
+            });
+            return next;
+        });
     }, [medicines]);
 
     // Timer logic for "No Result" feedback
@@ -293,16 +320,28 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const handleScannerClick = async () => {
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
         setScannerError('');
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            setShowNoCameraModal(true);
-            return;
-        }
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            stream.getTracks().forEach(track => track.stop());
-            setIsScannerOpen(true);
+            const devices = await Html5Qrcode.getCameras();
+            if (devices && devices.length > 0) {
+                setCameras(devices);
+                // Look for "scanner", then "back"/"rear"
+                const scannerCam = devices.find(d => d.label.toLowerCase().includes('scanner') || d.label.toLowerCase().includes('barcode'));
+                const backCam = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment') || d.label.toLowerCase().includes('facing back'));
+                
+                if (scannerCam) {
+                    setSelectedCameraId(scannerCam.id);
+                } else if (backCam) {
+                    setSelectedCameraId(backCam.id);
+                } else {
+                    setSelectedCameraId(devices[devices.length - 1].id);
+                }
+                setIsScannerOpen(true);
+            } else {
+                setShowNoCameraModal(true);
+            }
         } catch (err) {
-            setShowNoCameraModal(true);
+            console.error("Camera access failed", err);
+            setIsScannerOpen(true);
         }
     };
 
@@ -388,9 +427,21 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     const currentQty = Math.round(parseFloat(med.quantity)) || 0;
                     const actualChange = change > 0 ? 1 : -1;
                     const newQty = currentQty + actualChange;
-                    const maxQty = med.currQty !== undefined && med.currQty !== null ? parseFloat(med.currQty) : (parseFloat(med.stockingUnit) || 999999);
-                    if (newQty > 0 && newQty <= maxQty) return { ...med, quantity: newQty };
-                    else if (newQty > maxQty) showToast(`Oops! 😬 Item out of stock (${maxQty})`);
+
+                    if (newQty <= 0) return med; // Never go below 1
+
+                    // QR-scanned medicines: 'scanQtyStep' key exists on the object
+                    // Allow any quantity — API error shown in Order Summary
+                    if ('scanQtyStep' in med) {
+                        return { ...med, quantity: newQty };
+                    }
+
+                    // Search-added medicines: enforce stock cap
+                    const maxQty = med.currQty !== undefined && med.currQty !== null
+                        ? parseFloat(med.currQty)
+                        : (parseFloat(med.stockingUnit) || 999999);
+                    if (newQty <= maxQty) return { ...med, quantity: newQty };
+                    else showToast(`Oops! 😬 Item out of stock (${maxQty})`);
                 }
                 return med;
             });
@@ -608,44 +659,48 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             <div className="empty-state-text">No medicines added yet.</div>
                         </div>
                     ) : (
-                        medicines.map((med) => (
-                            <div key={med.id} className="medicine-card blue-theme">
-                                <div className="med-card-left">
-                                    <div className="med-name">{med.name}</div>
-                                    <div className="med-tags">
-                                        {med.itemCd && <span className="med-tag" style={{ background: '#e6f2ff', color: '#005bb7' }}>{med.itemCd}</span>}
+                        medicines.map((med) => {
+                            const stockOsKey = `${med.itemCd || med.id}|${med.batch}`;
+                            const isOutOfStock = outOfStockKeys.has(stockOsKey);
+                            return (
+                                <div key={med.id} className={`medicine-card blue-theme${isOutOfStock ? ' medicine-card--out-of-stock' : ''}`}>
+                                    <div className="med-card-left">
+                                        <div className="med-name">{med.name}</div>
+                                        <div className="med-tags">
+                                            {med.itemCd && <span className="med-tag" style={{ background: '#e6f2ff', color: '#005bb7' }}>{med.itemCd}</span>}
+                                        </div>
+                                        <div className="med-meta" style={{ marginBottom: '5px' }}>
+                                            Exp: {med.expiry} &nbsp;|&nbsp; Batch: {med.batch}
+                                        </div>
+                                        <div className="med-rate" style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
+                                            {/* Rate: ₹{med.price.toFixed(2)} */}
+                                        </div>
                                     </div>
-                                    <div className="med-meta" style={{ marginBottom: '5px' }}>
-                                        Exp: {med.expiry} &nbsp;|&nbsp; Batch: {med.batch}
-                                    </div>
-                                    <div className="med-rate" style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
-                                        {/* Rate: ₹{med.price.toFixed(2)} */}
+                                    <div className="med-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                        <div className="med-price-row">
+                                            <span className="med-price">₹{med.price}</span>
+                                            <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
+                                        </div>
+                                        <div className="qty-control">
+                                            <button className="qty-btn" onClick={() => updateQuantity(med.id, -1)}>−</button>
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                className="qty-value"
+                                                value={med.quantity}
+                                                onChange={(e) => setExactQuantity(med.id, e.target.value.replace(/\D/g, ''))}
+                                                onBlur={(e) => { if (!med.quantity) setExactQuantity(med.id, '1'); }}
+                                            />
+                                            <button className="qty-btn" onClick={() => updateQuantity(med.id, 1)}>+</button>
+                                        </div>
+                                        <div style={{ marginTop: '5px', fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>
+                                            Stock Qty: {med.currQty !== undefined && med.currQty !== null ? med.currQty : (med.stockingUnit || '0')}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="med-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                    <div className="med-price-row">
-                                        <span className="med-price">₹{med.price}</span>
-                                        <button className="delete-button" onClick={() => removeMedicine(med.id)}>🗑️</button>
-                                    </div>
-                                    <div className="qty-control">
-                                        <button className="qty-btn" onClick={() => updateQuantity(med.id, -1)}>−</button>
-                                        <input
-                                            type="text"
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
-                                            className="qty-value"
-                                            value={med.quantity}
-                                            onChange={(e) => setExactQuantity(med.id, e.target.value.replace(/\D/g, ''))}
-                                            onBlur={(e) => { if (!med.quantity) setExactQuantity(med.id, '1'); }}
-                                        />
-                                        <button className="qty-btn" onClick={() => updateQuantity(med.id, 1)}>+</button>
-                                    </div>
-                                    <div style={{ marginTop: '5px', fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>
-                                        Stock Qty: {med.currQty !== undefined && med.currQty !== null ? med.currQty : (med.stockingUnit || '0')}
-                                    </div>
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
             </div>
@@ -692,6 +747,23 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 <div className="corner bottom-right"></div>
                                 {!showScanStatus.show && <div className="scanning-laser"></div>}
                             </div>
+
+                            {cameras.length > 1 && (
+                                <div style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <span style={{color: 'white', fontSize: '12px', textShadow: '1px 1px 2px black', fontWeight: 600}}>Camera:</span>
+                                    <select 
+                                        value={selectedCameraId || ''} 
+                                        onChange={(e) => setSelectedCameraId(e.target.value)}
+                                        style={{ padding: '8px 12px', borderRadius: '20px', border: '2px solid rgba(255,255,255,0.5)', background: 'rgba(0,0,0,0.7)', color: 'white', fontSize: '14px', outline: 'none', backdropFilter: 'blur(4px)', cursor: 'pointer', maxWidth: '180px', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}
+                                    >
+                                        {cameras.map(cam => (
+                                            <option key={cam.id} value={cam.id} style={{background: '#333', color: 'white'}}>
+                                                {cam.label || `Camera ${cam.id.substring(0,5)}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             {/* Centered Status Message Overlay */}
                             {showScanStatus.show && (
@@ -773,8 +845,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                         {confirmError ? (
                             <div style={{ padding: '8px 4px 0', textAlign: 'center' }}>
-                                <p style={{ color: '#dc2626', fontWeight: 700, fontSize: '13px', lineHeight: 1.5, margin: 0 }}>
-                                    ⚠️ {confirmError}
+                                <p style={{ color: '#dc2626', fontWeight: 800, fontSize: '13px', lineHeight: 1.5, margin: 0 }}>
+                                    {confirmError}
                                 </p>
                             </div>
                         ) : null}
@@ -807,11 +879,22 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         const vch = response.data || "0000";
                                         setVoucherNo(vch);
                                         if (cartKey) sessionStorage.removeItem(cartKey);
+                                        setOutOfStockKeys(new Set());
                                         setShowConfirmModal(false);
                                         setMedicines([]);
                                         setShowSuccessModal(true);
                                     } else {
-                                        setConfirmError(response.message || "Something went wrong. Please try again.");
+                                        const errMsg = response.message || "Something went wrong. Please try again.";
+                                        setConfirmError(errMsg);
+                                        // Parse "Required Quantity not available for Item MED005668 and Batch EA25067"
+                                        const itemMatch = errMsg.match(/Item\s+(\S+)/i);
+                                        const batchMatch = errMsg.match(/Batch\s+(\S+)/i);
+                                        if (itemMatch && batchMatch) {
+                                            const flagItemCd = itemMatch[1];
+                                            const flagBatch = batchMatch[1];
+                                            const flagKey = `${flagItemCd}|${flagBatch}`;
+                                            setOutOfStockKeys(prev => new Set([...prev, flagKey]));
+                                        }
                                     }
                                 } catch (error) {
                                     console.error("Confirm error:", error);
