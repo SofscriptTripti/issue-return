@@ -440,8 +440,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         const handleKeyDown = (e) => {
             const currentTime = Date.now();
             
-            // If more than 50ms since last key, it's likely a human typing, reset buffer
-            if (currentTime - lastKeyTime > 50) {
+            // If more than 100ms since last key, it's likely a human typing, reset buffer
+            if (currentTime - lastKeyTime > 100) {
                 buffer = '';
             }
             
