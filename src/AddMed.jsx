@@ -779,7 +779,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         }}
                                         onChange={(e) => {
                                             const val = e.target.value.trim();
-                                            if (val.length > 3) {
+                                            if (val.length > 0) {
                                                 if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
                                                 timeoutIdRef.current = setTimeout(() => {
                                                     if (!isProcessingRef.current && hiddenInputRef.current) {
@@ -794,12 +794,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
                                                 const val = e.target.value.trim();
-                                                if (val.length > 3 && !isProcessingRef.current) {
+                                                if (val.length > 0 && !isProcessingRef.current) {
                                                     if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
                                                     isProcessingRef.current = true;
                                                     handleBarcodeScanRef.current(val);
-                                                    e.target.value = '';
                                                 }
+                                                // Always clear the input after an Enter key, regardless of length
+                                                e.target.value = '';
                                             }
                                         }}
                                     />
