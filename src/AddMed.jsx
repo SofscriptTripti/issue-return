@@ -338,18 +338,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 // Always add both options to show the toggle
                 setCameras([hardwareOption, cameraOption]);
 
-                // Check if a scanner camera is explicitly listed to determine default
-                const scannerCam = devices.find(d => 
-                    d.label.toLowerCase().includes('scanner') || 
-                    d.label.toLowerCase().includes('barcode') || 
-                    d.label.toLowerCase().includes('top')
-                );
-                
-                if (scannerCam) {
-                    setSelectedCameraId('hardware_wedge');
-                } else {
-                    setSelectedCameraId(backCam.id);
-                }
+                // Always default to Scanner as requested
+                setSelectedCameraId('hardware_wedge');
                 
                 setIsScannerOpen(true);
             } else {
@@ -827,25 +817,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 </>
                             )}
 
-                            {cameras.length > 1 && (
-                                <div className="vertical-capsule-toggle">
-                                    <button 
-                                        className={`toggle-option-btn ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}
-                                        onClick={() => setSelectedCameraId('hardware_wedge')}
-                                    >
-                                        Scanner
-                                    </button>
-                                    <button 
-                                        className={`toggle-option-btn ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}
-                                        onClick={() => {
-                                            const cam = cameras.find(c => c.id !== 'hardware_wedge');
-                                            if (cam) setSelectedCameraId(cam.id);
-                                        }}
-                                    >
-                                        Camera
-                                    </button>
-                                </div>
-                            )}
+
 
                             {/* Centered Status Message Overlay */}
                             {showScanStatus.show && (
@@ -855,7 +827,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             )}
                         </div>
 
-                        <div className="scanner-footer-msg" style={{ minHeight: '40px' }}>
+                        <div className="scanner-footer-msg" style={{ minHeight: '40px', paddingBottom: '10px' }}>
                             {showScanStatus.show ? (
                                 null // Handled by center overlay
                             ) : isProcessingScan ? (
@@ -873,6 +845,30 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 </p>
                             )}
                         </div>
+
+                        {cameras.length > 1 && (
+                            <div className="slider-toggle-container">
+                                <div 
+                                    className="slider-toggle" 
+                                    onClick={() => {
+                                        if (selectedCameraId === 'hardware_wedge') {
+                                            const cam = cameras.find(c => c.id !== 'hardware_wedge');
+                                            if (cam) setSelectedCameraId(cam.id);
+                                        } else {
+                                            setSelectedCameraId('hardware_wedge');
+                                        }
+                                    }}
+                                >
+                                    <div className={`slider-ball ${selectedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
+                                    <div className={`toggle-icon-wrap ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}>
+                                        <img src={`${import.meta.env.BASE_URL}barcode.png`} alt="Scanner" style={{ width: '22px', height: '22px', filter: selectedCameraId === 'hardware_wedge' ? 'brightness(0) invert(1)' : 'brightness(0.6)' }} />
+                                    </div>
+                                    <div className={`toggle-icon-wrap ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}>
+                                        <img src={`${import.meta.env.BASE_URL}camera.png`} alt="Camera" style={{ width: '22px', height: '22px', filter: selectedCameraId !== 'hardware_wedge' ? 'brightness(0) invert(1)' : 'brightness(0.6)' }} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
