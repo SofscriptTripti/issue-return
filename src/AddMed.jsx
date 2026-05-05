@@ -768,7 +768,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                     <input 
                                         ref={hiddenInputRef}
                                         type="text" 
-                                        inputMode="none"
                                         style={{ opacity: 0, position: 'absolute', zIndex: -10, width: '1px', height: '1px' }} 
                                         autoFocus
                                         onBlur={(e) => {
