@@ -335,38 +335,22 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const cameraOption = { id: backCam.id, label: 'Camera' };
                 const hardwareOption = { id: 'hardware_wedge', label: 'Scanner' };
 
-                // Handle Chrome User-Agent Reduction
-                let realModel = navigator.userAgent;
-                let isMobileComputer = /TVS|Zebra|Honeywell|Datalogic|CipherLab|Symbol|Sunmi|Urovo|Newland|PDA|Handheld/i.test(navigator.userAgent);
+                // Always add both options to show the toggle
+                setCameras([hardwareOption, cameraOption]);
 
-                if (!isMobileComputer && navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
-                    try {
-                        const ua = await navigator.userAgentData.getHighEntropyValues(['model']);
-                        if (ua && ua.model) {
-                            realModel = ua.model;
-                            isMobileComputer = /TVS|Zebra|Honeywell|Datalogic|CipherLab|Symbol|Sunmi|Urovo|Newland|PDA|Handheld/i.test(ua.model);
-                        }
-                    } catch (e) {
-                        console.error("Could not get high entropy UA data", e);
-                    }
-                }
-
-                // Check if a scanner camera is explicitly listed
+                // Check if a scanner camera is explicitly listed to determine default
                 const scannerCam = devices.find(d => 
                     d.label.toLowerCase().includes('scanner') || 
                     d.label.toLowerCase().includes('barcode') || 
                     d.label.toLowerCase().includes('top')
                 );
                 
-                if (scannerCam || isMobileComputer) {
-                    // Show toggle and default to scanner
-                    setCameras([hardwareOption, cameraOption]);
+                if (scannerCam) {
                     setSelectedCameraId('hardware_wedge');
                 } else {
-                    // Standard phone: No toggle, camera only
-                    setCameras([cameraOption]);
                     setSelectedCameraId(backCam.id);
                 }
+                
                 setIsScannerOpen(true);
             } else {
                 setShowNoCameraModal(true);
