@@ -763,12 +763,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                     style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: 'none', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', cursor: 'pointer' }}
                                     onClick={() => hiddenInputRef.current?.focus()}
                                 >
-                                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#94a3b8' }}>Awaiting Scan...</h3>
-                                    <p style={{ color: '#64748b', fontSize: '14px', marginTop: '8px' }}>Press the physical scanner button</p>
+                                    <p style={{ color: '#f8fafc', fontSize: '16px', fontWeight: '500' }}>Press the physical scanner button</p>
                                     
                                     <input 
                                         ref={hiddenInputRef}
                                         type="text" 
+                                        inputMode="none"
                                         style={{ opacity: 0, position: 'absolute', zIndex: -10, width: '1px', height: '1px' }} 
                                         autoFocus
                                         onBlur={(e) => {
@@ -863,10 +863,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 >
                                     <div className={`slider-ball ${selectedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
                                     <div className={`toggle-icon-wrap ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}barcode.png`} alt="Scanner" style={{ width: '22px', height: '22px', filter: 'brightness(0) invert(1)', opacity: selectedCameraId === 'hardware_wedge' ? 1 : 0.4 }} />
+                                        <img src={`${import.meta.env.BASE_URL}barcode.png`} alt="Scanner" style={{ width: '22px', height: '22px', filter: 'brightness(0) invert(1)' }} />
                                     </div>
                                     <div className={`toggle-icon-wrap ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}camera.png`} alt="Camera" style={{ width: '22px', height: '22px', filter: 'brightness(0) invert(1)', opacity: selectedCameraId !== 'hardware_wedge' ? 1 : 0.4 }} />
+                                        <img src={`${import.meta.env.BASE_URL}camera.png`} alt="Camera" style={{ width: '22px', height: '22px', filter: 'brightness(0) invert(1)' }} />
                                     </div>
                                 </div>
                             </div>
