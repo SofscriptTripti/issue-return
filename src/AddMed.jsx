@@ -326,23 +326,33 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         try {
             const devices = await Html5Qrcode.getCameras();
             if (devices && devices.length > 0) {
-                // Append Hardware Scanner as an option
-                const hardwareOption = { id: 'hardware_wedge', label: 'Hardware Scanner (Physical Button)' };
-                setCameras([...devices, hardwareOption]);
-                // Look for "scanner", "barcode", or "top" (for the top-mounted hardware scanner)
+                // Remove front camera options
+                const validCameras = devices.filter(d => !d.label.toLowerCase().includes('front') && !d.label.toLowerCase().includes('facing front'));
+                
+                // Find best back camera or use the first available valid camera
+                const backCam = validCameras.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment') || d.label.toLowerCase().includes('facing back')) || validCameras[0] || devices[devices.length - 1];
+                
+                const cameraOption = { id: backCam.id, label: 'Camera' };
+                const hardwareOption = { id: 'hardware_wedge', label: 'Scanner' };
+
+                // Detect if the device is a Mobile Computer (e.g., TVS, Zebra)
+                const isMobileComputer = /TVS|Zebra|Honeywell|Datalogic|CipherLab|Symbol/i.test(navigator.userAgent);
+
+                // Check if a scanner camera is explicitly listed
                 const scannerCam = devices.find(d => 
                     d.label.toLowerCase().includes('scanner') || 
                     d.label.toLowerCase().includes('barcode') || 
                     d.label.toLowerCase().includes('top')
                 );
-                const backCam = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment') || d.label.toLowerCase().includes('facing back'));
                 
-                if (scannerCam) {
-                    setSelectedCameraId(scannerCam.id);
-                } else if (backCam) {
-                    setSelectedCameraId(backCam.id);
+                if (scannerCam || isMobileComputer) {
+                    // Show toggle and default to scanner
+                    setCameras([hardwareOption, cameraOption]);
+                    setSelectedCameraId('hardware_wedge');
                 } else {
-                    setSelectedCameraId(devices[devices.length - 1].id);
+                    // Standard phone: No toggle, camera only
+                    setCameras([cameraOption]);
+                    setSelectedCameraId(backCam.id);
                 }
                 setIsScannerOpen(true);
             } else {
@@ -821,19 +831,22 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             )}
 
                             {cameras.length > 1 && (
-                                <div style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                    <span style={{color: 'white', fontSize: '12px', textShadow: '1px 1px 2px black', fontWeight: 600}}>Camera:</span>
-                                    <select 
-                                        value={selectedCameraId || ''} 
-                                        onChange={(e) => setSelectedCameraId(e.target.value)}
-                                        style={{ padding: '8px 12px', borderRadius: '20px', border: '2px solid rgba(255,255,255,0.5)', background: 'rgba(0,0,0,0.7)', color: 'white', fontSize: '14px', outline: 'none', backdropFilter: 'blur(4px)', cursor: 'pointer', maxWidth: '180px', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}
+                                <div className="vertical-capsule-toggle">
+                                    <button 
+                                        className={`toggle-option-btn ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}
+                                        onClick={() => setSelectedCameraId('hardware_wedge')}
                                     >
-                                        {cameras.map(cam => (
-                                            <option key={cam.id} value={cam.id} style={{background: '#333', color: 'white'}}>
-                                                {cam.label || `Camera ${cam.id.substring(0,5)}`}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        Scanner
+                                    </button>
+                                    <button 
+                                        className={`toggle-option-btn ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            const cam = cameras.find(c => c.id !== 'hardware_wedge');
+                                            if (cam) setSelectedCameraId(cam.id);
+                                        }}
+                                    >
+                                        Camera
+                                    </button>
                                 </div>
                             )}
 

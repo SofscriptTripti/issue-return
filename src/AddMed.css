@@ -1955,3 +1955,39 @@
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0, 108, 230, 0.2);
 }
+
+.vertical-capsule-toggle {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 30px;
+    display: flex;
+    flex-direction: column;
+    padding: 4px;
+    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+.toggle-option-btn {
+    padding: 12px 16px;
+    background: transparent;
+    color: #94a3b8;
+    border: none;
+    border-radius: 26px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.toggle-option-btn.active {
+    background: #006ce6;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 108, 230, 0.4);
+}
