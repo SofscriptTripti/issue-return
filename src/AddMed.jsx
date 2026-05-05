@@ -338,8 +338,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 // Always add both options to show the toggle
                 setCameras([hardwareOption, cameraOption]);
 
-                // Always default to Scanner as requested
-                setSelectedCameraId('hardware_wedge');
+                // Default to global config (1 = scanner, 2 = camera), fallback to scanner
+                const configVal = window.APP_CONFIG?.defaultScanner;
+                const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
+                setSelectedCameraId(defaultScanner);
                 
                 setIsScannerOpen(true);
             } else {
