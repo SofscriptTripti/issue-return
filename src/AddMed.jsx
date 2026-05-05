@@ -432,48 +432,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         handleBarcodeScanRef.current = handleBarcodeScan;
     });
 
-    // Hardware Scanner Event Listener (No hidden input required = no virtual keyboard!)
+    // Hardware Scanner focus management
     useEffect(() => {
         setDetectedMedCode('');
         setShowScanStatus({ show: false, msg: '', isError: false });
 
-        if (!isScannerOpen || selectedCameraId !== 'hardware_wedge') return;
-
-        let barcodeBuffer = '';
-        let scanTimeout = null;
-
-        const handleKeyDown = (e) => {
-            // Ignore if the user is somehow typing in a real input field
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const val = barcodeBuffer.trim();
-                if (val.length > 0 && !isProcessingRef.current) {
-                    isProcessingRef.current = true;
-                    handleBarcodeScanRef.current(val);
-                }
-                barcodeBuffer = '';
-                return;
-            }
-
-            // Append printable characters to the buffer
-            if (e.key.length === 1) {
-                barcodeBuffer += e.key;
-            }
-
-            // Scanners type extremely fast. If there's a pause > 200ms, assume it was a stray keypress and clear buffer.
-            if (scanTimeout) clearTimeout(scanTimeout);
-            scanTimeout = setTimeout(() => {
-                barcodeBuffer = '';
-            }, 200);
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-            if (scanTimeout) clearTimeout(scanTimeout);
-        };
+        if (selectedCameraId === 'hardware_wedge' && hiddenInputRef.current) {
+            hiddenInputRef.current.focus();
+        }
     }, [selectedCameraId, isScannerOpen]);
 
     const updateQuantity = (id, change) => {
@@ -795,9 +761,55 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         <div className="scanner-viewport-container">
                             {selectedCameraId === 'hardware_wedge' ? (
                                 <div 
-                                    style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: 'none', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)' }}
+                                    style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: 'none', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', cursor: 'pointer' }}
+                                    onClick={() => hiddenInputRef.current?.focus()}
                                 >
                                     <p style={{ color: '#f8fafc', fontSize: '16px', fontWeight: '500' }}>Press the physical scanner button</p>
+                                    <input 
+                                        ref={hiddenInputRef}
+                                        type="text" 
+                                        autoComplete="off"
+                                        spellCheck="false"
+                                        style={{ opacity: 0, position: 'absolute', zIndex: -10, width: '1px', height: '1px' }} 
+                                        autoFocus
+                                        onFocus={(e) => {
+                                            // Hack to prevent virtual keyboard from popping up immediately on focus
+                                            e.target.readOnly = true;
+                                            setTimeout(() => {
+                                                e.target.readOnly = false;
+                                            }, 50);
+                                        }}
+                                        onBlur={(e) => {
+                                            if (selectedCameraId === 'hardware_wedge') {
+                                                setTimeout(() => hiddenInputRef.current?.focus(), 100);
+                                            }
+                                        }}
+                                        onChange={(e) => {
+                                            const val = e.target.value.trim();
+                                            if (val.length > 0) {
+                                                if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+                                                timeoutIdRef.current = setTimeout(() => {
+                                                    if (!isProcessingRef.current && hiddenInputRef.current) {
+                                                        isProcessingRef.current = true;
+                                                        handleBarcodeScanRef.current(hiddenInputRef.current.value.trim());
+                                                        hiddenInputRef.current.value = '';
+                                                    }
+                                                }, 300);
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                const val = e.target.value.trim();
+                                                if (val.length > 0 && !isProcessingRef.current) {
+                                                    if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+                                                    isProcessingRef.current = true;
+                                                    handleBarcodeScanRef.current(val);
+                                                }
+                                                e.target.value = '';
+                                            }
+                                        }}
+                                    />
                                 </div>
                             ) : (
                                 <>
@@ -858,10 +870,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 >
                                     <div className={`slider-ball ${selectedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
                                     <div className={`toggle-icon-wrap ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '22px', height: '22px', filter: 'brightness(0) invert(1)' }} />
+                                        <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '22px', height: '22px', opacity: selectedCameraId === 'hardware_wedge' ? 1 : 0.4 }} />
                                     </div>
                                     <div className={`toggle-icon-wrap ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '22px', height: '22px', filter: 'brightness(0) invert(1)' }} />
+                                        <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '22px', height: '22px', opacity: selectedCameraId !== 'hardware_wedge' ? 1 : 0.4 }} />
                                     </div>
                                 </div>
                             </div>
