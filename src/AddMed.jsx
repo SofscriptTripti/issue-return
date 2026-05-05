@@ -335,9 +335,21 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const cameraOption = { id: backCam.id, label: 'Camera' };
                 const hardwareOption = { id: 'hardware_wedge', label: 'Scanner' };
 
-                // Detect if the device is a Mobile Computer
-                // Added common rebranded PDA names like Sunmi, Urovo, Newland
-                const isMobileComputer = /TVS|Zebra|Honeywell|Datalogic|CipherLab|Symbol|Sunmi|Urovo|Newland|PDA|Handheld/i.test(navigator.userAgent);
+                // Handle Chrome User-Agent Reduction
+                let realModel = navigator.userAgent;
+                let isMobileComputer = /TVS|Zebra|Honeywell|Datalogic|CipherLab|Symbol|Sunmi|Urovo|Newland|PDA|Handheld/i.test(navigator.userAgent);
+
+                if (!isMobileComputer && navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+                    try {
+                        const ua = await navigator.userAgentData.getHighEntropyValues(['model']);
+                        if (ua && ua.model) {
+                            realModel = ua.model;
+                            isMobileComputer = /TVS|Zebra|Honeywell|Datalogic|CipherLab|Symbol|Sunmi|Urovo|Newland|PDA|Handheld/i.test(ua.model);
+                        }
+                    } catch (e) {
+                        console.error("Could not get high entropy UA data", e);
+                    }
+                }
 
                 // Check if a scanner camera is explicitly listed
                 const scannerCam = devices.find(d => 
@@ -352,8 +364,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     setSelectedCameraId('hardware_wedge');
                 } else {
                     // Standard phone: No toggle, camera only
-                    // TEMPORARY DEBUG: Show the User Agent so we can find out what TVS calls itself
-                    alert("Debug - Device User Agent:\n" + navigator.userAgent);
                     setCameras([cameraOption]);
                     setSelectedCameraId(backCam.id);
                 }
