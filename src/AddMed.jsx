@@ -422,6 +422,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 isProcessingRef.current = false; // HARD UNLOCK
                 lastDetectedRef.current = null; // Clear so it can re-scan SAME medicine if needed
                 setNoScanTimer(0);
+                setDetectedMedCode('');
             }, 3000);
         }
     };
@@ -433,10 +434,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     // Hardware Scanner focus management
     useEffect(() => {
+        setDetectedMedCode('');
+        setShowScanStatus({ show: false, msg: '', isError: false });
         if (selectedCameraId === 'hardware_wedge' && hiddenInputRef.current) {
             hiddenInputRef.current.focus();
         }
-    }, [selectedCameraId]);
+    }, [selectedCameraId, isScannerOpen]);
 
     const updateQuantity = (id, change) => {
         setMedicines(prev => {
@@ -757,12 +760,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         <div className="scanner-viewport-container">
                             {selectedCameraId === 'hardware_wedge' ? (
                                 <div 
-                                    style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: '2px dashed #475569', cursor: 'pointer' }}
+                                    style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: 'none', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', cursor: 'pointer' }}
                                     onClick={() => hiddenInputRef.current?.focus()}
                                 >
-                                    <div style={{ fontSize: '48px', marginBottom: '10px' }}>⚡</div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>Hardware Scanner Ready</h3>
-                                    <p style={{ color: '#cbd5e1', fontSize: '14px', marginTop: '8px' }}>Press the physical scan button</p>
+                                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#94a3b8' }}>Awaiting Scan...</h3>
+                                    <p style={{ color: '#64748b', fontSize: '14px', marginTop: '8px' }}>Press the physical scanner button</p>
                                     
                                     <input 
                                         ref={hiddenInputRef}
@@ -861,10 +863,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 >
                                     <div className={`slider-ball ${selectedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
                                     <div className={`toggle-icon-wrap ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}barcode.png`} alt="Scanner" style={{ width: '22px', height: '22px', filter: selectedCameraId === 'hardware_wedge' ? 'brightness(0) invert(1)' : 'brightness(0.6)' }} />
+                                        <img src={`${import.meta.env.BASE_URL}barcode.png`} alt="Scanner" style={{ width: '22px', height: '22px', filter: 'brightness(0) invert(1)', opacity: selectedCameraId === 'hardware_wedge' ? 1 : 0.4 }} />
                                     </div>
                                     <div className={`toggle-icon-wrap ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}camera.png`} alt="Camera" style={{ width: '22px', height: '22px', filter: selectedCameraId !== 'hardware_wedge' ? 'brightness(0) invert(1)' : 'brightness(0.6)' }} />
+                                        <img src={`${import.meta.env.BASE_URL}camera.png`} alt="Camera" style={{ width: '22px', height: '22px', filter: 'brightness(0) invert(1)', opacity: selectedCameraId !== 'hardware_wedge' ? 1 : 0.4 }} />
                                     </div>
                                 </div>
                             </div>
