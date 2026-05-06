@@ -410,7 +410,7 @@ function PatientList({
                                             <span className="info-value-inline text-black">{patient.ptnNo}</span>
                                         </div>
                                         <div className="grid-cell cell-right">
-                                            <span className="info-label-inline">Patient No:</span>
+                                            <span className="info-label-inline">Mobile No:</span>
                                             <span className="info-value-inline text-black">{patient.mobile}</span>
                                         </div>
                                     </div>

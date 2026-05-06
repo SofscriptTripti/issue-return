@@ -2,5 +2,5 @@
 window.APP_CONFIG = {
     // 1 for scanner
     // 2 for camera
-    defaultScanner: 1 
+    defaultScanner: 1
 };
