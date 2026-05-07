@@ -124,25 +124,34 @@ function PatientList({
     // Helper to fully close scanner and reset state
     const closeScanner = async () => {
         setIsScannerOpen(false);
+        scannerLockRef.current = false; // RELEASE LOCK on close
         await stopAndClearScanner();
         setSelectedCameraId(null);
     };
 
     // SIMPLE & FAST CAMERA CONTROL
     const switchScannerMode = async (targetId) => {
-        if (!targetId || targetId === 'camera_placeholder') return;
+        // If we only have a placeholder, try to find the real camera first
+        let finalId = targetId;
+        if (finalId === 'camera_placeholder') {
+            const realCam = cameras.find(c => c.id !== 'hardware_wedge' && c.id !== 'camera_placeholder');
+            if (realCam) finalId = realCam.id;
+            else return; // Still loading or no camera
+        }
+
+        if (!finalId) return;
         if (scannerLockRef.current) return;
         scannerLockRef.current = true;
 
         const currentVersion = ++scannerVersionRef.current;
-        setSelectedCameraId(targetId);
+        setSelectedCameraId(finalId);
         
         try {
             // 1. Always stop first
             await stopAndClearScanner();
 
             // 2. If hardware wedge, we're done
-            if (targetId === 'hardware_wedge') {
+            if (finalId === 'hardware_wedge') {
                 scannerLockRef.current = false;
                 return;
             }
@@ -165,7 +174,7 @@ function PatientList({
             html5QrCodeRef.current = html5QrCode;
 
             await html5QrCode.start(
-                targetId,
+                finalId,
                 { fps: 20, qrbox: { width: 280, height: 280 } },
                 async (decodedText) => {
                     if (currentVersion !== scannerVersionRef.current) return;
@@ -181,7 +190,7 @@ function PatientList({
             );
         } catch (err) {
             console.warn("Scanner switch failed:", err);
-            if (targetId !== 'hardware_wedge' && currentVersion === scannerVersionRef.current) {
+            if (finalId !== 'hardware_wedge' && currentVersion === scannerVersionRef.current) {
                 setSelectedCameraId('hardware_wedge');
             }
         } finally {
@@ -199,6 +208,7 @@ function PatientList({
         document.addEventListener('visibilitychange', handleVisibility);
 
         return () => {
+            scannerLockRef.current = false; // RELEASE LOCK on unmount
             document.removeEventListener('visibilitychange', handleVisibility);
             stopAndClearScanner();
         };

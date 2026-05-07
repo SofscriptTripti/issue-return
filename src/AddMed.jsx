@@ -76,7 +76,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         { id: 'hardware_wedge', label: 'Scanner' },
         { id: 'camera_placeholder', label: 'Camera' }
     ]);
-    const [selectedCameraId, setSelectedCameraId] = useState('hardware_wedge');
+    const [selectedAddMedCameraId, setSelectedAddMedCameraId] = useState('hardware_wedge');
     const scannerVersionRef = useRef(0);
     const scannerLockRef = useRef(false);
 
@@ -120,25 +120,34 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     // Helper to fully close scanner and reset state
     const closeScanner = async () => {
         setIsScannerOpen(false);
+        scannerLockRef.current = false; // RELEASE LOCK on close
         await stopAndClearScanner();
-        setSelectedCameraId(null);
+        setSelectedAddMedCameraId(null);
     };
 
-    // SIMPLE & FAST CAMERA CONTROL
-    const switchScannerMode = async (targetId) => {
-        if (!targetId || targetId === 'camera_placeholder') return;
+    // UNIQUE CAMERA CONTROL FOR ADDMED
+    const switchAddMedScannerMode = async (targetId) => {
+        // If we only have a placeholder, try to find the real camera first
+        let finalId = targetId;
+        if (finalId === 'camera_placeholder') {
+            const realCam = cameras.find(c => c.id !== 'hardware_wedge' && c.id !== 'camera_placeholder');
+            if (realCam) finalId = realCam.id;
+            else return; // Still loading or no camera
+        }
+        
+        if (!finalId) return;
         if (scannerLockRef.current) return;
         scannerLockRef.current = true;
 
         const currentVersion = ++scannerVersionRef.current;
-        setSelectedCameraId(targetId);
+        setSelectedAddMedCameraId(finalId);
         
         try {
             // 1. Always stop first
             await stopAndClearScanner();
 
             // 2. If hardware wedge, we're done
-            if (targetId === 'hardware_wedge') {
+            if (finalId === 'hardware_wedge') {
                 scannerLockRef.current = false;
                 return;
             }
@@ -161,7 +170,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             html5QrCodeRef.current = html5QrCode;
 
             await html5QrCode.start(
-                targetId,
+                finalId,
                 { fps: 30, qrbox: { width: 280, height: 280 }, aspectRatio: 1.0 },
                 async (decodedText) => {
                     if (currentVersion !== scannerVersionRef.current) return;
@@ -179,8 +188,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             );
         } catch (err) {
             console.warn("Scanner switch failed:", err);
-            if (targetId !== 'hardware_wedge' && currentVersion === scannerVersionRef.current) {
-                setSelectedCameraId('hardware_wedge');
+            if (finalId !== 'hardware_wedge' && currentVersion === scannerVersionRef.current) {
+                setSelectedAddMedCameraId('hardware_wedge');
             }
         } finally {
             scannerLockRef.current = false;
@@ -197,6 +206,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         document.addEventListener('visibilitychange', handleVisibility);
         
         return () => {
+            scannerLockRef.current = false; // RELEASE LOCK on unmount
             document.removeEventListener('visibilitychange', handleVisibility);
             stopAndClearScanner();
         };
@@ -380,16 +390,16 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
                 
                 setIsScannerOpen(true);
-                // Call switchScannerMode in next tick to allow DOM to render
-                setTimeout(() => switchScannerMode(defaultScanner), 50);
+                // Call switchAddMedScannerMode in next tick to allow DOM to render
+                setTimeout(() => switchAddMedScannerMode(defaultScanner), 50);
             } else {
                 setIsScannerOpen(true);
-                setSelectedCameraId('hardware_wedge');
+                setSelectedAddMedCameraId('hardware_wedge');
             }
         } catch (err) {
             console.error("Camera access failed", err);
             setIsScannerOpen(true);
-            setSelectedCameraId('hardware_wedge');
+            setSelectedAddMedCameraId('hardware_wedge');
         }
     };
 
@@ -806,10 +816,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         </div>
 
                         <div className="scanner-viewport-container">
-                            {selectedCameraId === 'hardware_wedge' ? (
+                            {selectedAddMedCameraId === 'hardware_wedge' ? (
                                 <div 
                                     style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: 'none', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', cursor: 'pointer' }}
-                                    onClick={() => hiddenInputRef.current?.focus()}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        hiddenInputRef.current?.focus();
+                                    }}
                                 >
                                     <p style={{ color: '#f8fafc', fontSize: '16px', fontWeight: '500' }}>Press the physical scanner button</p>
                                     <input 
@@ -827,7 +840,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                             }, 50);
                                         }}
                                         onBlur={(e) => {
-                                            if (selectedCameraId === 'hardware_wedge') {
+                                            if (selectedAddMedCameraId === 'hardware_wedge') {
                                                 setTimeout(() => hiddenInputRef.current?.focus(), 100);
                                             }
                                         }}
@@ -893,11 +906,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                     <span className="badge-dot"></span>
                                     <span className="badge-text">Detected: {detectedMedCode}</span>
                                 </div>
-                            ) : noScanTimer > 5 && selectedCameraId !== 'hardware_wedge' ? (
+                            ) : noScanTimer > 5 && selectedAddMedCameraId !== 'hardware_wedge' ? (
                                 <p className="status-msg red animate-pulse">Focus QR Properly</p>
                             ) : (
                                 <p className="status-msg" style={{ color: '#64748b', opacity: 0.8 }}>
-                                    {selectedCameraId === 'hardware_wedge' ? 'Ready for input' : 'Focus medicine QR code'}
+                                    {selectedAddMedCameraId === 'hardware_wedge' ? 'Ready for input' : 'Focus medicine QR code'}
                                 </p>
                             )}
                         </div>
@@ -906,19 +919,20 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         <div className="slider-toggle-container">
                                 <div 
                                     className="slider-toggle" 
-                                    onClick={() => {
-                                        const nextId = (selectedCameraId === 'hardware_wedge') 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const nextId = (selectedAddMedCameraId === 'hardware_wedge') 
                                             ? (cameras.find(c => c.id !== 'hardware_wedge')?.id || cameras[0].id)
                                             : 'hardware_wedge';
-                                        switchScannerMode(nextId);
+                                        switchAddMedScannerMode(nextId);
                                     }}
                                 >
-                                    <div className={`slider-ball ${selectedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
-                                    <div className={`toggle-icon-wrap ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '22px', height: '22px', opacity: selectedCameraId === 'hardware_wedge' ? 1 : 0.4 }} />
+                                    <div className={`slider-ball ${selectedAddMedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
+                                    <div className={`toggle-icon-wrap ${selectedAddMedCameraId === 'hardware_wedge' ? 'active' : ''}`}>
+                                        <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '22px', height: '22px', opacity: selectedAddMedCameraId === 'hardware_wedge' ? 1 : 0.4 }} />
                                     </div>
-                                    <div className={`toggle-icon-wrap ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '22px', height: '22px', opacity: selectedCameraId !== 'hardware_wedge' ? 1 : 0.4 }} />
+                                    <div className={`toggle-icon-wrap ${selectedAddMedCameraId !== 'hardware_wedge' ? 'active' : ''}`}>
+                                        <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '22px', height: '22px', opacity: selectedAddMedCameraId !== 'hardware_wedge' ? 1 : 0.4 }} />
                                     </div>
                                 </div>
                             </div>
