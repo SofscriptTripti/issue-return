@@ -489,10 +489,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         setDetectedMedCode('');
         setShowScanStatus({ show: false, msg: '', isError: false });
 
-        if (selectedCameraId === 'hardware_wedge' && hiddenInputRef.current) {
+        if (selectedAddMedCameraId === 'hardware_wedge' && hiddenInputRef.current) {
             hiddenInputRef.current.focus();
         }
-    }, [selectedCameraId, isScannerOpen]);
+    }, [selectedAddMedCameraId, isScannerOpen]);
 
     const updateQuantity = (id, change) => {
         setMedicines(prev => {
