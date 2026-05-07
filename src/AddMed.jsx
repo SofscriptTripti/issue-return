@@ -131,8 +131,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             }
             instance.clear();
             
-            // 2. Extra delay to let hardware reset (500ms for stability)
-            await new Promise(r => setTimeout(r, 500));
+            // 2. Minimal delay for hardware reset
+            await new Promise(r => setTimeout(r, 100));
 
             const container = document.getElementById("reader");
             if (container) container.innerHTML = "";
@@ -163,11 +163,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 // 3. If closed or in hardware mode, stop here
                 if (!isScannerOpen || selectedCameraId === 'hardware_wedge' || !selectedCameraId) return;
 
-                // 4. SETTLE DELAY: Give OS another 300ms before starting new lens
-                await new Promise(r => setTimeout(r, 300));
+                // 4. SETTLE DELAY: Minimal pause before starting new lens
+                await new Promise(r => setTimeout(r, 150));
                 if (isUnmountedRef.current || version !== scannerVersionRef.current) return;
 
                 // 5. Start Camera Mode
+                const container = document.getElementById("reader");
+                if (container) container.innerHTML = ""; // Ensure fresh start
+                
                 const html5QrCode = new Html5Qrcode("reader");
                 html5QrCodeRef.current = html5QrCode;
 
