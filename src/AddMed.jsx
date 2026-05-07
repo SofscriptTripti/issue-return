@@ -126,8 +126,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
 
     // IMPERATIVE CAMERA CONTROL (Cleanest & Most Stable)
-    const switchScannerMode = async (targetId) => {
-        if (scannerLockRef.current) return;
+    const switchScannerMode = async (targetId, force = false) => {
+        if (scannerLockRef.current && !force) return;
         scannerLockRef.current = true;
         
         const currentVersion = ++scannerVersionRef.current;
@@ -139,7 +139,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
             // 2. If hardware wedge, we're done (stop was enough)
             if (targetId === 'hardware_wedge') {
-                scannerLockRef.current = false;
                 return;
             }
 
@@ -172,6 +171,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             );
         } catch (err) {
             console.warn("Scanner switch failed:", err);
+            // Fallback to hardware mode but KEEP the camera options in the state so toggle remains
             if (targetId !== 'hardware_wedge') {
                 setSelectedCameraId('hardware_wedge');
             }
@@ -397,8 +397,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             }
         } catch (err) {
             console.error("Camera access failed after retries", err);
-            // Fallback to hardware scanner if detection fails
-            setCameras([{ id: 'hardware_wedge', label: 'Scanner' }]);
+            // Even if camera fails, if we had a camera option, keep it so toggle shows
+            // Only set to single hardware mode if truly NO cameras were found
+            if (cameras.length === 0) {
+                setCameras([{ id: 'hardware_wedge', label: 'Scanner' }]);
+            }
             setSelectedCameraId('hardware_wedge');
             setIsScannerOpen(true);
         }

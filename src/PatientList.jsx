@@ -130,8 +130,8 @@ function PatientList({
     };
 
     // IMPERATIVE CAMERA CONTROL (Cleanest & Most Stable)
-    const switchScannerMode = async (targetId) => {
-        if (scannerLockRef.current) return;
+    const switchScannerMode = async (targetId, force = false) => {
+        if (scannerLockRef.current && !force) return;
         scannerLockRef.current = true;
         
         const currentVersion = ++scannerVersionRef.current;
@@ -143,7 +143,6 @@ function PatientList({
 
             // 2. If hardware wedge, we're done (stop was enough)
             if (targetId === 'hardware_wedge') {
-                scannerLockRef.current = false;
                 return;
             }
 
@@ -169,7 +168,7 @@ function PatientList({
             );
         } catch (err) {
             console.warn("Scanner switch failed:", err);
-            // If camera fails, fallback to hardware scanner automatically
+            // Fallback to hardware mode but KEEP the camera options in state
             if (targetId !== 'hardware_wedge') {
                 setSelectedCameraId('hardware_wedge');
             }
@@ -326,7 +325,12 @@ function PatientList({
             }
         } catch (err) {
             console.error("Camera access failed after retries", err);
-            setShowNoCameraModal(true);
+            // Keep cameras if we had them
+            if (cameras.length === 0) {
+                setCameras([{ id: 'hardware_wedge', label: 'Scanner' }]);
+            }
+            setSelectedCameraId('hardware_wedge');
+            setIsScannerOpen(true);
         }
     };
 
