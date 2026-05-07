@@ -152,18 +152,22 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         const version = ++scannerVersionRef.current;
         
         scannerChainRef.current = scannerChainRef.current.then(async () => {
-            // If a newer command came in while we were waiting in queue, skip this one
+            // 1. CANCELLATION CHECK: If unmounted or newer command, abort
+            if (isUnmountedRef.current) return;
             if (version !== scannerVersionRef.current) return;
 
             try {
-                // 1. Always stop any current activity
+                // 2. Always stop any current activity
                 await stopAndClearScanner();
                 
-                // 2. If scanner is closed or in hardware mode, we stop here
-                if (!isScannerOpen || selectedCameraId === 'hardware_wedge') return;
+                // 3. If closed or in hardware mode, stop here
+                if (!isScannerOpen || selectedCameraId === 'hardware_wedge' || !selectedCameraId) return;
 
-                // 3. Start Camera Mode
-                if (version !== scannerVersionRef.current) return;
+                // 4. SETTLE DELAY: Give OS another 300ms before starting new lens
+                await new Promise(r => setTimeout(r, 300));
+                if (isUnmountedRef.current || version !== scannerVersionRef.current) return;
+
+                // 5. Start Camera Mode
                 const html5QrCode = new Html5Qrcode("reader");
                 html5QrCodeRef.current = html5QrCode;
 
@@ -171,7 +175,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     selectedCameraId,
                     { fps: 30, qrbox: { width: 280, height: 280 }, aspectRatio: 1.0 },
                     async (decodedText) => {
-                        if (version !== scannerVersionRef.current) return;
+                        if (isUnmountedRef.current || version !== scannerVersionRef.current) return;
                         if (isProcessingRef.current) return;
                         
                         if (decodedText !== lastDetectedRef.current) {
@@ -186,8 +190,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 );
             } catch (err) {
                 console.warn("Scanner Queue Op Failed:", err);
-                // If camera fails, the UI remains open in hardware mode
-                if (selectedCameraId !== 'hardware_wedge' && version === scannerVersionRef.current) {
+                // Fallback only if we aren't unmounting or already trying something else
+                if (!isUnmountedRef.current && version === scannerVersionRef.current && selectedCameraId !== 'hardware_wedge') {
                     setSelectedCameraId('hardware_wedge');
                 }
             }
@@ -204,6 +208,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         document.addEventListener('visibilitychange', handleVisibility);
         
         return () => {
+            isUnmountedRef.current = true; // ABORT ALL PENDING COMMANDS
             document.removeEventListener('visibilitychange', handleVisibility);
             stopAndClearScanner();
         };
