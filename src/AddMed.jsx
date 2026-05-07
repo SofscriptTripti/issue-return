@@ -109,9 +109,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             html5QrCodeRef.current = null; 
 
             if (instance.isScanning) {
-                await instance.stop();
+                // TVS Driver safety: Don't let a hanging 'stop' block the UI forever
+                await Promise.race([
+                    instance.stop().catch(() => {}),
+                    new Promise(r => setTimeout(r, 1500))
+                ]);
             }
-            instance.clear();
+            try { instance.clear(); } catch(e) {}
         } catch (e) {
             console.warn("Scanner cleanup warning:", e);
         }
@@ -915,27 +919,34 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                             )}
                         </div>
 
-                        {/* Toggle is now ALWAYS visible by default */}
-                        <div className="slider-toggle-container">
-                                <div 
-                                    className="slider-toggle" 
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        const nextId = (selectedAddMedCameraId === 'hardware_wedge') 
-                                            ? (cameras.find(c => c.id !== 'hardware_wedge')?.id || cameras[0].id)
-                                            : 'hardware_wedge';
-                                        switchAddMedScannerMode(nextId);
-                                    }}
-                                >
-                                    <div className={`slider-ball ${selectedAddMedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
-                                    <div className={`toggle-icon-wrap ${selectedAddMedCameraId === 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '22px', height: '22px', opacity: selectedAddMedCameraId === 'hardware_wedge' ? 1 : 0.4 }} />
-                                    </div>
-                                    <div className={`toggle-icon-wrap ${selectedAddMedCameraId !== 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '22px', height: '22px', opacity: selectedAddMedCameraId !== 'hardware_wedge' ? 1 : 0.4 }} />
-                                    </div>
-                                </div>
-                            </div>
+                        {/* New Dual-Button UI - More stable than a slider */}
+                        <div className="scanner-mode-tabs">
+                            <button 
+                                className={`mode-tab ${selectedAddMedCameraId === 'hardware_wedge' ? 'active' : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedAddMedCameraId !== 'hardware_wedge') {
+                                        switchAddMedScannerMode('hardware_wedge');
+                                    }
+                                }}
+                            >
+                                <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '20px', height: '20px' }} />
+                                <span>HARDWARE</span>
+                            </button>
+                            <button 
+                                className={`mode-tab ${selectedAddMedCameraId !== 'hardware_wedge' ? 'active' : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedAddMedCameraId === 'hardware_wedge') {
+                                        const camId = cameras.find(c => c.id !== 'hardware_wedge')?.id || 'camera';
+                                        switchAddMedScannerMode(camId);
+                                    }
+                                }}
+                            >
+                                <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '20px', height: '20px' }} />
+                                <span>CAMERA</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

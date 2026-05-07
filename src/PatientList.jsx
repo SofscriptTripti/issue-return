@@ -110,12 +110,16 @@ function PatientList({
         if (!html5QrCodeRef.current) return;
         try {
             const instance = html5QrCodeRef.current;
-            html5QrCodeRef.current = null;
+            html5QrCodeRef.current = null; 
 
             if (instance.isScanning) {
-                await instance.stop();
+                // TVS Driver safety: Don't let a hanging 'stop' block the UI forever
+                await Promise.race([
+                    instance.stop().catch(() => {}),
+                    new Promise(r => setTimeout(r, 1500))
+                ]);
             }
-            instance.clear();
+            try { instance.clear(); } catch(e) {}
         } catch (e) {
             console.warn("Scanner cleanup warning:", e);
         }
@@ -632,25 +636,33 @@ function PatientList({
                             )}
                         </div>
 
-                        {/* Toggle is now ALWAYS visible by default */}
-                        <div className="slider-toggle-container">
-                            <div
-                                className="slider-toggle"
-                                onClick={() => {
-                                    const nextId = (selectedCameraId === 'hardware_wedge')
-                                        ? (cameras.find(c => c.id !== 'hardware_wedge')?.id || cameras[0].id)
-                                        : 'hardware_wedge';
-                                    switchScannerMode(nextId);
+                        {/* New Dual-Button UI for Patient List */}
+                        <div className="scanner-mode-tabs">
+                            <button 
+                                className={`mode-tab ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedCameraId !== 'hardware_wedge') {
+                                        switchScannerMode('hardware_wedge');
+                                    }
                                 }}
                             >
-                                <div className={`slider-ball ${selectedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
-                                <div className={`toggle-icon-wrap ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}>
-                                    <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '22px', height: '22px', opacity: selectedCameraId === 'hardware_wedge' ? 1 : 0.4 }} />
-                                </div>
-                                <div className={`toggle-icon-wrap ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}>
-                                    <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '22px', height: '22px', opacity: selectedCameraId !== 'hardware_wedge' ? 1 : 0.4 }} />
-                                </div>
-                            </div>
+                                <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '20px', height: '20px' }} />
+                                <span>HARDWARE</span>
+                            </button>
+                            <button 
+                                className={`mode-tab ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedCameraId === 'hardware_wedge') {
+                                        const camId = cameras.find(c => c.id !== 'hardware_wedge')?.id || 'camera';
+                                        switchScannerMode(camId);
+                                    }
+                                }}
+                            >
+                                <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '20px', height: '20px' }} />
+                                <span>CAMERA</span>
+                            </button>
                         </div>
                     </div>
                 </div>

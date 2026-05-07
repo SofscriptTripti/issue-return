@@ -792,6 +792,58 @@
     border-top: none;
 }
 
+/* New Dual-Button Scanner Mode Tabs */
+.scanner-mode-tabs {
+    display: flex;
+    background: #f1f5f9;
+    border-radius: 100px;
+    padding: 4px;
+    margin: 10px 24px 20px 24px;
+    gap: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+.mode-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mode-tab span {
+    font-size: 11px;
+    font-weight: 800;
+    color: #64748b;
+    letter-spacing: 0.5px;
+}
+
+.mode-tab.active {
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.mode-tab.active span {
+    color: #006ce6;
+}
+
+.mode-tab img {
+    filter: grayscale(1);
+    opacity: 0.5;
+    transition: all 0.2s;
+}
+
+.mode-tab.active img {
+    filter: none;
+    opacity: 1;
+}
+
 .scanning-laser {
     position: absolute;
     top: 0;
