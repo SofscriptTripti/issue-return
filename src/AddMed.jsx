@@ -96,8 +96,26 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         }
     };
 
+    // NUCLEAR OPTION: Manually stop ALL video tracks in the browser to ensure hardware is free
+    const stopAllVideoStreams = () => {
+        try {
+            document.querySelectorAll('video').forEach(video => {
+                if (video.srcObject instanceof MediaStream) {
+                    video.srcObject.getTracks().forEach(track => {
+                        track.stop();
+                        console.log("Nuclear: Stopped track", track.label);
+                    });
+                    video.srcObject = null;
+                }
+            });
+        } catch (e) { console.warn("Nuclear stop failed", e); }
+    };
+
     // Shared helper to fully stop and clear any previous scanner instance
     const stopAndClearScanner = async () => {
+        // 1. Nuclear stop for any orphaned tracks
+        stopAllVideoStreams();
+
         if (!html5QrCodeRef.current) return;
         try {
             const instance = html5QrCodeRef.current;
@@ -105,11 +123,12 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
             if (instance.isScanning) {
                 await instance.stop();
-                // 300ms delay to let OS release hardware
-                await new Promise(r => setTimeout(r, 300));
             }
             instance.clear();
             
+            // 2. Extra delay to let hardware reset (500ms for stability)
+            await new Promise(r => setTimeout(r, 500));
+
             const container = document.getElementById("reader");
             if (container) container.innerHTML = "";
         } catch (e) {
@@ -121,15 +140,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const closeScanner = async () => {
         setIsScannerOpen(false);
         await stopAndClearScanner();
-        setCameras([]);
         setSelectedCameraId(null);
     };
 
     // IMPERATIVE CAMERA CONTROL (Cleanest & Most Stable)
-    const switchScannerMode = async (targetId, force = false) => {
-        if (scannerLockRef.current && !force) return;
-        scannerLockRef.current = true;
-        
+    const switchScannerMode = async (targetId) => {
         const currentVersion = ++scannerVersionRef.current;
         
         try {
@@ -137,7 +152,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             await stopAndClearScanner();
             setSelectedCameraId(targetId);
 
-            // 2. If hardware wedge, we're done (stop was enough)
+            // 2. If hardware wedge, we're done
             if (targetId === 'hardware_wedge') {
                 return;
             }
@@ -175,8 +190,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             if (targetId !== 'hardware_wedge') {
                 setSelectedCameraId('hardware_wedge');
             }
-        } finally {
-            scannerLockRef.current = false;
         }
     };
 
