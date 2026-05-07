@@ -471,15 +471,13 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             }
         } catch (err) {
             console.error("Barcode lookup error:", err);
-            alert(`Scan Error: ${err.message || 'Lookup failed'}`);
             setShowScanStatus({ show: true, msg: "Scan Error", isError: true });
         } finally {
-            // Reset after 3 seconds to allow user to see the result
             setTimeout(() => {
                 setShowScanStatus({ show: false, msg: '', isError: false });
                 setIsProcessingScan(false);
-                isProcessingRef.current = false; // HARD UNLOCK
-                lastDetectedRef.current = null; // Clear so it can re-scan SAME medicine if needed
+                isProcessingRef.current = false;
+                lastDetectedRef.current = null;
                 setNoScanTimer(0);
                 setDetectedMedCode('');
             }, 3000);

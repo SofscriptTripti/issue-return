@@ -348,8 +348,12 @@ function PatientList({
         setScannedPtnCode('');
         lastDetectedRef.current = null;
         try {
-            setSearchTerm(barCd);
-            if (onSearch) onSearch(barCd);
+            console.log("IDENTIFY PATIENT (HARDWARE/CAMERA):", barCd);
+            setSearchTerm(barCd); // Local filter
+            if (onSearch) {
+                console.log("Triggering Remote API Search for:", barCd);
+                await onSearch(barCd); // Remote API
+            }
             await closeScanner(); // Await full cleanup before any potential navigation
         } catch (e) {
             console.error(e);
