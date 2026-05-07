@@ -99,15 +99,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     // Shared helper to fully stop and clear any previous scanner instance
     const stopAndClearScanner = async () => {
         if (!html5QrCodeRef.current) return;
-        
         try {
             const instance = html5QrCodeRef.current;
-            html5QrCodeRef.current = null; // Clear ref immediately to prevent re-entry
+            html5QrCodeRef.current = null; 
 
             if (instance.isScanning) {
                 await instance.stop();
-                // CRITICAL: Give hardware/OS more time (250ms) to release the camera resource
-                await new Promise(r => setTimeout(r, 250));
+                // 300ms delay to let OS release hardware
+                await new Promise(r => setTimeout(r, 300));
             }
             instance.clear();
             
@@ -126,81 +125,62 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         setSelectedCameraId(null);
     };
 
-    // Scanner logic - Versioned & Synchronized
-    useEffect(() => {
+    // IMPERATIVE CAMERA CONTROL (Cleanest & Most Stable)
+    const switchScannerMode = async (targetId) => {
+        if (scannerLockRef.current) return;
+        scannerLockRef.current = true;
+        
         const currentVersion = ++scannerVersionRef.current;
-        let isMounted = true;
+        
+        try {
+            // 1. Always stop first
+            await stopAndClearScanner();
+            setSelectedCameraId(targetId);
 
-        const startScanner = async () => {
-            // 1. If scanner shouldn't be open, just stop
-            if (!isScannerOpen || selectedCameraId === 'hardware_wedge') {
-                await stopAndClearScanner();
+            // 2. If hardware wedge, we're done (stop was enough)
+            if (targetId === 'hardware_wedge') {
+                scannerLockRef.current = false;
                 return;
             }
 
-            // 2. Prevent race conditions: if another version is already starting, let it be
-            if (currentVersion !== scannerVersionRef.current) return;
+            // 3. Start Camera Mode
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCodeRef.current = html5QrCode;
 
-            // 3. Cleanup any old instance thoroughly before starting new one
-            await stopAndClearScanner();
-            if (!isMounted || currentVersion !== scannerVersionRef.current) return;
+            const config = {
+                fps: 30, 
+                qrbox: { width: 280, height: 280 },
+                aspectRatio: 1.0
+            };
 
-            try {
-                const html5QrCode = new Html5Qrcode("reader");
-                html5QrCodeRef.current = html5QrCode;
-
-                const config = {
-                    fps: 30, // Faster 30fps scanning
-                    qrbox: { width: 280, height: 280 },
-                    aspectRatio: 1.0
-                };
-                const cameraIdOrConfig = selectedCameraId ? selectedCameraId : { facingMode: "environment" };
-
-                await html5QrCode.start(
-                    cameraIdOrConfig,
-                    config,
-                    async (decodedText) => {
-                        if (currentVersion !== scannerVersionRef.current) return;
-                        
-                        // SYNCHRONOUS LOCK: Absolute frame rejection
-                        if (isProcessingRef.current) return;
-
-                        // VIBRATE DEVICE ON NEW DETECTION
-                        if (decodedText !== lastDetectedRef.current) {
-                            if (navigator.vibrate) navigator.vibrate(50);
-                        }
-
-                        lastDetectedRef.current = decodedText;
-                        setDetectedMedCode(decodedText);
-
-                        // AUTO-PROCESS ON DETECTION (Synchronous Lock)
-                        isProcessingRef.current = true;
-                        handleBarcodeScan(decodedText);
-                    },
-                    () => { /* Quietly handle frame failures */ }
-                );
-            } catch (err) {
-                console.warn("Scanner init failed:", err);
-                if (isMounted && currentVersion === scannerVersionRef.current) closeScanner();
+            await html5QrCode.start(
+                targetId,
+                config,
+                async (decodedText) => {
+                    if (currentVersion !== scannerVersionRef.current) return;
+                    if (isProcessingRef.current) return;
+                    
+                    if (decodedText !== lastDetectedRef.current) {
+                        if (navigator.vibrate) navigator.vibrate(50);
+                    }
+                    lastDetectedRef.current = decodedText;
+                    setDetectedMedCode(decodedText);
+                    isProcessingRef.current = true;
+                    handleBarcodeScan(decodedText);
+                },
+                () => { }
+            );
+        } catch (err) {
+            console.warn("Scanner switch failed:", err);
+            if (targetId !== 'hardware_wedge') {
+                setSelectedCameraId('hardware_wedge');
             }
-        };
+        } finally {
+            scannerLockRef.current = false;
+        }
+    };
 
-        startScanner();
-
-        return () => {
-            isMounted = false;
-            stopAndClearScanner();
-        };
-    }, [isScannerOpen, selectedCameraId]);
-
-    // Component unmount: ensure camera is fully released
-    useEffect(() => {
-        return () => {
-            stopAndClearScanner();
-        };
-    }, []);
-
-    // Screen lock / tab switch: OS kills camera — close scanner to avoid stale stream
+    // Component unmount & Visibility cleanup
     useEffect(() => {
         const handleVisibility = () => {
             if (document.visibilityState === 'hidden' && isScannerOpen) {
@@ -208,8 +188,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             }
         };
         document.addEventListener('visibilitychange', handleVisibility);
-        return () => document.removeEventListener('visibilitychange', handleVisibility);
+        
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+            stopAndClearScanner();
+        };
     }, [isScannerOpen]);
+
+
 
     // Auto-save cart to sessionStorage whenever medicines change
     useEffect(() => {
@@ -389,8 +375,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
                     const configVal = window.APP_CONFIG?.defaultScanner;
                     const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
-                    setSelectedCameraId(defaultScanner);
                     setIsScannerOpen(true);
+                    await switchScannerMode(defaultScanner);
                     return true;
                 }
                 return false;
@@ -932,12 +918,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                 <div 
                                     className="slider-toggle" 
                                     onClick={() => {
-                                        if (selectedCameraId === 'hardware_wedge') {
-                                            const cam = cameras.find(c => c.id !== 'hardware_wedge');
-                                            if (cam) setSelectedCameraId(cam.id);
-                                        } else {
-                                            setSelectedCameraId('hardware_wedge');
-                                        }
+                                        const nextId = (selectedCameraId === 'hardware_wedge') 
+                                            ? (cameras.find(c => c.id !== 'hardware_wedge')?.id || cameras[0].id)
+                                            : 'hardware_wedge';
+                                        switchScannerMode(nextId);
                                     }}
                                 >
                                     <div className={`slider-ball ${selectedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
