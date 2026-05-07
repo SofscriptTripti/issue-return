@@ -106,30 +106,8 @@ function PatientList({
         }
     };
 
-    // NUCLEAR OPTION: Manually stop ALL video tracks in the browser to ensure hardware is free
-    const stopAllVideoStreams = () => {
-        try {
-            document.querySelectorAll('video').forEach(video => {
-                if (video.srcObject instanceof MediaStream) {
-                    video.srcObject.getTracks().forEach(track => {
-                        track.stop();
-                        console.log("Nuclear: Stopped track", track.label);
-                    });
-                    video.srcObject = null;
-                }
-            });
-        } catch (e) { console.warn("Nuclear stop failed", e); }
-    };
-
     // Shared helper to fully stop and clear any previous scanner instance
     const stopAndClearScanner = async () => {
-        // 1. Nuclear stop for any orphaned tracks
-        stopAllVideoStreams();
-
-        // Always try to clear the container div regardless of ref
-        const container = document.getElementById("patient-reader");
-        if (container) container.innerHTML = "";
-
         if (!html5QrCodeRef.current) return;
         try {
             const instance = html5QrCodeRef.current;
@@ -140,8 +118,8 @@ function PatientList({
             }
             instance.clear();
             
-            // 2. Minimal delay for hardware reset
-            await new Promise(r => setTimeout(r, 100));
+            // Minimal delay for hardware reset
+            await new Promise(r => setTimeout(r, 50));
         } catch (e) {
             console.warn("Scanner cleanup warning:", e);
         }
@@ -171,35 +149,47 @@ function PatientList({
 
                 // 4. WAIT FOR DOM: React might be still rendering the modal
                 let container = null;
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 20; i++) {
                     container = document.getElementById("patient-reader");
                     if (container) break;
-                    await new Promise(r => setTimeout(r, 100));
+                    await new Promise(r => setTimeout(r, 50));
                 }
 
                 if (!container || isUnmountedRef.current || version !== scannerVersionRef.current) return;
-                container.innerHTML = ""; // Ensure fresh start
 
-                // 5. Start Camera Mode
+                // 5. Start Camera Mode with Retries
                 const html5QrCode = new Html5Qrcode("patient-reader");
                 html5QrCodeRef.current = html5QrCode;
 
-                await html5QrCode.start(
-                    selectedCameraId,
-                    { fps: 20, qrbox: { width: 280, height: 280 } },
-                    async (decodedText) => {
-                        // Check if this is still the active version
-                        if (isUnmountedRef.current || version !== scannerVersionRef.current) return;
-                        
-                        if (decodedText !== lastDetectedRef.current) {
-                            if (navigator.vibrate) navigator.vibrate(50);
+                const startWithRetry = async (retries = 3) => {
+                    try {
+                        await html5QrCode.start(
+                            selectedCameraId,
+                            { fps: 20, qrbox: { width: 280, height: 280 } },
+                            async (decodedText) => {
+                                // Check if this is still the active version
+                                if (isUnmountedRef.current || version !== scannerVersionRef.current) return;
+                                
+                                if (decodedText !== lastDetectedRef.current) {
+                                    if (navigator.vibrate) navigator.vibrate(50);
+                                }
+                                lastDetectedRef.current = decodedText;
+                                setScannedPtnCode(decodedText);
+                                handleIdentifyPatientRef.current(decodedText);
+                            },
+                            () => { }
+                        );
+                    } catch (err) {
+                        if (retries > 0 && !isUnmountedRef.current && version === scannerVersionRef.current) {
+                            console.warn(`Camera start failed, retrying... (${retries} left)`);
+                            await new Promise(r => setTimeout(r, 300));
+                            return startWithRetry(retries - 1);
                         }
-                        lastDetectedRef.current = decodedText;
-                        setScannedPtnCode(decodedText);
-                        handleIdentifyPatientRef.current(decodedText);
-                    },
-                    () => { }
-                );
+                        throw err;
+                    }
+                };
+
+                await startWithRetry();
             } catch (err) {
                 console.warn("Scanner Queue Op Failed:", err);
                 // Fallback only if we aren't unmounting or already trying something else
