@@ -96,6 +96,13 @@ function PatientList({
         }
     };
 
+    // Helper to fully close scanner and reset state
+    const closeScanner = () => {
+        setIsScannerOpen(false);
+        setCameras([]);
+        setSelectedCameraId(null);
+    };
+
     // Scanner Logic - Automated & Premium (with hardware wedge support)
     useEffect(() => {
         let isMounted = true;
@@ -130,7 +137,7 @@ function PatientList({
                 );
             } catch (err) {
                 console.warn("Scanner init failed:", err);
-                if (isMounted) setIsScannerOpen(false);
+                if (isMounted) closeScanner();
             }
         };
 
@@ -150,6 +157,20 @@ function PatientList({
             stop();
         };
     }, [isScannerOpen, selectedCameraId]);
+
+    // Component unmount: ensure camera is fully released
+    useEffect(() => {
+        return () => {
+            if (html5QrCodeRef.current) {
+                try {
+                    if (html5QrCodeRef.current.isScanning) {
+                        html5QrCodeRef.current.stop().catch(() => {});
+                    }
+                } catch (e) { /* ignore */ }
+                html5QrCodeRef.current = null;
+            }
+        };
+    }, []);
 
     // Hardware Scanner focus management
     useEffect(() => {
@@ -282,7 +303,7 @@ function PatientList({
         try {
             setSearchTerm(barCd);
             if (onSearch) onSearch(barCd);
-            setIsScannerOpen(false);
+            closeScanner();
         } catch (e) {
             console.error(e);
         } finally {
@@ -482,7 +503,7 @@ function PatientList({
                     <div className="scanner-modal animate-modal">
                         <div className="scanner-header-compact">
                             <span className="scanner-modal-title">Scan patient QR.</span>
-                            <button className="scanner-close-btn" onClick={() => setIsScannerOpen(false)}>
+                            <button className="scanner-close-btn" onClick={closeScanner}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
                                     <line x1="6" y1="6" x2="18" y2="18"></line>
