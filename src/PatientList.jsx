@@ -587,27 +587,27 @@ function PatientList({
                                                 setTimeout(() => hiddenInputRef.current?.focus(), 100);
                                             }
                                         }}
-                                        onChange={(e) => {
+                                        onChange={async (e) => {
                                             const val = e.target.value.trim();
                                             if (val.length > 0) {
                                                 if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
-                                                timeoutIdRef.current = setTimeout(() => {
+                                                timeoutIdRef.current = setTimeout(async () => {
                                                     if (!isProcessingRef.current && hiddenInputRef.current) {
-                                                        isProcessingRef.current = true;
-                                                        handleIdentifyPatientRef.current(hiddenInputRef.current.value.trim());
+                                                        setScannedPtnCode(val);
+                                                        await handleIdentifyPatientRef.current(val);
                                                         hiddenInputRef.current.value = '';
                                                     }
                                                 }, 300);
                                             }
                                         }}
-                                        onKeyDown={(e) => {
+                                        onKeyDown={async (e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
                                                 const val = e.target.value.trim();
                                                 if (val.length > 0 && !isProcessingRef.current) {
+                                                    setScannedPtnCode(val); // UI Feedback
                                                     if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
-                                                    isProcessingRef.current = true;
-                                                    handleIdentifyPatientRef.current(val);
+                                                    await handleIdentifyPatientRef.current(val);
                                                 }
                                                 e.target.value = '';
                                             }
