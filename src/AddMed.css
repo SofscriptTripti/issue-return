@@ -792,15 +792,17 @@
     border-top: none;
 }
 
-/* New Dual-Button Scanner Mode Tabs - Transparent Background */
+/* Perfectly Centered Dual-Button Scanner Mode Tabs */
 .scanner-mode-tabs {
     display: flex;
-    background: transparent; /* Removed 'back box' as requested */
-    border-radius: 0;
-    padding: 0;
-    margin: 15px 24px 25px 24px;
-    gap: 12px; /* Increased gap for separate button look */
+    background: transparent;
+    width: 100%;
+    padding: 0 24px;
+    margin: 15px 0 25px 0;
+    gap: 12px;
     border: none;
+    box-sizing: border-box;
+    justify-content: center;
 }
 
 .mode-tab {
