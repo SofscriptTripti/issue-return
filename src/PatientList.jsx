@@ -636,7 +636,7 @@ function PatientList({
                             )}
                         </div>
 
-                        {/* New Dual-Button UI for Patient List */}
+                        {/* Clean Dual-Button UI - No 'back box' background */}
                         <div className="scanner-mode-tabs">
                             <button 
                                 className={`mode-tab ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}
@@ -648,7 +648,7 @@ function PatientList({
                                 }}
                             >
                                 <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '20px', height: '20px' }} />
-                                <span>HARDWARE</span>
+                                <span>SCANNER</span>
                             </button>
                             <button 
                                 className={`mode-tab ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}

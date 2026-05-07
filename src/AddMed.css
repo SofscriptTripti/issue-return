@@ -792,15 +792,15 @@
     border-top: none;
 }
 
-/* New Dual-Button Scanner Mode Tabs */
+/* New Dual-Button Scanner Mode Tabs - Transparent Background */
 .scanner-mode-tabs {
     display: flex;
-    background: #f1f5f9;
-    border-radius: 100px;
-    padding: 4px;
-    margin: 10px 24px 20px 24px;
-    gap: 4px;
-    border: 1px solid #e2e8f0;
+    background: transparent; /* Removed 'back box' as requested */
+    border-radius: 0;
+    padding: 0;
+    margin: 15px 24px 25px 24px;
+    gap: 12px; /* Increased gap for separate button look */
+    border: none;
 }
 
 .mode-tab {
@@ -808,13 +808,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border: none;
-    background: transparent;
-    border-radius: 100px;
+    gap: 10px;
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 12px; /* Standard button radius */
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .mode-tab span {
@@ -826,7 +827,9 @@
 
 .mode-tab.active {
     background: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #006ce6;
+    box-shadow: 0 6px 15px rgba(0, 108, 230, 0.12);
+    transform: translateY(-1px);
 }
 
 .mode-tab.active span {
@@ -842,6 +845,20 @@
 .mode-tab.active img {
     filter: none;
     opacity: 1;
+}
+
+.scanner-viewport-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1/1;
+    background: #000;
+    overflow: hidden; /* Fix camera alignment overflow */
+}
+
+.full-qr-reader {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden;
 }
 
 .scanning-laser {
