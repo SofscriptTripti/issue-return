@@ -76,9 +76,9 @@ function PatientList({
     const hiddenInputRef = useRef(null);
     const timeoutIdRef = useRef(null);
     const isProcessingRef = useRef(false);
-    
+
     // Race-condition prevention refs
-    const scannerVersionRef = useRef(0);
+    // const scannerVersionRef = useRef(0);
     const scannerLockRef = useRef(false);
 
     // Hardware-aware Camera Check
@@ -125,13 +125,13 @@ function PatientList({
         if (!html5QrCodeRef.current) return;
         try {
             const instance = html5QrCodeRef.current;
-            html5QrCodeRef.current = null; 
+            html5QrCodeRef.current = null;
 
             if (instance.isScanning) {
                 await instance.stop();
             }
             instance.clear();
-            
+
             // 2. Extra delay to let hardware reset (500ms for stability)
             await new Promise(r => setTimeout(r, 500));
 
@@ -151,7 +151,7 @@ function PatientList({
     // SERIAL SCANNER QUEUE: The only place that starts/stops hardware
     useEffect(() => {
         const version = ++scannerVersionRef.current;
-        
+
         scannerChainRef.current = scannerChainRef.current.then(async () => {
             // If a newer command came in while we were waiting in queue, skip this one
             if (version !== scannerVersionRef.current) return;
@@ -159,7 +159,7 @@ function PatientList({
             try {
                 // 1. Always stop any current activity
                 await stopAndClearScanner();
-                
+
                 // 2. If scanner is closed or in hardware mode, we stop here
                 if (!isScannerOpen || selectedCameraId === 'hardware_wedge') return;
 
@@ -174,7 +174,7 @@ function PatientList({
                     async (decodedText) => {
                         // Check if this is still the active version
                         if (version !== scannerVersionRef.current) return;
-                        
+
                         if (decodedText !== lastDetectedRef.current) {
                             if (navigator.vibrate) navigator.vibrate(50);
                         }
@@ -202,7 +202,7 @@ function PatientList({
             }
         };
         document.addEventListener('visibilitychange', handleVisibility);
-        
+
         return () => {
             document.removeEventListener('visibilitychange', handleVisibility);
             stopAndClearScanner();
@@ -301,7 +301,7 @@ function PatientList({
     const openScanner = async () => {
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
         setScannerError('');
-        
+
         try {
             const devices = await Html5Qrcode.getCameras();
             if (devices && devices.length > 0) {
@@ -314,7 +314,7 @@ function PatientList({
 
                 const configVal = window.APP_CONFIG?.defaultScanner;
                 const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
-                
+
                 setSelectedCameraId(defaultScanner);
                 setIsScannerOpen(true);
             } else {
@@ -548,17 +548,17 @@ function PatientList({
 
                         <div className="scanner-viewport-container">
                             {selectedCameraId === 'hardware_wedge' ? (
-                                <div 
+                                <div
                                     style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: 'none', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', cursor: 'pointer' }}
                                     onClick={() => hiddenInputRef.current?.focus()}
                                 >
                                     <p style={{ color: '#f8fafc', fontSize: '16px', fontWeight: '500' }}>Press the physical scanner button</p>
-                                    <input 
+                                    <input
                                         ref={hiddenInputRef}
-                                        type="text" 
+                                        type="text"
                                         autoComplete="off"
                                         spellCheck="false"
-                                        style={{ opacity: 0, position: 'absolute', zIndex: -10, width: '1px', height: '1px' }} 
+                                        style={{ opacity: 0, position: 'absolute', zIndex: -10, width: '1px', height: '1px' }}
                                         autoFocus
                                         onFocus={(e) => {
                                             e.target.readOnly = true;
@@ -630,10 +630,10 @@ function PatientList({
 
                         {cameras.length > 1 && (
                             <div className="slider-toggle-container">
-                                <div 
-                                    className="slider-toggle" 
+                                <div
+                                    className="slider-toggle"
                                     onClick={() => {
-                                        const nextId = (selectedCameraId === 'hardware_wedge') 
+                                        const nextId = (selectedCameraId === 'hardware_wedge')
                                             ? (cameras.find(c => c.id !== 'hardware_wedge')?.id || cameras[0].id)
                                             : 'hardware_wedge';
                                         setSelectedCameraId(nextId);
