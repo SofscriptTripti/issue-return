@@ -77,8 +77,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         { id: 'camera_placeholder', label: 'Camera' }
     ]);
     const [selectedCameraId, setSelectedCameraId] = useState('hardware_wedge');
-    const scannerChainRef = useRef(Promise.resolve());
     const scannerVersionRef = useRef(0);
+    const scannerLockRef = useRef(false);
 
     // Hardware-aware Camera Check
     const checkBackCamera = async () => {
@@ -112,9 +112,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 await instance.stop();
             }
             instance.clear();
-            
-            // Minimal delay for hardware to release
-            await new Promise(r => setTimeout(r, 50));
         } catch (e) {
             console.warn("Scanner cleanup warning:", e);
         }
@@ -123,78 +120,58 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     // Helper to fully close scanner and reset state
     const closeScanner = async () => {
         setIsScannerOpen(false);
+        await stopAndClearScanner();
         setSelectedCameraId(null);
     };
 
-    // SERIAL SCANNER QUEUE: The only place that starts/stops hardware
-    useEffect(() => {
-        const version = ++scannerVersionRef.current;
+    // SIMPLE & FAST CAMERA CONTROL
+    const switchScannerMode = async (targetId) => {
+        if (scannerLockRef.current) return;
+        scannerLockRef.current = true;
+
+        const currentVersion = ++scannerVersionRef.current;
+        setSelectedCameraId(targetId);
         
-        scannerChainRef.current = scannerChainRef.current.then(async () => {
-            // 1. CANCELLATION CHECK: If unmounted or newer command, abort
-            if (isUnmountedRef.current) return;
-            if (version !== scannerVersionRef.current) return;
+        try {
+            // 1. Always stop first
+            await stopAndClearScanner();
 
-            try {
-                // 2. Always stop any current activity
-                await stopAndClearScanner();
-                
-                // 3. If closed or in hardware mode, stop here
-                if (!isScannerOpen || selectedCameraId === 'hardware_wedge' || !selectedCameraId) return;
-
-                // 4. WAIT FOR DOM: React might be still rendering the modal
-                let container = null;
-                for (let i = 0; i < 20; i++) {
-                    container = document.getElementById("reader");
-                    if (container) break;
-                    await new Promise(r => setTimeout(r, 50));
-                }
-
-                if (!container || isUnmountedRef.current || version !== scannerVersionRef.current) return;
-
-                // 5. Start Camera Mode with Retries
-                const html5QrCode = new Html5Qrcode("reader");
-                html5QrCodeRef.current = html5QrCode;
-
-                const startWithRetry = async (retries = 3) => {
-                    try {
-                        await html5QrCode.start(
-                            selectedCameraId,
-                            { fps: 30, qrbox: { width: 280, height: 280 }, aspectRatio: 1.0 },
-                            async (decodedText) => {
-                                if (isUnmountedRef.current || version !== scannerVersionRef.current) return;
-                                if (isProcessingRef.current) return;
-                                
-                                if (decodedText !== lastDetectedRef.current) {
-                                    if (navigator.vibrate) navigator.vibrate(50);
-                                }
-                                lastDetectedRef.current = decodedText;
-                                setDetectedMedCode(decodedText);
-                                isProcessingRef.current = true;
-                                handleBarcodeScan(decodedText);
-                            },
-                            () => { }
-                        );
-                    } catch (err) {
-                        if (retries > 0 && !isUnmountedRef.current && version === scannerVersionRef.current) {
-                            console.warn(`Camera start failed, retrying... (${retries} left)`);
-                            await new Promise(r => setTimeout(r, 300));
-                            return startWithRetry(retries - 1);
-                        }
-                        throw err;
-                    }
-                };
-
-                await startWithRetry();
-            } catch (err) {
-                console.warn("Scanner Queue Op Failed:", err);
-                // Fallback only if we aren't unmounting or already trying something else
-                if (!isUnmountedRef.current && version === scannerVersionRef.current && selectedCameraId !== 'hardware_wedge') {
-                    setSelectedCameraId('hardware_wedge');
-                }
+            // 2. If hardware wedge, we're done
+            if (targetId === 'hardware_wedge') {
+                scannerLockRef.current = false;
+                return;
             }
-        });
-    }, [isScannerOpen, selectedCameraId]);
+
+            // 3. Start Camera Mode
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCodeRef.current = html5QrCode;
+
+            await html5QrCode.start(
+                targetId,
+                { fps: 30, qrbox: { width: 280, height: 280 }, aspectRatio: 1.0 },
+                async (decodedText) => {
+                    if (currentVersion !== scannerVersionRef.current) return;
+                    if (isProcessingRef.current) return;
+                    
+                    if (decodedText !== lastDetectedRef.current) {
+                        if (navigator.vibrate) navigator.vibrate(50);
+                    }
+                    lastDetectedRef.current = decodedText;
+                    setDetectedMedCode(decodedText);
+                    isProcessingRef.current = true;
+                    handleBarcodeScan(decodedText);
+                },
+                () => { }
+            );
+        } catch (err) {
+            console.warn("Scanner switch failed:", err);
+            if (targetId !== 'hardware_wedge' && currentVersion === scannerVersionRef.current) {
+                setSelectedCameraId('hardware_wedge');
+            }
+        } finally {
+            scannerLockRef.current = false;
+        }
+    };
 
     // Component unmount & Visibility cleanup
     useEffect(() => {
@@ -206,7 +183,6 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         document.addEventListener('visibilitychange', handleVisibility);
         
         return () => {
-            isUnmountedRef.current = true; // ABORT ALL PENDING COMMANDS
             document.removeEventListener('visibilitychange', handleVisibility);
             stopAndClearScanner();
         };
@@ -384,26 +360,22 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 
                 const cameraOption = { id: backCam.id, label: 'Camera' };
                 const hardwareOption = { id: 'hardware_wedge', label: 'Scanner' };
-                
                 setCameras([hardwareOption, cameraOption]);
 
                 const configVal = window.APP_CONFIG?.defaultScanner;
                 const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
                 
-                // If we were on placeholder, switch to real ID
-                if (selectedCameraId === 'camera_placeholder') {
-                    setSelectedCameraId(backCam.id);
-                } else if (!selectedCameraId || selectedCameraId === null) {
-                    setSelectedCameraId(defaultScanner);
-                }
-                
                 setIsScannerOpen(true);
+                // Wait for React to render the modal before starting
+                setTimeout(() => switchScannerMode(defaultScanner), 100);
             } else {
                 setIsScannerOpen(true);
+                setSelectedCameraId('hardware_wedge');
             }
         } catch (err) {
             console.error("Camera access failed", err);
             setIsScannerOpen(true);
+            setSelectedCameraId('hardware_wedge');
         }
     };
 
@@ -924,7 +896,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                                         const nextId = (selectedCameraId === 'hardware_wedge') 
                                             ? (cameras.find(c => c.id !== 'hardware_wedge')?.id || cameras[0].id)
                                             : 'hardware_wedge';
-                                        setSelectedCameraId(nextId);
+                                        switchScannerMode(nextId);
                                     }}
                                 >
                                     <div className={`slider-ball ${selectedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
