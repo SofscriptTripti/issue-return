@@ -126,6 +126,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
     // SIMPLE & FAST CAMERA CONTROL
     const switchScannerMode = async (targetId) => {
+        if (!targetId || targetId === 'camera_placeholder') return;
         if (scannerLockRef.current) return;
         scannerLockRef.current = true;
 
@@ -142,7 +143,20 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 return;
             }
 
-            // 3. Start Camera Mode
+            // 3. WAIT FOR DOM: Ensure the 'reader' element is actually there
+            let container = null;
+            for (let i = 0; i < 20; i++) {
+                container = document.getElementById("reader");
+                if (container) break;
+                await new Promise(r => setTimeout(r, 50));
+            }
+
+            if (!container || currentVersion !== scannerVersionRef.current) {
+                scannerLockRef.current = false;
+                return;
+            }
+
+            // 4. Start Camera Mode
             const html5QrCode = new Html5Qrcode("reader");
             html5QrCodeRef.current = html5QrCode;
 
@@ -358,7 +372,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const validCameras = devices.filter(d => !d.label.toLowerCase().includes('front') && !d.label.toLowerCase().includes('facing front'));
                 const backCam = validCameras.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment') || d.label.toLowerCase().includes('facing back')) || validCameras[0] || devices[devices.length - 1];
                 
-                const cameraOption = { id: backCam.id, label: 'Camera' };
+                const cameraOption = { id: backCam?.id || 'camera', label: 'Camera' };
                 const hardwareOption = { id: 'hardware_wedge', label: 'Scanner' };
                 setCameras([hardwareOption, cameraOption]);
 
@@ -366,8 +380,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
                 
                 setIsScannerOpen(true);
-                // Wait for React to render the modal before starting
-                setTimeout(() => switchScannerMode(defaultScanner), 100);
+                // Call switchScannerMode in next tick to allow DOM to render
+                setTimeout(() => switchScannerMode(defaultScanner), 50);
             } else {
                 setIsScannerOpen(true);
                 setSelectedCameraId('hardware_wedge');
