@@ -98,21 +98,31 @@ function PatientList({
 
     // Shared helper to fully stop and clear any previous scanner instance
     const stopAndClearScanner = async () => {
+        if (!html5QrCodeRef.current) return;
         try {
-            if (html5QrCodeRef.current) {
-                if (html5QrCodeRef.current.isScanning) {
-                    await html5QrCodeRef.current.stop();
-                }
-                html5QrCodeRef.current.clear();
+            if (html5QrCodeRef.current.isScanning) {
+                await html5QrCodeRef.current.stop();
+                // CRITICAL: Give hardware/OS 150ms to release the camera resource
+                await new Promise(r => setTimeout(r, 150));
             }
-        } catch (e) { /* ignore — scanner may already be stopped */ }
-        html5QrCodeRef.current = null;
+            html5QrCodeRef.current.clear();
+            
+            // Extra safety: manually clear the container to remove any orphaned video elements
+            const container = document.getElementById("patient-reader");
+            if (container) container.innerHTML = "";
+        } catch (e) {
+            console.warn("Scanner cleanup warning:", e);
+        } finally {
+            html5QrCodeRef.current = null;
+        }
     };
 
     // Helper to fully close scanner and reset state
     const closeScanner = async () => {
-        await stopAndClearScanner();
+        // Close UI immediately to feel responsive
         setIsScannerOpen(false);
+        // Then perform the heavy cleanup
+        await stopAndClearScanner();
         setCameras([]);
         setSelectedCameraId(null);
     };
@@ -171,6 +181,17 @@ function PatientList({
             stopAndClearScanner();
         };
     }, []);
+
+    // Screen lock / tab switch: OS kills camera — close scanner to avoid stale stream
+    useEffect(() => {
+        const handleVisibility = () => {
+            if (document.visibilityState === 'hidden' && isScannerOpen) {
+                closeScanner();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [isScannerOpen]);
 
     // Hardware Scanner focus management
     useEffect(() => {
@@ -264,35 +285,45 @@ function PatientList({
             document.activeElement.blur();
         }
         setScannerError('');
+        
         // Release any stale camera before re-detecting
         await stopAndClearScanner();
+
+        const tryDetectCameras = async (retryCount = 0) => {
+            try {
+                const devices = await Html5Qrcode.getCameras();
+                if (devices && devices.length > 0) {
+                    const validCameras = devices.filter(d => !d.label.toLowerCase().includes('front') && !d.label.toLowerCase().includes('facing front'));
+                    const backCam = validCameras.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment') || d.label.toLowerCase().includes('facing back')) || validCameras[0] || devices[devices.length - 1];
+
+                    const cameraOption = { id: backCam.id, label: 'Camera' };
+                    const hardwareOption = { id: 'hardware_wedge', label: 'Scanner' };
+                    setCameras([hardwareOption, cameraOption]);
+
+                    const configVal = window.APP_CONFIG?.defaultScanner;
+                    const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
+                    setSelectedCameraId(defaultScanner);
+                    setIsScannerOpen(true);
+                    return true;
+                }
+                return false;
+            } catch (err) {
+                if (retryCount < 1) {
+                    // One-time retry after a small delay
+                    await new Promise(r => setTimeout(r, 300));
+                    return await tryDetectCameras(retryCount + 1);
+                }
+                throw err;
+            }
+        };
+
         try {
-            const devices = await Html5Qrcode.getCameras();
-            if (devices && devices.length > 0) {
-                // Remove front camera options
-                const validCameras = devices.filter(d => !d.label.toLowerCase().includes('front') && !d.label.toLowerCase().includes('facing front'));
-
-                // Find best back camera
-                const backCam = validCameras.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment') || d.label.toLowerCase().includes('facing back')) || validCameras[0] || devices[devices.length - 1];
-
-                const cameraOption = { id: backCam.id, label: 'Camera' };
-                const hardwareOption = { id: 'hardware_wedge', label: 'Scanner' };
-
-                // Always add both options to show the toggle
-                setCameras([hardwareOption, cameraOption]);
-
-                // Default to global config (1 = scanner, 2 = camera), fallback to scanner
-                const configVal = window.APP_CONFIG?.defaultScanner;
-                const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
-                setSelectedCameraId(defaultScanner);
-
-                setIsScannerOpen(true);
-            } else {
-                // No cameras found - block scanner entirely
+            const success = await tryDetectCameras();
+            if (!success) {
                 setShowNoCameraModal(true);
             }
         } catch (err) {
-            console.error("Camera access failed", err);
+            console.error("Camera access failed after retries", err);
             setShowNoCameraModal(true);
         }
     };
