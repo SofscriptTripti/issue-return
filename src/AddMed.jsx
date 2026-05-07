@@ -99,44 +99,51 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     // Shared helper to fully stop and clear any previous scanner instance
     const stopAndClearScanner = async () => {
         if (!html5QrCodeRef.current) return;
+        
         try {
-            if (html5QrCodeRef.current.isScanning) {
-                await html5QrCodeRef.current.stop();
-                // CRITICAL: Give hardware/OS 150ms to release the camera resource
-                await new Promise(r => setTimeout(r, 150));
+            const instance = html5QrCodeRef.current;
+            html5QrCodeRef.current = null; // Clear ref immediately to prevent re-entry
+
+            if (instance.isScanning) {
+                await instance.stop();
+                // CRITICAL: Give hardware/OS more time (250ms) to release the camera resource
+                await new Promise(r => setTimeout(r, 250));
             }
-            html5QrCodeRef.current.clear();
+            instance.clear();
             
-            // Extra safety: manually clear the container to remove any orphaned video elements
             const container = document.getElementById("reader");
             if (container) container.innerHTML = "";
         } catch (e) {
             console.warn("Scanner cleanup warning:", e);
-        } finally {
-            html5QrCodeRef.current = null;
         }
     };
 
     // Helper to fully close scanner and reset state
     const closeScanner = async () => {
-        // Close UI immediately to feel responsive
         setIsScannerOpen(false);
-        // Then perform the heavy cleanup
         await stopAndClearScanner();
         setCameras([]);
         setSelectedCameraId(null);
     };
 
-    // Scanner logic - Now automated and premium
+    // Scanner logic - Versioned & Synchronized
     useEffect(() => {
+        const currentVersion = ++scannerVersionRef.current;
         let isMounted = true;
 
         const startScanner = async () => {
-            if (!isScannerOpen) return;
-            if (selectedCameraId === 'hardware_wedge') return;
+            // 1. If scanner shouldn't be open, just stop
+            if (!isScannerOpen || selectedCameraId === 'hardware_wedge') {
+                await stopAndClearScanner();
+                return;
+            }
 
-            // Always clean up previous instance before starting a new one
+            // 2. Prevent race conditions: if another version is already starting, let it be
+            if (currentVersion !== scannerVersionRef.current) return;
+
+            // 3. Cleanup any old instance thoroughly before starting new one
             await stopAndClearScanner();
+            if (!isMounted || currentVersion !== scannerVersionRef.current) return;
 
             try {
                 const html5QrCode = new Html5Qrcode("reader");
@@ -153,6 +160,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     cameraIdOrConfig,
                     config,
                     async (decodedText) => {
+                        if (currentVersion !== scannerVersionRef.current) return;
+                        
                         // SYNCHRONOUS LOCK: Absolute frame rejection
                         if (isProcessingRef.current) return;
 
@@ -172,13 +181,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                 );
             } catch (err) {
                 console.warn("Scanner init failed:", err);
-                if (isMounted) closeScanner();
+                if (isMounted && currentVersion === scannerVersionRef.current) closeScanner();
             }
         };
 
-        if (isScannerOpen) {
-            startScanner();
-        }
+        startScanner();
 
         return () => {
             isMounted = false;
