@@ -75,7 +75,7 @@ function PatientList({
     ]);
     const [selectedCameraId, setSelectedCameraId] = useState('hardware_wedge');
     const scannerVersionRef = useRef(0);
-    const scannerLockRef = useRef(false);
+    // const scannerLockRef = useRef(false);
     const hiddenInputRef = useRef(null);
     const timeoutIdRef = useRef(null);
     const isProcessingRef = useRef(false);
@@ -110,7 +110,7 @@ function PatientList({
         if (!html5QrCodeRef.current) return;
         try {
             const instance = html5QrCodeRef.current;
-            html5QrCodeRef.current = null; 
+            html5QrCodeRef.current = null;
 
             if (instance.isScanning) {
                 await instance.stop();
@@ -135,7 +135,7 @@ function PatientList({
 
         const currentVersion = ++scannerVersionRef.current;
         setSelectedCameraId(targetId);
-        
+
         try {
             // 1. Always stop first
             await stopAndClearScanner();
@@ -155,7 +155,7 @@ function PatientList({
                 { fps: 20, qrbox: { width: 280, height: 280 } },
                 async (decodedText) => {
                     if (currentVersion !== scannerVersionRef.current) return;
-                    
+
                     if (decodedText !== lastDetectedRef.current) {
                         if (navigator.vibrate) navigator.vibrate(50);
                     }
@@ -183,7 +183,7 @@ function PatientList({
             }
         };
         document.addEventListener('visibilitychange', handleVisibility);
-        
+
         return () => {
             document.removeEventListener('visibilitychange', handleVisibility);
             stopAndClearScanner();
@@ -295,7 +295,7 @@ function PatientList({
 
                 const configVal = window.APP_CONFIG?.defaultScanner;
                 const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
-                
+
                 setIsScannerOpen(true);
                 // Wait for React to render the modal
                 setTimeout(() => switchScannerMode(defaultScanner), 100);
@@ -610,24 +610,24 @@ function PatientList({
 
                         {/* Toggle is now ALWAYS visible by default */}
                         <div className="slider-toggle-container">
-                                <div
-                                    className="slider-toggle"
-                                    onClick={() => {
-                                        const nextId = (selectedCameraId === 'hardware_wedge')
-                                            ? (cameras.find(c => c.id !== 'hardware_wedge')?.id || cameras[0].id)
-                                            : 'hardware_wedge';
-                                        switchScannerMode(nextId);
-                                    }}
-                                >
-                                    <div className={`slider-ball ${selectedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
-                                    <div className={`toggle-icon-wrap ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '22px', height: '22px', opacity: selectedCameraId === 'hardware_wedge' ? 1 : 0.4 }} />
-                                    </div>
-                                    <div className={`toggle-icon-wrap ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}>
-                                        <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '22px', height: '22px', opacity: selectedCameraId !== 'hardware_wedge' ? 1 : 0.4 }} />
-                                    </div>
+                            <div
+                                className="slider-toggle"
+                                onClick={() => {
+                                    const nextId = (selectedCameraId === 'hardware_wedge')
+                                        ? (cameras.find(c => c.id !== 'hardware_wedge')?.id || cameras[0].id)
+                                        : 'hardware_wedge';
+                                    switchScannerMode(nextId);
+                                }}
+                            >
+                                <div className={`slider-ball ${selectedCameraId === 'hardware_wedge' ? 'scanner' : 'camera'}`}></div>
+                                <div className={`toggle-icon-wrap ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}>
+                                    <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '22px', height: '22px', opacity: selectedCameraId === 'hardware_wedge' ? 1 : 0.4 }} />
+                                </div>
+                                <div className={`toggle-icon-wrap ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}>
+                                    <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '22px', height: '22px', opacity: selectedCameraId !== 'hardware_wedge' ? 1 : 0.4 }} />
                                 </div>
                             </div>
+                        </div>
                     </div>
                 </div>
             )}
