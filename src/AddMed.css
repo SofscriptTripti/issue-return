@@ -792,13 +792,12 @@
     border-top: none;
 }
 
-/* Perfectly Centered Dual-Button Scanner Mode Tabs */
+/* Aligned with QR Scanner Width (280px) */
 .scanner-mode-tabs {
     display: flex;
     background: transparent;
-    width: 100%;
-    padding: 0 24px;
-    margin: 15px 0 25px 0;
+    width: 280px; /* Exact match to the black box */
+    margin: 15px auto 25px auto; 
     gap: 12px;
     border: none;
     box-sizing: border-box;
@@ -851,10 +850,12 @@
 
 .scanner-viewport-container {
     position: relative;
-    width: 100%;
-    aspect-ratio: 1/1;
+    width: 280px; /* Fixed width to match scanning box */
+    height: 280px;
+    margin: 0 auto; /* Centered */
     background: #000;
-    overflow: hidden; /* Fix camera alignment overflow */
+    overflow: hidden; 
+    border-radius: 16px; /* Matching modal theme */
 }
 
 .full-qr-reader {

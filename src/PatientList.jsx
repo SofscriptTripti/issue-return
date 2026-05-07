@@ -308,6 +308,9 @@ function PatientList({
     };
 
     const openScanner = async () => {
+        // FORCE UNLOCK: If we were stuck, reset now
+        scannerLockRef.current = false;
+
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
         setScannerError('');
 
@@ -339,14 +342,15 @@ function PatientList({
     };
 
     const handleIdentifyPatient = async (barCd) => {
-        setIsProcessingScan(true);
+        if (isProcessingRef.current) return;
         isProcessingRef.current = true;
+        setIsProcessingScan(true);
         setScannedPtnCode('');
         lastDetectedRef.current = null;
         try {
             setSearchTerm(barCd);
             if (onSearch) onSearch(barCd);
-            closeScanner();
+            await closeScanner(); // Await full cleanup before any potential navigation
         } catch (e) {
             console.error(e);
         } finally {

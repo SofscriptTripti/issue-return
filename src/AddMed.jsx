@@ -377,6 +377,9 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     };
 
     const handleScannerClick = async () => {
+        // FORCE UNLOCK: If we were stuck, reset now
+        scannerLockRef.current = false;
+        
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
         setScannerError('');
         
@@ -651,7 +654,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
             <div className="patient-detail-wide">
                 <div className="patient-card">
                     <div className="card-header">
-                        <button className="am-back-btn" onClick={() => {
+                        <button className="am-back-btn" onClick={async () => {
+                            // Safety: Ensure scanner is fully closed before navigating away
+                            if (isScannerOpen) {
+                                await closeScanner();
+                            }
                             // Clear cart for this patient on back navigation
                             setMedicines([]);
                             if (cartKey) sessionStorage.removeItem(cartKey);
@@ -1076,7 +1083,10 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                         <h3 className="success-msg-text" style={{ fontSize: '17px', fontWeight: '800', color: '#1e3a8a', margin: '0 0 20px 0' }}>
                             Voucher No ({voucherNo}) Created Successfully!
                         </h3>
-                        <button className="success-ok-btn" onClick={() => {
+                        <button className="success-ok-btn" onClick={async () => {
+                            if (isScannerOpen) {
+                                await closeScanner();
+                            }
                             setShowSuccessModal(false);
                             onBack();
                         }}>OK</button>
