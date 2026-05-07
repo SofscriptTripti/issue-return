@@ -341,14 +341,17 @@ function PatientList({
         }
     };
 
-    const handleIdentifyPatient = async (barCd) => {
+    const handleIdentifyPatient = async (rawBarCd) => {
         if (isProcessingRef.current) return;
+        const barCd = rawBarCd?.trim().replace(/^\*|\*$/g, ''); // Strip leading/trailing *
+        if (!barCd) return;
+
         isProcessingRef.current = true;
         setIsProcessingScan(true);
-        setScannedPtnCode('');
+        setScannedPtnCode(barCd);
         lastDetectedRef.current = null;
         try {
-            console.log("IDENTIFY PATIENT (HARDWARE/CAMERA):", barCd);
+            console.log("IDENTIFY PATIENT (CLEANED):", barCd);
             setSearchTerm(barCd); // Local filter
             if (onSearch) {
                 console.log("Triggering Remote API Search for:", barCd);

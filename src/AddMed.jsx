@@ -413,7 +413,7 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const handleBarcodeScan = async (rawBarCd) => {
         if (isProcessingScan) return;
 
-        const barCd = rawBarCd?.trim();
+        const barCd = rawBarCd?.trim().replace(/^\*|\*$/g, ''); // Strip leading/trailing *
         if (!barCd) return;
 
         setIsProcessingScan(true);
