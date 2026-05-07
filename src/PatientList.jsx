@@ -69,8 +69,11 @@ function PatientList({
     const lastDetectedRef = useRef(null);
 
     // Hardware scanner state & refs
-    const [cameras, setCameras] = useState([]);
-    const [selectedCameraId, setSelectedCameraId] = useState(null);
+    const [cameras, setCameras] = useState([
+        { id: 'hardware_wedge', label: 'Scanner' },
+        { id: 'camera_placeholder', label: 'Camera' }
+    ]);
+    const [selectedCameraId, setSelectedCameraId] = useState('hardware_wedge');
     const scannerChainRef = useRef(Promise.resolve());
     const scannerVersionRef = useRef(0);
     const hiddenInputRef = useRef(null);
@@ -304,36 +307,30 @@ function PatientList({
 
         try {
             const devices = await Html5Qrcode.getCameras();
-            const hasCamera = devices && devices.length > 0;
-
-            if (hasCamera) {
+            if (devices && devices.length > 0) {
                 const validCameras = devices.filter(d => !d.label.toLowerCase().includes('front') && !d.label.toLowerCase().includes('facing front'));
                 const backCam = validCameras.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment') || d.label.toLowerCase().includes('facing back')) || validCameras[0] || devices[devices.length - 1];
 
                 const cameraOption = { id: backCam.id, label: 'Camera' };
                 const hardwareOption = { id: 'hardware_wedge', label: 'Scanner' };
                 
-                // Sticky cameras
                 setCameras([hardwareOption, cameraOption]);
 
                 const configVal = window.APP_CONFIG?.defaultScanner;
                 const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
                 
-                setSelectedCameraId(prev => prev || defaultScanner);
+                if (selectedCameraId === 'camera_placeholder') {
+                    setSelectedCameraId(backCam.id);
+                } else if (!selectedCameraId || selectedCameraId === null) {
+                    setSelectedCameraId(defaultScanner);
+                }
+                
                 setIsScannerOpen(true);
             } else {
-                if (cameras.length < 2) {
-                    setCameras([{ id: 'hardware_wedge', label: 'Scanner' }]);
-                }
-                setSelectedCameraId('hardware_wedge');
                 setIsScannerOpen(true);
             }
         } catch (err) {
             console.error("Camera detection failed", err);
-            if (cameras.length < 2) {
-                setCameras([{ id: 'hardware_wedge', label: 'Scanner' }]);
-            }
-            setSelectedCameraId('hardware_wedge');
             setIsScannerOpen(true);
         }
     };
@@ -636,8 +633,8 @@ function PatientList({
                             )}
                         </div>
 
-                        {cameras.length > 1 && (
-                            <div className="slider-toggle-container">
+                        {/* Toggle is now ALWAYS visible by default */}
+                        <div className="slider-toggle-container">
                                 <div
                                     className="slider-toggle"
                                     onClick={() => {
@@ -656,7 +653,6 @@ function PatientList({
                                     </div>
                                 </div>
                             </div>
-                        )}
                     </div>
                 </div>
             )}
