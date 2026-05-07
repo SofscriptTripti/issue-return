@@ -96,8 +96,22 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
         }
     };
 
+    // Shared helper to fully stop and clear any previous scanner instance
+    const stopAndClearScanner = async () => {
+        try {
+            if (html5QrCodeRef.current) {
+                if (html5QrCodeRef.current.isScanning) {
+                    await html5QrCodeRef.current.stop();
+                }
+                html5QrCodeRef.current.clear();
+            }
+        } catch (e) { /* ignore — scanner may already be stopped */ }
+        html5QrCodeRef.current = null;
+    };
+
     // Helper to fully close scanner and reset state
-    const closeScanner = () => {
+    const closeScanner = async () => {
+        await stopAndClearScanner();
         setIsScannerOpen(false);
         setCameras([]);
         setSelectedCameraId(null);
@@ -106,14 +120,16 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     // Scanner logic - Now automated and premium
     useEffect(() => {
         let isMounted = true;
-        let html5QrCode = null;
 
         const startScanner = async () => {
             if (!isScannerOpen) return;
             if (selectedCameraId === 'hardware_wedge') return;
 
+            // Always clean up previous instance before starting a new one
+            await stopAndClearScanner();
+
             try {
-                html5QrCode = new Html5Qrcode("reader");
+                const html5QrCode = new Html5Qrcode("reader");
                 html5QrCodeRef.current = html5QrCode;
 
                 const config = {
@@ -156,30 +172,14 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
 
         return () => {
             isMounted = false;
-            const stop = async () => {
-                if (html5QrCode && html5QrCode.isScanning) {
-                    try {
-                        await html5QrCode.stop();
-                    } catch (e) {
-                        console.error("Cleanup stop fail", e);
-                    }
-                }
-            };
-            stop();
+            stopAndClearScanner();
         };
     }, [isScannerOpen, selectedCameraId]);
 
     // Component unmount: ensure camera is fully released
     useEffect(() => {
         return () => {
-            if (html5QrCodeRef.current) {
-                try {
-                    if (html5QrCodeRef.current.isScanning) {
-                        html5QrCodeRef.current.stop().catch(() => {});
-                    }
-                } catch (e) { /* ignore */ }
-                html5QrCodeRef.current = null;
-            }
+            stopAndClearScanner();
         };
     }, []);
 
@@ -344,6 +344,8 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
     const handleScannerClick = async () => {
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
         setScannerError('');
+        // Release any stale camera before re-detecting
+        await stopAndClearScanner();
         try {
             const devices = await Html5Qrcode.getCameras();
             if (devices && devices.length > 0) {
