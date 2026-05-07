@@ -562,10 +562,10 @@ function PatientList({
                             </button>
                         </div>
 
-                        <div className="scanner-viewport-container">
+                        <div className="scanner-viewport-container" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
                             {selectedCameraId === 'hardware_wedge' ? (
                                 <div
-                                    style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: 'none', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', cursor: 'pointer' }}
+                                    style={{ width: '280px', margin: '0 auto', height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: 'none', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', cursor: 'pointer' }}
                                     onClick={() => hiddenInputRef.current?.focus()}
                                 >
                                     <p style={{ color: '#f8fafc', fontSize: '16px', fontWeight: '500' }}>Press the physical scanner button</p>

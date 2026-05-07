@@ -688,8 +688,7 @@
 
 .scanner-modal {
     background: #ffffff;
-    width: 90%;
-    max-width: 420px;
+    width: 320px; /* Fixed stable width for perfect symmetry */
     border-radius: 28px;
     overflow: hidden;
     position: relative;
@@ -698,10 +697,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .scanner-header-compact {
-    padding: 18px 24px 10px 24px;
+    padding: 12px 24px 8px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -716,6 +717,9 @@
 }
 
 .scanner-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 20px;
     background: #f1f5f9;
     border: none;
     width: 32px;
@@ -726,6 +730,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    z-index: 100;
 }
 
 .scanner-viewport-container {
