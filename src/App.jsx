@@ -53,22 +53,48 @@ function App() {
   const fetchStores = async () => {
     try {
       const response = await authService.getStores();
-      console.log("Stores API Response:", response);
+      console.log("App: Raw Store API Response (Unified):", response);
       const storesArray = response.data || (Array.isArray(response) ? response : []);
+      
       if (Array.isArray(storesArray)) {
-        const mappedStores = storesArray.map((s, idx) => ({
-          id: s.strCd || idx,
-          name: s.strDescription || "Unknown Store",
-          type: 'main',
+        // Group by Store to keep compatibility with UI while using same API for centers
+        const storeMap = {};
+        storesArray.forEach((item) => {
+          if (!storeMap[item.strCd]) {
+            storeMap[item.strCd] = {
+              id: item.strCd,
+              name: item.strDescription || "Unknown Store",
+              isDefault: item.isDefaultIssueStore,
+              costCenters: []
+            };
+          }
+          if (item.ccCd) {
+            // Check if this CC is already added for this store
+            if (!storeMap[item.strCd].costCenters.find(c => c.id === item.ccCd)) {
+              storeMap[item.strCd].costCenters.push({
+                id: item.ccCd,
+                name: item.ccDescriprion || "Unnamed Cost Center",
+                ptnTypFlg: item.ptnTypFlg || "O"
+              });
+            }
+          }
+        });
+
+        const mappedStores = Object.values(storeMap).map((s, idx) => ({
+          ...s,
           color: STORE_COLORS[idx % STORE_COLORS.length]
         }));
+        
         setStores(mappedStores);
+        return storesArray;
       } else {
         setStores([]);
+        return [];
       }
     } catch (err) {
       console.error("Failed to fetch stores:", err);
       setStores([]);
+      return [];
     }
   };
 
@@ -95,17 +121,93 @@ function App() {
     }
   }, []);
 
+  const handleCostCenterSelect = useCallback((storeName, costCenter, ptnTypFlg, storeCd, ccCd) => {
+    console.log("Setting selection codes in App:", { storeCd, ccCd });
+    setSelectedStoreName(storeName);
+    setSelectedStoreCd(storeCd);
+    setSelectedCostCenter(costCenter);
+    setSelectedCCCd(ccCd);
+    setSavedPtnTypFlg(ptnTypFlg);
+    fetchPatients(ptnTypFlg);
+    window.history.pushState({ screen: "patientList" }, "", "");
+    setCurrentScreen("patientList");
+  }, [fetchPatients]);
+
+  const performAutoSelection = useCallback(async (storesArray) => {
+    if (!storesArray || storesArray.length === 0) return;
+
+    // 1. Find default store (isDefaultIssueStore: true)
+    const defaultStoreItem = storesArray.find(s => s.isDefaultIssueStore === true) || storesArray[0];
+    if (!defaultStoreItem) return;
+
+    const storeName = defaultStoreItem.strDescription;
+    const storeCd = defaultStoreItem.strCd;
+
+    // 2. Find "Out Patient Cash" center
+    // First, check if it's already in the store list (as requested "same API")
+    console.log("AutoSelection: Checking for 'Out Patient Cash' in unified list...");
+    let centerItem = storesArray.find(s => 
+      (s.ccDescriprion && (s.ccDescriprion.toUpperCase().includes("OUT PATIENT CASH") || s.ccDescriprion.toUpperCase().includes("OUT PATINET CASH"))) ||
+      (s.ccDescription && (s.ccDescription.toUpperCase().includes("OUT PATIENT CASH") || s.ccDescription.toUpperCase().includes("OUT PATINET CASH")))
+    );
+
+    // If NOT found in store API, call the dedicated Center API as a fallback
+    if (!centerItem) {
+      console.log("Center not found in Store API, calling GetCostCenters fallback...");
+      try {
+        const response = await authService.getCostCenters(storeCd);
+        const ccData = response.data || (Array.isArray(response) ? response : []);
+        if (Array.isArray(ccData)) {
+          centerItem = ccData.find(cc => 
+            (cc.ccDescriprion && (cc.ccDescriprion.toUpperCase().includes("OUT PATIENT CASH") || cc.ccDescriprion.toUpperCase().includes("OUT PATINET CASH"))) ||
+            (cc.ccDescription && (cc.ccDescription.toUpperCase().includes("OUT PATIENT CASH") || cc.ccDescription.toUpperCase().includes("OUT PATINET CASH")))
+          ) || ccData[0]; // Fallback to first if still not found
+        }
+      } catch (err) {
+        console.warn("Auto-selection fallback failed:", err);
+      }
+    }
+
+    if (defaultStoreItem) {
+      // If we still don't have a specific center, try any center from the store API for this store
+      if (!centerItem) {
+        centerItem = storesArray.find(s => s.strCd === storeCd && s.ccCd);
+      }
+      
+      const ccName = centerItem ? (centerItem.ccDescriprion || centerItem.ccDescription) : "";
+      const ccCd = centerItem ? (centerItem.trnModeId || centerItem.ccCd) : "";
+      const ptnTypFlg = centerItem ? centerItem.ptnTypFlg : "O";
+
+      console.log("Auto-selecting defaults:", { storeName, ccName, storeCd, ccCd });
+      handleCostCenterSelect(storeName, ccName || "", ptnTypFlg || "O", storeCd, ccCd || "");
+    }
+  }, [handleCostCenterSelect]);
+
+  const handleLoginSuccess = async () => {
+    const storesArray = await fetchStores();
+    if (storesArray && storesArray.length > 0) {
+      performAutoSelection(storesArray);
+    } else {
+      window.history.replaceState({ screen: "storeSelection" }, "", "");
+      setCurrentScreen("storeSelection");
+    }
+  };
+
   // On mount: restore session if token exists
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
     if (!token) {
-      // No token — reset to login
       setCurrentScreen("login");
       return;
     }
 
     // Always fetch stores fresh (they don't change often)
-    fetchStores();
+    fetchStores().then(storesArray => {
+      // If we don't have a selection yet, try to auto-select
+      if (!savedSession.selectedStoreCd && storesArray && storesArray.length > 0) {
+        performAutoSelection(storesArray);
+      }
+    });
 
     // If we were on patientList or addMed, re-fetch patients
     const screen = savedSession.screen;
@@ -119,10 +221,8 @@ function App() {
     }
 
     const handlePopState = (event) => {
-      // Only handle popstate if there is still a valid auth token
       const tok = sessionStorage.getItem("authToken");
       if (!tok) {
-        // No token — force back to login screen and replace history
         window.history.replaceState({ screen: "login" }, "", "");
         setCurrentScreen("login");
         return;
@@ -141,26 +241,14 @@ function App() {
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  }, [fetchPatients, performAutoSelection, savedSession.ptnTypFlg, savedSession.screen, savedSession.selectedStoreCd]);
 
-  const handleLoginSuccess = () => {
-    fetchStores();
-    // Use replaceState so there's no "back" entry pointing to storeSelection
-    window.history.replaceState({ screen: "storeSelection" }, "", "");
+
+
+  const handleEditLocation = useCallback(() => {
     setCurrentScreen("storeSelection");
-  };
-
-  const handleCostCenterSelect = (storeName, costCenter, ptnTypFlg, storeCd, ccCd) => {
-    console.log("Setting selection codes in App:", { storeCd, ccCd });
-    setSelectedStoreName(storeName);
-    setSelectedStoreCd(storeCd);
-    setSelectedCostCenter(costCenter);
-    setSelectedCCCd(ccCd);
-    setSavedPtnTypFlg(ptnTypFlg);
-    fetchPatients(ptnTypFlg);
-    window.history.pushState({ screen: "patientList" }, "", "");
-    setCurrentScreen("patientList");
-  };
+    window.history.pushState({ screen: "storeSelection" }, "", "");
+  }, []);
 
   const handleBackToLogin = () => {
     setShowLogoutConfirm(true);
@@ -264,7 +352,8 @@ function App() {
           selectedStore={selectedStoreName}
           selectedCostCenter={selectedCostCenter}
           stores={stores}
-          onStoreAndCCChange={handleStoreAndCCChange}
+           onStoreAndCCChange={handleStoreAndCCChange}
+          onEditLocation={handleEditLocation}
           storeType={storeType}
           onStoreTypeChange={setStoreType}
           apiPatients={apiPatients}

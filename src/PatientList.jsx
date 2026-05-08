@@ -25,6 +25,13 @@ const CLOSE_ICON_SMALL = (
     </svg>
 );
 
+const PENCIL_ICON = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </svg>
+);
+
 function PatientList({
     onBack,
     onLogout,
@@ -36,6 +43,7 @@ function PatientList({
     stores = [],
     onStoreChange,
     onStoreAndCCChange,
+    onEditLocation,
 
     apiPatients = [],
     isPatientsLoading = false,
@@ -68,6 +76,73 @@ function PatientList({
     const [capturedPtn, setCapturedPtn] = useState('');
     const lastDetectedRef = useRef(null);
 
+    // Modal Selection States
+    const [showLocationModal, setShowLocationModal] = useState(false);
+    const [tempStore, setTempStore] = useState(null);
+    const [tempCC, setTempCC] = useState(null);
+    const [modalCCs, setModalCCs] = useState([]);
+    const [isModalLoadingCC, setIsModalLoadingCC] = useState(false);
+    const [storeSearch, setStoreSearch] = useState('');
+
+    // Helper to fetch centers for a store
+    const fetchCentersForStore = async (storeId) => {
+        setIsModalLoadingCC(true);
+        try {
+            const response = await authService.getCostCenters(storeId);
+            console.log("Modal: Raw Cost Center API Response for Store " + storeId + ":", response);
+            const rawData = response.data || (Array.isArray(response) ? response : []);
+            if (Array.isArray(rawData)) {
+                return rawData.map(cc => ({
+                    id: cc.trnModeId,
+                    name: cc.ccDescriprion || cc.ccDescription || "Unnamed Cost Center",
+                    ptnTypFlg: cc.ptnTypFlg || "O"
+                }));
+            }
+        } catch (err) {
+            console.error("Modal CC fetch failed:", err);
+        } finally {
+            setIsModalLoadingCC(false);
+        }
+        return [];
+    };
+
+    // Initial setup for modal when opened
+    const handleOpenModal = async () => {
+        const currentStore = stores.find(s => s.name === selectedStore) || stores[0];
+        setTempStore(currentStore);
+        setShowLocationModal(true);
+
+        if (currentStore) {
+            let ccs = currentStore.costCenters || [];
+            if (ccs.length === 0) {
+                ccs = await fetchCentersForStore(currentStore.id);
+            }
+            setModalCCs(ccs);
+            const currentCC = ccs.find(c => c.name === selectedCostCenter) || (ccs.length === 1 ? ccs[0] : null);
+            setTempCC(currentCC);
+        }
+    };
+
+    const handleModalStoreSelect = async (store) => {
+        setTempStore(store);
+        setTempCC(null);
+        setModalCCs([]); // Clear while loading
+
+        let ccs = store.costCenters || [];
+        if (ccs.length === 0) {
+            ccs = await fetchCentersForStore(store.id);
+        }
+        setModalCCs(ccs);
+        if (ccs.length === 1) setTempCC(ccs[0]);
+    };
+
+    const handleConfirmSelection = () => {
+        if (onStoreAndCCChange && tempStore && tempCC) {
+            onStoreAndCCChange(tempStore, tempCC);
+            setShowLocationModal(false);
+        }
+    };
+
     // Hardware scanner state & refs
     const [cameras, setCameras] = useState([
         { id: 'hardware_wedge', label: 'Scanner' },
@@ -75,72 +150,43 @@ function PatientList({
     ]);
     const [selectedCameraId, setSelectedCameraId] = useState('hardware_wedge');
     const scannerVersionRef = useRef(0);
-    // const scannerLockRef = useRef(false);
     const hiddenInputRef = useRef(null);
     const timeoutIdRef = useRef(null);
     const isProcessingRef = useRef(false);
 
-    // Race-condition prevention refs
-    // const scannerVersionRef = useRef(0);
     const scannerLockRef = useRef(false);
 
-    // Hardware-aware Camera Check
-    const checkBackCamera = async () => {
-        // We now always return true on mobile/tablet to allow the scanner to at least try.
-        // This is to bypass browser 'Insecure Context' reports that might be false or overridden.
-        const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-        if (isMobileOrTablet) return true;
-
-        if (!navigator.mediaDevices) {
-            console.warn("Scanner: navigator.mediaDevices NOT found.");
-            return true; // Return true to let html5-qrcode attempt and give real error
-        }
-
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            return devices.some(device => device.kind === 'videoinput') || isMobileOrTablet;
-        } catch (e) {
-            return true; // Fallback
-        }
-    };
-
-    // Shared helper to fully stop and clear any previous scanner instance
     const stopAndClearScanner = async () => {
         if (!html5QrCodeRef.current) return;
         try {
             const instance = html5QrCodeRef.current;
-            html5QrCodeRef.current = null; 
+            html5QrCodeRef.current = null;
 
             if (instance.isScanning) {
-                // TVS Driver safety: Don't let a hanging 'stop' block the UI forever
                 await Promise.race([
-                    instance.stop().catch(() => {}),
+                    instance.stop().catch(() => { }),
                     new Promise(r => setTimeout(r, 1500))
                 ]);
             }
-            try { instance.clear(); } catch(e) {}
+            try { instance.clear(); } catch (e) { }
         } catch (e) {
             console.warn("Scanner cleanup warning:", e);
         }
     };
 
-    // Helper to fully close scanner and reset state
     const closeScanner = async () => {
         setIsScannerOpen(false);
-        scannerLockRef.current = false; // RELEASE LOCK on close
+        scannerLockRef.current = false;
         await stopAndClearScanner();
         setSelectedCameraId(null);
     };
 
-    // SIMPLE & FAST CAMERA CONTROL
     const switchScannerMode = async (targetId) => {
-        // If we only have a placeholder, try to find the real camera first
         let finalId = targetId;
         if (finalId === 'camera_placeholder') {
             const realCam = cameras.find(c => c.id !== 'hardware_wedge' && c.id !== 'camera_placeholder');
             if (realCam) finalId = realCam.id;
-            else return; // Still loading or no camera
+            else return;
         }
 
         if (!finalId) return;
@@ -149,18 +195,15 @@ function PatientList({
 
         const currentVersion = ++scannerVersionRef.current;
         setSelectedCameraId(finalId);
-        
+
         try {
-            // 1. Always stop first
             await stopAndClearScanner();
 
-            // 2. If hardware wedge, we're done
             if (finalId === 'hardware_wedge') {
                 scannerLockRef.current = false;
                 return;
             }
 
-            // 3. WAIT FOR DOM: Ensure the 'patient-reader' element is actually there
             let container = null;
             for (let i = 0; i < 20; i++) {
                 container = document.getElementById("patient-reader");
@@ -173,7 +216,6 @@ function PatientList({
                 return;
             }
 
-            // 4. Start Camera Mode
             const html5QrCode = new Html5Qrcode("patient-reader");
             html5QrCodeRef.current = html5QrCode;
 
@@ -182,7 +224,7 @@ function PatientList({
                 { fps: 20, qrbox: { width: 280, height: 280 } },
                 async (decodedText) => {
                     if (currentVersion !== scannerVersionRef.current) return;
-                    
+
                     if (decodedText !== lastDetectedRef.current) {
                         if (navigator.vibrate) navigator.vibrate(50);
                     }
@@ -202,7 +244,6 @@ function PatientList({
         }
     };
 
-    // Component unmount & Visibility cleanup
     useEffect(() => {
         const handleVisibility = () => {
             if (document.visibilityState === 'hidden' && isScannerOpen) {
@@ -212,15 +253,12 @@ function PatientList({
         document.addEventListener('visibilitychange', handleVisibility);
 
         return () => {
-            scannerLockRef.current = false; // RELEASE LOCK on unmount
+            scannerLockRef.current = false;
             document.removeEventListener('visibilitychange', handleVisibility);
             stopAndClearScanner();
         };
     }, [isScannerOpen]);
 
-
-
-    // Hardware Scanner focus management
     useEffect(() => {
         setScannedPtnCode('');
 
@@ -266,34 +304,41 @@ function PatientList({
         if (onStoreAndCCChange) {
             setCostCenters([]);
             setErroredStoreId(null);
-            setIsLoadingCC(true);
-            try {
-                const response = await authService.getCostCenters(store.id);
-                const ccData = response.data || (Array.isArray(response) ? response : []);
-                if (Array.isArray(ccData) && ccData.length > 0) {
-                    const mappedCC = ccData.map(cc => ({
-                        id: cc.ccCd,
-                        name: cc.ccDescriprion || "Unnamed Cost Center",
-                        ptnTypFlg: cc.ptnTypFlg || "O"
-                    }));
 
-                    if (mappedCC.length === 1) {
-                        onStoreAndCCChange(store, mappedCC[0]);
-                        setIsDropdownOpen(false);
-                    } else {
-                        setCostCenters(mappedCC);
-                        onStoreAndCCChange(store, null);
+            let ccData = store.costCenters || [];
+
+            if (ccData.length === 0) {
+                setIsLoadingCC(true);
+                try {
+                    const response = await authService.getCostCenters(store.id);
+                    console.log("Dropdown: Raw Cost Center API Response for Store " + store.id + ":", response);
+                    const rawData = response.data || (Array.isArray(response) ? response : []);
+                    if (Array.isArray(rawData)) {
+                        ccData = rawData.map(cc => ({
+                            id: cc.trnModeId || cc.ccCd,
+                            name: cc.ccDescriprion || cc.ccDescription || "Unnamed Cost Center",
+                            ptnTypFlg: cc.ptnTypFlg || "O"
+                        }));
                     }
-                } else {
-                    setErroredStoreId(store.id);
-                    onStoreAndCCChange(store, null);
-                    setIsDropdownOpen(false);
+                } catch (err) {
+                    console.error("Cost Center fallback failed:", err);
+                } finally {
+                    setIsLoadingCC(false);
                 }
-            } catch (err) {
+            }
+
+            if (ccData.length > 0) {
+                if (ccData.length === 1) {
+                    onStoreAndCCChange(store, ccData[0]);
+                    setIsDropdownOpen(false);
+                } else {
+                    setCostCenters(ccData);
+                    onStoreAndCCChange(store, null);
+                }
+            } else {
                 setErroredStoreId(store.id);
+                onStoreAndCCChange(store, null);
                 setIsDropdownOpen(false);
-            } finally {
-                setIsLoadingCC(false);
             }
         }
     };
@@ -308,7 +353,6 @@ function PatientList({
     };
 
     const openScanner = async () => {
-        // FORCE UNLOCK: If we were stuck, reset now
         scannerLockRef.current = false;
 
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
@@ -326,9 +370,8 @@ function PatientList({
 
                 const configVal = window.APP_CONFIG?.defaultScanner;
                 const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
-                
+
                 setIsScannerOpen(true);
-                // Wait for React to render the modal
                 setTimeout(() => switchScannerMode(defaultScanner), 50);
             } else {
                 setIsScannerOpen(true);
@@ -343,7 +386,7 @@ function PatientList({
 
     const handleIdentifyPatient = async (rawBarCd) => {
         if (isProcessingRef.current) return;
-        const barCd = rawBarCd?.trim().replace(/^\*|\*$/g, ''); // Strip leading/trailing *
+        const barCd = rawBarCd?.trim().replace(/^\*|\*$/g, '');
         if (!barCd) return;
 
         isProcessingRef.current = true;
@@ -351,13 +394,11 @@ function PatientList({
         setScannedPtnCode(barCd);
         lastDetectedRef.current = null;
         try {
-            console.log("IDENTIFY PATIENT (CLEANED):", barCd);
-            setSearchTerm(barCd); // Local filter
+            setSearchTerm(barCd);
             if (onSearch) {
-                console.log("Triggering Remote API Search for:", barCd);
-                await onSearch(barCd); // Remote API
+                await onSearch(barCd);
             }
-            await closeScanner(); // Await full cleanup before any potential navigation
+            await closeScanner();
         } catch (e) {
             console.error(e);
         } finally {
@@ -407,76 +448,24 @@ function PatientList({
     return (
         <div className="patient-list-container">
             {(selectedStore || selectedCostCenter) && (
-                <div className="selection-info-bar">
-                    <div className="selection-top-row">
-                        <div className="custom-store-dropdown" ref={dropdownRef}>
-                            <button
-                                className={`dropdown-trigger ${isDropdownOpen ? 'active' : ''}`}
-                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            >
-                                <span className="current-store-text">{selectedStore || "Select Store"}</span>
-                                <span className="chevron-icon">▼</span>
-                            </button>
-                            {isDropdownOpen && (
-                                <div className="dropdown-menu-portal">
-                                    {costCenters.length > 0 ? (
-                                        <>
-                                            <div className="dropdown-header-with-action">
-                                                <span className="dropdown-header-label">Select Cost Center</span>
-                                                <button className="dropdown-close-action" onClick={(e) => { e.stopPropagation(); setCostCenters([]); }} title="Back to Stores">
-                                                    {CLOSE_ICON_SMALL}
-                                                </button>
-                                            </div>
-                                            {costCenters.map(cc => (
-                                                <div
-                                                    key={cc.id}
-                                                    className="dropdown-item cc-item"
-                                                    onClick={(e) => handleCCSelect(e, cc)}
-                                                >
-                                                    <span className="store-option-name">{cc.name}</span>
-                                                </div>
-                                            ))}
-                                        </>
-                                    ) : (
-                                        stores.map(store => (
-                                            <div
-                                                key={store.id}
-                                                className={`dropdown-item ${selectedStore === store.name ? 'selected' : ''}`}
-                                                onClick={(e) => handleStoreSelect(e, store)}
-                                            >
-                                                <div className="store-item-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                    <span className="store-indicator" style={{ background: store.color }}></span>
-                                                    <div className="store-text-stack" style={{ display: 'flex', flexDirection: 'column' }}>
-                                                        <span className="store-option-name">{store.name}</span>
-                                                        {isLoadingCC && !costCenters.length && (
-                                                            <span style={{ fontSize: '10px', color: '#94a3b8' }}></span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                {selectedStore === store.name && <span className="check-icon">✓</span>}
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <button className="logout-btn" onClick={() => setShowLogoutConfirm(true)} title="Logout">
-                            {LOGOUT_ICON}
-                            <span className="logout-text">Logout</span>
-                        </button>
-                    </div>
-
-                    <div className="selection-bottom-row">
-                        <div className="selection-left">
-                            <span className="selection-label">
-                                <div className="selection-details-text">
-                                    <span className="store-display-name">{selectedStore}</span>
-                                    <span className="cc-display-name">{selectedCostCenter}</span>
-                                </div>
-                            </span>
+                <div className="selection-info-bar unified-header-row">
+                    <div className="location-badge">
+                        <span className="location-pin">📍</span>
+                        <div className="location-info">
+                            <div className="store-row">
+                                <span className="store-name">{selectedStore}</span>
+                                <button className="location-edit-btn" onClick={handleOpenModal} title="Change Location">
+                                    {PENCIL_ICON}
+                                </button>
+                            </div>
+                            <span className="cc-name">{selectedCostCenter}</span>
                         </div>
                     </div>
+
+                    <button className="logout-btn-minimal" onClick={() => setShowLogoutConfirm(true)}>
+                        {LOGOUT_ICON}
+                        <span className="logout-text">Logout</span>
+                    </button>
                 </div>
             )}
 
@@ -649,7 +638,7 @@ function PatientList({
 
                         {/* Clean Dual-Button UI - No 'back box' background */}
                         <div className="scanner-mode-tabs">
-                            <button 
+                            <button
                                 className={`mode-tab ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -661,7 +650,7 @@ function PatientList({
                                 <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '20px', height: '20px' }} />
                                 <span>SCANNER</span>
                             </button>
-                            <button 
+                            <button
                                 className={`mode-tab ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -730,6 +719,85 @@ function PatientList({
                             }}
                         >
                             GOT IT
+                        </button>
+                    </div>
+                </div>
+            )}
+            {/* Location Selection Modal */}
+            {showLocationModal && (
+                <div className="location-modal-overlay" onClick={() => setShowLocationModal(false)}>
+                    <div className="location-modal-card" onClick={e => e.stopPropagation()}>
+                        <div className="location-modal-header">
+                            <h3>Select Store/Cost Center</h3>
+                            <button className="modal-close-btn" onClick={() => setShowLocationModal(false)} title="Close">
+                                {CLOSE_ICON_SMALL}
+                            </button>
+                        </div>
+
+                        <div className="location-modal-content">
+                            <div className="modal-scroll-section">
+                                <div className="modal-section-title">Select Store</div>
+                                <div className="modal-search-container">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search store..." 
+                                        value={storeSearch}
+                                        onChange={(e) => setStoreSearch(e.target.value)}
+                                        className="modal-search-input"
+                                        onClick={e => e.stopPropagation()}
+                                    />
+                                    {storeSearch && (
+                                        <button className="modal-search-clear" onClick={() => setStoreSearch('')}>✕</button>
+                                    )}
+                                </div>
+                                <div className="modal-list">
+                                    {stores
+                                        .filter(s => s.name.toLowerCase().includes(storeSearch.toLowerCase()))
+                                        .map(store => (
+                                        <div
+                                            key={store.id}
+                                            className={`modal-item ${tempStore?.id === store.id ? 'selected' : ''}`}
+                                            onClick={() => handleModalStoreSelect(store)}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                <span className="modal-item-name">{store.name}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="modal-scroll-section">
+                                <div className="modal-section-title">
+                                    Select Cost Center {isModalLoadingCC && <span className="search-circle-loader" style={{ width: 12, height: 12, borderWeight: 2, display: 'inline-block', marginLeft: 8 }}></span>}
+                                </div>
+                                <div className="modal-list">
+                                    {modalCCs.length > 0 ? (
+                                        modalCCs.map(cc => (
+                                            <div
+                                                key={cc.id}
+                                                className={`modal-item ${tempCC?.id === cc.id ? 'selected' : ''}`}
+                                                onClick={() => setTempCC(cc)}
+                                            >
+                                                <span className="modal-item-name">{cc.name}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                                            {tempStore ? "No cost centers available" : "Please select a store first"}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            className="modal-fab-confirm"
+                            onClick={handleConfirmSelection}
+                            disabled={!tempStore || !tempCC}
+                            title="Confirm Selection"
+                        >
+                            ✓
                         </button>
                     </div>
                 </div>

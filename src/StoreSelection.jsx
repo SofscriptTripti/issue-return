@@ -22,31 +22,29 @@ function StoreSelection({ stores, onSelectCostCenter, onLogout }) {
 
     const handleStoreClick = async (store) => {
         setSelectedStore(store);
-        setIsLoadingCC(true);
-        setCostCenters([]); // Reset list
         
-        try {
-            const response = await authService.getCostCenters(store.id);
-            console.log("Cost Centers API Response:", response);
-            
-            const ccData = response.data || (Array.isArray(response) ? response : []);
-            
-            if (Array.isArray(ccData)) {
-                // Map API fields (ccCd/ccDescriprion)
-                const mappedCC = ccData.map(cc => ({
-                    id: cc.ccCd,
-                    name: cc.ccDescriprion || "Unnamed Cost Center",
-                    ptnTypFlg: cc.ptnTypFlg || "O" // Default to Out if missing
-                }));
-                
-                // Always set cost centers and let user see/confirm them, even if there's only one
-                setCostCenters(mappedCC);
+        let ccData = store.costCenters || [];
+        
+        if (ccData.length === 0) {
+            setIsLoadingCC(true);
+            try {
+                const response = await authService.getCostCenters(store.id);
+                const rawData = response.data || (Array.isArray(response) ? response : []);
+                if (Array.isArray(rawData)) {
+                    ccData = rawData.map(cc => ({
+                        id: cc.ccCd,
+                        name: cc.ccDescriprion || cc.ccDescription || "Unnamed Cost Center",
+                        ptnTypFlg: cc.ptnTypFlg || "O"
+                    }));
+                }
+            } catch (err) {
+                console.error("StoreSelection CC fallback failed:", err);
+            } finally {
+                setIsLoadingCC(false);
             }
-        } catch (err) {
-            console.error("Failed to fetch cost centers:", err);
-        } finally {
-            setIsLoadingCC(false);
         }
+        
+        setCostCenters(ccData);
     };
 
     const handleCostCenterClick = (cc) => {
