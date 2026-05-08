@@ -746,7 +746,7 @@
     grid-row: 2;
 }
 
-/* Third Row: PTN ID and Last Visit */
+/* Third Row: PTN ID and Mobile No */
 .patient-info-grid > div:nth-child(5) {
     grid-column: 1;
     grid-row: 3;
@@ -754,6 +754,12 @@
 .patient-info-grid > div:nth-child(6) {
     grid-column: 2;
     grid-row: 3;
+}
+
+/* Fourth Row: IP NO */
+.patient-info-grid > div:nth-child(7) {
+    grid-column: 1;
+    grid-row: 4;
 }
 
 .patient-info-grid>div:nth-child(2) {

@@ -359,6 +359,7 @@ function App() {
           apiPatients={apiPatients}
           isPatientsLoading={isPatientsLoading}
           onSearch={handlePatientSearch}
+          ptnTypFlg={savedPtnTypFlg}
         />
       )}
       {currentScreen === "addMed" && (
@@ -367,6 +368,7 @@ function App() {
           onBack={handleBackToPatientList}
           storeCd={selectedStoreCd}
           ccCd={selectedCCCd}
+          ptnTypFlg={savedPtnTypFlg}
         />
       )}
 

@@ -3,7 +3,7 @@ import './AddMed.css';
 import { authService } from './api/authService';
 import { Html5Qrcode } from 'html5-qrcode';
 
-function AddMed({ patient, onBack, storeCd, ccCd }) {
+function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
     // Unique cart key per patient
     const cartKey = patient ? `med_cart_${patient.ptnNo}` : null;
 
@@ -671,6 +671,11 @@ function AddMed({ patient, onBack, storeCd, ccCd }) {
                     <div className="am-patient-row">
                         <span className="am-ptn-no">PTN: <span className="am-ptn-val">{patient.ptnNo}</span></span>
                     </div>
+                    {ptnTypFlg === 'I' && (
+                        <div className="am-patient-row">
+                            <span className="am-ptn-no">IP NO: <span className="am-ptn-val">{patient.ipNo}</span></span>
+                        </div>
+                    )}
                 </div>
             </div>
 

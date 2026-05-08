@@ -47,7 +47,8 @@ function PatientList({
 
     apiPatients = [],
     isPatientsLoading = false,
-    onSearch
+    onSearch,
+    ptnTypFlg = "O"
 }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -432,6 +433,7 @@ function PatientList({
                 id: p.ptnNo || idx,
                 name: displayTitle,
                 ptnNo: formatVal(p.ptnNo),
+                ipNo: formatVal(p.ipNo),
                 age: formatVal(p.age),
                 gender: formatVal(p.gender),
                 phone: formatVal(p.ptnMobileNo),
@@ -475,7 +477,7 @@ function PatientList({
                         <button type="submit" className="search-icon-btn" onClick={handleSearchSubmit}>🔍</button>
                         <input
                             type="text"
-                            placeholder="Type Name, PTN or Phone and search..."
+                            placeholder={`Type Name, ${ptnTypFlg === 'I' ? 'IPN' : 'PTN'} or Phone and search...`}
                             className="search-input"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -532,6 +534,12 @@ function PatientList({
                                             <span className="info-label-inline">Mobile No:</span>
                                             <span className="info-value-inline text-black">{patient.mobile}</span>
                                         </div>
+                                        {ptnTypFlg === 'I' && (
+                                            <div className="grid-cell cell-left">
+                                                <span className="info-label-inline">IP NO:</span>
+                                                <span className="info-value-inline text-black">{patient.ipNo}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
