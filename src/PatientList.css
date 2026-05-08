@@ -1639,11 +1639,14 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-bottom: 1px solid #f1f5f9;
+    border: 1px solid #006ce6; /* Blue outline border */
+    margin: 8px 16px;
+    border-radius: 12px;
+    background: white;
 }
 
 .modal-scroll-section:last-child {
-    border-bottom: none;
+    margin-bottom: 24px;
 }
 
 .modal-section-title {
@@ -1658,9 +1661,8 @@
 }
 
 .modal-search-container {
-    padding: 12px 24px;
+    padding: 8px 24px 12px 24px;
     background: white;
-    border-bottom: 1px solid #f1f5f9;
     position: relative;
     display: flex;
     align-items: center;
@@ -1668,23 +1670,23 @@
 
 .modal-search-input {
     width: 100%;
-    padding: 10px 35px 10px 15px;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    padding: 8px 30px 4px 0px; /* Reduced padding */
+    border: none;
+    border-bottom: 1px solid #e2e8f0; /* Thin light line by default */
+    border-radius: 0;
     font-size: 14px;
     outline: none;
     transition: border-color 0.2s;
-    background: #f8fafc;
+    background: transparent;
 }
 
 .modal-search-input:focus {
-    border-color: #006ce6;
-    background: white;
+    border-bottom: 1.5px solid #006ce6; /* Blue thin line on focus */
 }
 
 .modal-search-clear {
     position: absolute;
-    right: 35px;
+    right: 24px;
     background: none;
     border: none;
     color: #94a3b8;
@@ -1699,13 +1701,28 @@
     display: flex;
     flex-direction: column;
     padding-bottom: 10px; /* Minimal gap for items */
-    /* Hide scrollbar */
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    /* Custom Blue Scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #006ce6 transparent;
 }
 
 .modal-list::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+    display: block;
+    width: 4px;
+}
+
+.modal-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-list::-webkit-scrollbar-thumb {
+    background: #006ce6;
+    border-radius: 10px;
+    min-height: 40px;
+}
+
+.modal-list::-webkit-scrollbar-button {
+    display: none;
 }
 
 .modal-scroll-section:last-of-type .modal-list {
@@ -1728,14 +1745,14 @@
 
 .modal-item.selected {
     background: #eff6ff;
-    border-left: 4px solid var(--theme-accent-blue);
-    padding-left: 20px;
+    padding-left: 24px;
 }
 
 .modal-item-name {
     font-size: 14.5px;
     font-weight: 500;
     color: #64748b; /* Subtle grey for list items */
+    text-transform: capitalize; /* Ensure Store and Center look identical */
 }
 
 .modal-item.selected .modal-item-name {
@@ -1745,24 +1762,25 @@
 
 .modal-fab-confirm {
     position: absolute;
-    bottom: 24px;
-    right: 24px; /* Locked to the right side inside the modal */
-    width: 64px;
-    height: 64px;
+    bottom: 40px;
+    right: 28px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
-    background: #006ce6; /* Solid Blue BG */
+    background: #006ce6;
     color: white;
     border: none;
-    font-size: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 10px 25px rgba(0, 108, 230, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 108, 230, 0.3);
     cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 100;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
 }
-
 .modal-fab-confirm:hover:not(:disabled) {
     transform: scale(1.1) translateY(-5px);
     box-shadow: 0 15px 30px rgba(0, 108, 230, 0.5);
@@ -1781,12 +1799,24 @@
     transform: scale(0.95);
 }
 
-/* Scrollbar for modal content - Hidden for clean look */
+/* Scrollbar for modal content - Thin Blue Line */
 .location-modal-content::-webkit-scrollbar {
+    display: block;
+    width: 4px;
+}
+.location-modal-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+.location-modal-content::-webkit-scrollbar-thumb {
+    background: #006ce6;
+    border-radius: 10px;
+    min-height: 40px;
+}
+.location-modal-content::-webkit-scrollbar-button {
     display: none;
 }
 .location-modal-content {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: #006ce6 transparent;
 }
 

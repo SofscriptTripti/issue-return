@@ -450,15 +450,15 @@ function PatientList({
             {(selectedStore || selectedCostCenter) && (
                 <div className="selection-info-bar unified-header-row">
                     <div className="location-badge">
-                        <span className="location-pin">📍</span>
                         <div className="location-info">
                             <div className="store-row">
+                                <span className="location-pin">📍</span>
                                 <span className="store-name">{selectedStore}</span>
                                 <button className="location-edit-btn" onClick={handleOpenModal} title="Change Location">
                                     {PENCIL_ICON}
                                 </button>
                             </div>
-                            <span className="cc-name">{selectedCostCenter}</span>
+                            <span className="cc-name" style={{ paddingLeft: '24px' }}>{selectedCostCenter}</span>
                         </div>
                     </div>
 
@@ -774,12 +774,14 @@ function PatientList({
                                 <div className="modal-list">
                                     {modalCCs.length > 0 ? (
                                         modalCCs.map(cc => (
-                                            <div
-                                                key={cc.id}
+                                            <div 
+                                                key={cc.id} 
                                                 className={`modal-item ${tempCC?.id === cc.id ? 'selected' : ''}`}
                                                 onClick={() => setTempCC(cc)}
                                             >
-                                                <span className="modal-item-name">{cc.name}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <span className="modal-item-name">{cc.name}</span>
+                                                </div>
                                             </div>
                                         ))
                                     ) : (
@@ -797,7 +799,7 @@ function PatientList({
                             disabled={!tempStore || !tempCC}
                             title="Confirm Selection"
                         >
-                            ✓
+                            OK
                         </button>
                     </div>
                 </div>
