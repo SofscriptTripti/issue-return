@@ -40,6 +40,7 @@ function PatientList({
     onAddScannedPatient,
     selectedStore,
     selectedCostCenter,
+    selectedTrnModeId,
     stores = [],
     onStoreChange,
     onStoreAndCCChange,
@@ -94,7 +95,8 @@ function PatientList({
             const rawData = response.data || (Array.isArray(response) ? response : []);
             if (Array.isArray(rawData)) {
                 return rawData.map(cc => ({
-                    id: cc.trnModeId,
+                    id: cc.ccCd || cc.trnModeId,
+                    trnModeId: cc.trnModeId,
                     name: cc.ccDescriprion || cc.ccDescription || "Unnamed Cost Center",
                     ptnTypFlg: cc.ptnTypFlg || "O"
                 }));
@@ -119,7 +121,7 @@ function PatientList({
                 ccs = await fetchCentersForStore(currentStore.id);
             }
             setModalCCs(ccs);
-            const currentCC = ccs.find(c => c.name === selectedCostCenter) || (ccs.length === 1 ? ccs[0] : null);
+            const currentCC = ccs.find(c => String(c.trnModeId) === String(selectedTrnModeId)) || (ccs.length === 1 ? ccs[0] : null);
             setTempCC(currentCC);
         }
     };
@@ -139,6 +141,9 @@ function PatientList({
 
     const handleConfirmSelection = () => {
         if (onStoreAndCCChange && tempStore && tempCC) {
+            console.log("Modal OK Clicked - Selected Store ID:", tempStore.id);
+            console.log("Modal OK Clicked - Selected Cost Center ID (ccCd):", tempCC.id);
+            console.log("Modal OK Clicked - trnModeId:", tempCC.trnModeId);
             onStoreAndCCChange(tempStore, tempCC);
             setShowLocationModal(false);
         }
@@ -316,7 +321,8 @@ function PatientList({
                     const rawData = response.data || (Array.isArray(response) ? response : []);
                     if (Array.isArray(rawData)) {
                         ccData = rawData.map(cc => ({
-                            id: cc.trnModeId || cc.ccCd,
+                            id: cc.ccCd || cc.trnModeId,
+                            trnModeId: cc.trnModeId,
                             name: cc.ccDescriprion || cc.ccDescription || "Unnamed Cost Center",
                             ptnTypFlg: cc.ptnTypFlg || "O"
                         }));
@@ -783,8 +789,8 @@ function PatientList({
                                     {modalCCs.length > 0 ? (
                                         modalCCs.map(cc => (
                                             <div 
-                                                key={cc.id} 
-                                                className={`modal-item ${tempCC?.id === cc.id ? 'selected' : ''}`}
+                                                key={cc.trnModeId || cc.id} 
+                                                className={`modal-item ${tempCC?.trnModeId === cc.trnModeId ? 'selected' : ''}`}
                                                 onClick={() => setTempCC(cc)}
                                             >
                                                 <div style={{ display: 'flex', alignItems: 'center' }}>

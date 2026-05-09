@@ -268,6 +268,7 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
             if (searchTerm.length > 2) {
                 setIsSearchingItems(true);
                 try {
+                    console.log(`AddMed: Searching Medicines. StoreCd: ${storeCd}, CCCd: ${ccCd}, SearchTerm: ${searchTerm}`);
                     const response = await authService.getSearchItems(storeCd, searchTerm, ccCd);
                     console.log("Medicine Search Results:", response);
                     const items = response.data || (Array.isArray(response) ? response : []);

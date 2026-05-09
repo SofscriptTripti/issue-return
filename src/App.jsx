@@ -21,6 +21,7 @@ function App() {
   const [selectedStoreCd, setSelectedStoreCd] = useState(savedSession.selectedStoreCd || "");
   const [selectedCostCenter, setSelectedCostCenter] = useState(savedSession.selectedCostCenter || "");
   const [selectedCCCd, setSelectedCCCd] = useState(savedSession.selectedCCCd || "");
+  const [selectedTrnModeId, setSelectedTrnModeId] = useState(savedSession.selectedTrnModeId || "");
   const [savedPtnTypFlg, setSavedPtnTypFlg] = useState(savedSession.ptnTypFlg || "O");
   const [stores, setStores] = useState([]);
   const [storeType, setStoreType] = useState("INVENTORY");
@@ -44,6 +45,7 @@ function App() {
       selectedStoreCd,
       selectedCostCenter,
       selectedCCCd,
+      selectedTrnModeId,
       ptnTypFlg: savedPtnTypFlg,
       selectedPatient,
     };
@@ -121,12 +123,13 @@ function App() {
     }
   }, []);
 
-  const handleCostCenterSelect = useCallback((storeName, costCenter, ptnTypFlg, storeCd, ccCd) => {
-    console.log("Setting selection codes in App:", { storeCd, ccCd });
+  const handleCostCenterSelect = useCallback((storeName, costCenter, ptnTypFlg, storeCd, ccCd, trnModeId) => {
+    console.log("Setting selection codes in App:", { storeCd, ccCd, trnModeId });
     setSelectedStoreName(storeName);
     setSelectedStoreCd(storeCd);
     setSelectedCostCenter(costCenter);
     setSelectedCCCd(ccCd);
+    setSelectedTrnModeId(trnModeId);
     setSavedPtnTypFlg(ptnTypFlg);
     fetchPatients(ptnTypFlg);
     window.history.pushState({ screen: "patientList" }, "", "");
@@ -175,11 +178,12 @@ function App() {
       }
       
       const ccName = centerItem ? (centerItem.ccDescriprion || centerItem.ccDescription) : "";
-      const ccCd = centerItem ? (centerItem.trnModeId || centerItem.ccCd) : "";
+      const ccCd = centerItem ? (centerItem.ccCd || centerItem.trnModeId) : "";
+      const trnModeId = centerItem ? centerItem.trnModeId : "";
       const ptnTypFlg = centerItem ? centerItem.ptnTypFlg : "O";
 
-      console.log("Auto-selecting defaults:", { storeName, ccName, storeCd, ccCd });
-      handleCostCenterSelect(storeName, ccName || "", ptnTypFlg || "O", storeCd, ccCd || "");
+      console.log("Auto-selecting defaults:", { storeName, ccName, storeCd, ccCd, trnModeId });
+      handleCostCenterSelect(storeName, ccName || "", ptnTypFlg || "O", storeCd, ccCd || "", trnModeId || "");
     }
   }, [handleCostCenterSelect]);
 
@@ -288,18 +292,23 @@ function App() {
 
   const handleStoreAndCCChange = (store, cc) => {
     if (store) {
+      console.log("App: Updating Store to:", store.id, store.name);
       setSelectedStoreName(store.name);
       setSelectedStoreCd(store.id);
     }
     if (cc) {
+      console.log("App: Updating Cost Center to:", cc.id, cc.name, "ptnTyp:", cc.ptnTypFlg, "trnModeId:", cc.trnModeId);
       setSelectedCostCenter(cc.name);
       setSelectedCCCd(cc.id);
+      setSelectedTrnModeId(cc.trnModeId);
       setSavedPtnTypFlg(cc.ptnTypFlg);
       fetchPatients(cc.ptnTypFlg);
     } else if (store) {
       // Clear CC if user selected a store with no CCs or is switching
+      console.log("App: Clearing Cost Center because Store changed.");
       setSelectedCostCenter("");
       setSelectedCCCd("");
+      setSelectedTrnModeId("");
       setApiPatients([]); // Clear the list
     }
   };
@@ -351,6 +360,7 @@ function App() {
           onAddScannedPatient={handleAddScannedPatient}
           selectedStore={selectedStoreName}
           selectedCostCenter={selectedCostCenter}
+          selectedTrnModeId={selectedTrnModeId}
           stores={stores}
            onStoreAndCCChange={handleStoreAndCCChange}
           onEditLocation={handleEditLocation}
