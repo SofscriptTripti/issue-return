@@ -308,7 +308,8 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
         setSearchItems([]);
 
         try {
-            const response = await authService.getItemBatchList(storeCd, med.id);
+            console.log(`AddMed: Fetching batches for ${med.name} (ID: ${med.id}) in Store: ${storeCd}, CCcd: ${ccCd}`);
+            const response = await authService.getItemBatchList(storeCd, med.id, ccCd);
             const batches = response.data || (Array.isArray(response) ? response : []);
             if (Array.isArray(batches) && batches.length > 0) {
                 const chosenBatch = targetBatchToUse || (batches[0].bchNo || batches[0].batchNo) || "N/A";
@@ -367,6 +368,8 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                 setShowBatchModal(true);
                 return { added: false, reason: 'MODAL_OPENED' };
             } else {
+                console.warn(`AddMed: No batches found for medicine: ${med.name} in Store: ${storeCd}, CCcd: ${ccCd}`);
+                showToast("No active batches found (Out of Stock).");
                 return { added: false, reason: 'OUT_OF_STOCK' };
             }
         } catch (err) {
@@ -421,8 +424,8 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
         setDetectedMedCode(barCd);
 
         try {
-            console.log(`Starting lookup for Barcode: "${barCd}" in Store: ${storeCd}`);
-            const response = await authService.getItemByBarcode(barCd, storeCd);
+            console.log(`Starting lookup for Barcode: "${barCd}" in Store: ${storeCd}, CCCd: ${ccCd}`);
+            const response = await authService.getItemByBarcode(barCd, storeCd, ccCd);
             const data = response.data || (Array.isArray(response) ? response : []);
 
             const isSuccess = response.success === "true" || response.status === 200 || response.success === true;

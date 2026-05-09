@@ -57,7 +57,7 @@ function App() {
       const response = await authService.getStores();
       console.log("App: Raw Store API Response (Unified):", response);
       const storesArray = response.data || (Array.isArray(response) ? response : []);
-      
+
       if (Array.isArray(storesArray)) {
         // Group by Store to keep compatibility with UI while using same API for centers
         const storeMap = {};
@@ -86,7 +86,7 @@ function App() {
           ...s,
           color: STORE_COLORS[idx % STORE_COLORS.length]
         }));
-        
+
         setStores(mappedStores);
         return storesArray;
       } else {
@@ -149,7 +149,7 @@ function App() {
     // 2. Find "Out Patient Cash" center
     // First, check if it's already in the store list (as requested "same API")
     console.log("AutoSelection: Checking for 'Out Patient Cash' in unified list...");
-    let centerItem = storesArray.find(s => 
+    let centerItem = storesArray.find(s =>
       (s.ccDescriprion && (s.ccDescriprion.toUpperCase().includes("OUT PATIENT CASH") || s.ccDescriprion.toUpperCase().includes("OUT PATINET CASH"))) ||
       (s.ccDescription && (s.ccDescription.toUpperCase().includes("OUT PATIENT CASH") || s.ccDescription.toUpperCase().includes("OUT PATINET CASH")))
     );
@@ -161,7 +161,7 @@ function App() {
         const response = await authService.getCostCenters(storeCd);
         const ccData = response.data || (Array.isArray(response) ? response : []);
         if (Array.isArray(ccData)) {
-          centerItem = ccData.find(cc => 
+          centerItem = ccData.find(cc =>
             (cc.ccDescriprion && (cc.ccDescriprion.toUpperCase().includes("OUT PATIENT CASH") || cc.ccDescriprion.toUpperCase().includes("OUT PATINET CASH"))) ||
             (cc.ccDescription && (cc.ccDescription.toUpperCase().includes("OUT PATIENT CASH") || cc.ccDescription.toUpperCase().includes("OUT PATINET CASH")))
           ) || ccData[0]; // Fallback to first if still not found
@@ -176,7 +176,7 @@ function App() {
       if (!centerItem) {
         centerItem = storesArray.find(s => s.strCd === storeCd && s.ccCd);
       }
-      
+
       const ccName = centerItem ? (centerItem.ccDescriprion || centerItem.ccDescription) : "";
       const ccCd = centerItem ? (centerItem.ccCd || centerItem.trnModeId) : "";
       const trnModeId = centerItem ? centerItem.trnModeId : "";
@@ -323,8 +323,15 @@ function App() {
 
     setIsPatientsLoading(true);
     try {
-      console.log(`API Searching for: "${searchTerm}"...`);
-      const response = await authService.getOutPatients(searchTerm);
+      console.log(`API Searching for: "${searchTerm}" (Flag: ${savedPtnTypFlg})...`);
+
+      let response;
+      if (savedPtnTypFlg === "I") {
+        response = await authService.getInPatients(searchTerm);
+      } else {
+        response = await authService.getOutPatients(searchTerm);
+      }
+
       console.log("Search API Result received:", response);
 
       const data = response.data || (Array.isArray(response) ? response : []);
@@ -362,7 +369,7 @@ function App() {
           selectedCostCenter={selectedCostCenter}
           selectedTrnModeId={selectedTrnModeId}
           stores={stores}
-           onStoreAndCCChange={handleStoreAndCCChange}
+          onStoreAndCCChange={handleStoreAndCCChange}
           onEditLocation={handleEditLocation}
           storeType={storeType}
           onStoreTypeChange={setStoreType}
@@ -384,35 +391,35 @@ function App() {
 
       {showLogoutConfirm && (
         <div className="adv-overlay" onClick={() => setShowLogoutConfirm(false)}>
-            <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 340 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#005bb7', marginBottom: 8, margin: '0 0 8px 0' }}>Confirm Logout</h2>
-                <p style={{ fontSize: 15, fontWeight: 600, color: '#4a4a4a', marginBottom: 24, margin: '0 0 24px 0', lineHeight: 1.5 }}>
-                    Are you sure you want to logout?
-                </p>
-                <div style={{ display: 'flex', gap: 12 }}>
-                    <button
-                        onClick={() => setShowLogoutConfirm(false)}
-                        style={{
-                            flex: 1, padding: '12px', borderRadius: 10,
-                            border: '1px solid #dae8f7', background: '#f0f7ff',
-                            color: '#005bb7', fontWeight: 700, fontSize: 14, cursor: 'pointer'
-                        }}
-                    >
-                        No
-                    </button>
-                    <button
-                        onClick={() => { setShowLogoutConfirm(false); handleLogout(); }}
-                        style={{
-                            flex: 1, padding: '12px', borderRadius: 10,
-                            border: 'none', background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
-                            color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer',
-                            boxShadow: '0 4px 12px rgba(0,108,230,0.2)'
-                        }}
-                    >
-                        Yes
-                    </button>
-                </div>
+          <div className="adv-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 340 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#005bb7', marginBottom: 8, margin: '0 0 8px 0' }}>Confirm Logout</h2>
+            <p style={{ fontSize: 15, fontWeight: 600, color: '#4a4a4a', marginBottom: 24, margin: '0 0 24px 0', lineHeight: 1.5 }}>
+              Are you sure you want to logout?
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: 10,
+                  border: '1px solid #dae8f7', background: '#f0f7ff',
+                  color: '#005bb7', fontWeight: 700, fontSize: 14, cursor: 'pointer'
+                }}
+              >
+                No
+              </button>
+              <button
+                onClick={() => { setShowLogoutConfirm(false); handleLogout(); }}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: 10,
+                  border: 'none', background: 'linear-gradient(135deg, #006ce6, #00c7ff)',
+                  color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,108,230,0.2)'
+                }}
+              >
+                Yes
+              </button>
             </div>
+          </div>
         </div>
       )}
     </>

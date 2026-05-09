@@ -752,9 +752,9 @@ function PatientList({
                             <div className="modal-scroll-section">
                                 <div className="modal-section-title">Select Store</div>
                                 <div className="modal-search-container">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search store..." 
+                                    <input
+                                        type="text"
+                                        placeholder="Search store..."
                                         value={storeSearch}
                                         onChange={(e) => setStoreSearch(e.target.value)}
                                         className="modal-search-input"
@@ -768,16 +768,16 @@ function PatientList({
                                     {stores
                                         .filter(s => s.name.toLowerCase().includes(storeSearch.toLowerCase()))
                                         .map(store => (
-                                        <div
-                                            key={store.id}
-                                            className={`modal-item ${tempStore?.id === store.id ? 'selected' : ''}`}
-                                            onClick={() => handleModalStoreSelect(store)}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                                                <span className="modal-item-name">{store.name}</span>
+                                            <div
+                                                key={store.id}
+                                                className={`modal-item ${tempStore?.id === store.id ? 'selected' : ''}`}
+                                                onClick={() => handleModalStoreSelect(store)}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <span className="modal-item-name">{store.name}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
                                 </div>
                             </div>
 
@@ -788,8 +788,8 @@ function PatientList({
                                 <div className="modal-list">
                                     {modalCCs.length > 0 ? (
                                         modalCCs.map(cc => (
-                                            <div 
-                                                key={cc.trnModeId || cc.id} 
+                                            <div
+                                                key={cc.trnModeId || cc.id}
                                                 className={`modal-item ${tempCC?.trnModeId === cc.trnModeId ? 'selected' : ''}`}
                                                 onClick={() => setTempCC(cc)}
                                             >

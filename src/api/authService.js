@@ -62,9 +62,10 @@ export const authService = {
   /**
    * Get IN Patient Details
    */
-  getInPatients: async () => {
+  getInPatients: async (pipNo = "") => {
     try {
-      const response = await apiClient(ENDPOINTS.GET_IN_PATIENTS, { method: "GET" });
+      const endpoint = pipNo ? `${ENDPOINTS.GET_IN_PATIENTS}?PIPNo=${pipNo}` : ENDPOINTS.GET_IN_PATIENTS;
+      const response = await apiClient(endpoint, { method: "GET" });
       console.log("IN Patient API Response:", response);
       return response;
     } catch (error) {
@@ -110,10 +111,10 @@ export const authService = {
    * @param {string} strCd - Store Code
    * @param {string} itemCd - Item Code (e.g. MED001130)
    */
-  getItemBatchList: async (strCd, itemCd) => {
+  getItemBatchList: async (strCd, itemCd, ccCd) => {
     try {
-      console.log("Fetching batch details for:", { strCd, itemCd });
-      const endpoint = `${ENDPOINTS.GET_ITEM_BATCH}?Strcd=${strCd}&ItemCd=${itemCd}`;
+      console.log("Fetching batch details for:", { strCd, itemCd, ccCd });
+      const endpoint = `${ENDPOINTS.GET_ITEM_BATCH}?Strcd=${strCd}&ItemCd=${itemCd}&CCcd=${ccCd || ''}`;
       const response = await apiClient(endpoint, { method: "GET" });
       console.log("Item Batch API Response:", response);
       return response;
@@ -143,10 +144,10 @@ export const authService = {
   /**
    * Get Item/Patient details by Barcode/QR
    */
-  getItemByBarcode: async (barCd, strCd) => {
+  getItemByBarcode: async (barCd, strCd, ccCd) => {
     try {
-      console.log(`Fetching details by barcode: ${barCd} for Store: ${strCd}`);
-      const endpoint = `${ENDPOINTS.GET_ITEM_BY_BARCODE}?BarCd=${barCd}&StrCd=${strCd}`;
+      console.log(`Fetching details by barcode: ${barCd} for Store: ${strCd}, CCCd: ${ccCd}`);
+      const endpoint = `${ENDPOINTS.GET_ITEM_BY_BARCODE}?BarCd=${barCd}&StrCd=${strCd}&CCCd=${ccCd || ''}`;
       const response = await apiClient(endpoint, { method: "GET" });
       console.log("Barcode API Response:", response);
       return response;
