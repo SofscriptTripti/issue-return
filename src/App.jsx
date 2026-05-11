@@ -102,7 +102,7 @@ function App() {
 
   const fetchPatients = useCallback(async (ptnTypFlg) => {
     setIsPatientsLoading(true);
-    // Removed setApiPatients([]) to prevent flickering while loading
+    setApiPatients([]); // CRITICAL: Clear list immediately to prevent stuck data
     try {
       let response;
       if (ptnTypFlg === "I") {
@@ -322,6 +322,7 @@ function App() {
     }
 
     setIsPatientsLoading(true);
+    setApiPatients([]); // CRITICAL: Clear list immediately to prevent stuck data
     try {
       console.log(`API Searching for: "${searchTerm}" (Flag: ${savedPtnTypFlg})...`);
 
