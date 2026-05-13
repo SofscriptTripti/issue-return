@@ -566,22 +566,25 @@
 }
 
 .search-scanner-btn {
-    background: #f1f5f9;
+    background: #006ce6;
     border: none;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--theme-text-blue);
+    color: #ffffff;
     cursor: pointer;
-    border-radius: 10px;
+    border-radius: 12px;
     transition: all 0.2s;
     margin-right: 4px;
+    box-shadow: 0 4px 12px rgba(0, 108, 230, 0.2);
+    flex-shrink: 0;
 }
 
 .search-scanner-btn:hover {
-    background: var(--theme-accent-light-blue);
+    background: #f0f7ff;
+    border-color: var(--theme-accent-blue);
 }
 
 .filter-button {
@@ -1928,21 +1931,22 @@
 }
 
 .bg-scanner-indicator {
-    background: #0f172a;
-    color: #ffffff;
+    background: #ffffff;
+    color: #1e293b;
     padding: 8px 16px;
     border-radius: 100px;
     display: flex;
     align-items: center;
     gap: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
     font-size: 11px;
     font-weight: 700;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #e2e8f0;
     animation: fadeInSlideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     letter-spacing: 0.5px;
     text-transform: uppercase;
     pointer-events: auto;
+    white-space: nowrap;
 }
 
 .pulse-dot {
