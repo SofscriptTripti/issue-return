@@ -487,30 +487,27 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
             console.error("Barcode lookup error:", err);
             setShowScanStatus({ show: true, msg: "Scan Error", isError: true });
         } finally {
-            // For Hardware (background): Release lock immediately to allow next scan
-            // For Camera (modal): Wait for status message to clear before allowing next scan
-            const isCameraMode = isScannerOpen;
-
-            if (!isCameraMode) {
+            // RELEASE HARDWARE LOCK IMMEDIATELY
+            if (!isScannerOpen) {
                 setIsProcessingScan(false);
                 isProcessingRef.current = false;
+                lastDetectedRef.current = null;
             }
 
-            lastDetectedRef.current = null;
             setNoScanTimer(0);
             setDetectedMedCode('');
             
-            // Re-focus hardware input if active
             if (isHardwareActive && hiddenInputRef.current) {
                 hiddenInputRef.current.focus();
             }
 
-            // Hide the status message and release lock for camera after 3 seconds
+            // HIDE MSG AND RELEASE CAMERA LOCK AFTER 3 SECONDS
             setTimeout(() => {
                 setShowScanStatus({ show: false, msg: '', isError: false });
-                if (isCameraMode) {
+                if (isScannerOpen) {
                     setIsProcessingScan(false);
                     isProcessingRef.current = false;
+                    lastDetectedRef.current = null;
                 }
             }, 3000);
         }
@@ -1188,20 +1185,22 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
             {isHardwareActive && !isScannerOpen && (
                 <div className="background-scanner-wrap" onClick={() => hiddenInputRef.current?.focus()}>
                     <div className="bg-scanner-indicator stacked">
-                        <div className="bg-indicator-top-row">
-                            <span className="pulse-dot"></span>
-                            {!showScanStatus.show && <span className="indicator-text">Scanner Active</span>}
-                            <button 
-                                className="bg-scanner-stop-btn"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsHardwareActive(false);
-                                }}
-                                title="Stop Scanner"
-                            >
-                                <span className="stop-icon"></span>
-                            </button>
-                        </div>
+                        {!showScanStatus.show && (
+                            <div className="bg-indicator-top-row">
+                                <span className="pulse-dot"></span>
+                                <span className="indicator-text">Scanner Active</span>
+                                <button 
+                                    className="bg-scanner-stop-btn"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsHardwareActive(false);
+                                    }}
+                                    title="Stop Scanner"
+                                >
+                                    <span className="stop-icon"></span>
+                                </button>
+                            </div>
+                        )}
                         
                         {showScanStatus.show && (
                             <div className={`indicator-msg-row ${showScanStatus.isError ? 'err' : 'ok'}`}>
