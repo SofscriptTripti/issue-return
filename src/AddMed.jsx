@@ -126,7 +126,8 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
     // Helper to fully close scanner and reset state
     const closeScanner = async () => {
         setIsScannerOpen(false);
-        scannerLockRef.current = false; // RELEASE LOCK on close
+        scannerLockRef.current = false; 
+        isProcessingRef.current = false; // RESET LOCK ON CLOSE
         await stopAndClearScanner();
         setSelectedAddMedCameraId(null);
     };
@@ -179,15 +180,21 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                 finalId,
                 { fps: 30, qrbox: { width: 280, height: 280 }, aspectRatio: 1.0 },
                 async (decodedText) => {
-                    if (currentVersion !== scannerVersionRef.current) return;
+                    // ABSOLUTE SYNCHRONOUS LOCK
                     if (isProcessingRef.current) return;
+                    isProcessingRef.current = true;
+
+                    if (currentVersion !== scannerVersionRef.current) {
+                        isProcessingRef.current = false;
+                        return;
+                    }
                     
                     if (decodedText !== lastDetectedRef.current) {
                         if (navigator.vibrate) navigator.vibrate(50);
                     }
                     lastDetectedRef.current = decodedText;
                     setDetectedMedCode(decodedText);
-                    isProcessingRef.current = true;
+
                     if (handleBarcodeScanRef.current) {
                         handleBarcodeScanRef.current(decodedText);
                     }
@@ -214,7 +221,8 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
         document.addEventListener('visibilitychange', handleVisibility);
         
         return () => {
-            scannerLockRef.current = false; // RELEASE LOCK on unmount
+            scannerLockRef.current = false; 
+            isProcessingRef.current = false; // RELEASE LOCK ON UNMOUNT
             document.removeEventListener('visibilitychange', handleVisibility);
             stopAndClearScanner();
         };
@@ -427,14 +435,15 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
     };
 
     const handleBarcodeScan = async (rawBarCd) => {
-        // SYNCHRONOUS LOCK CHECK
-        if (isProcessingRef.current && isProcessingScan) return;
+        // Double check lock just in case
+        // But the callback already handles the main lock
         
-        const barCd = rawBarCd?.trim().replace(/^\*|\*$/g, ''); // Strip leading/trailing *
-        if (!barCd) return;
+        const barCd = rawBarCd?.trim().replace(/^\*|\*$/g, ''); 
+        if (!barCd) {
+            isProcessingRef.current = false;
+            return;
+        }
 
-        // SET LOCKS
-        isProcessingRef.current = true;
         setIsProcessingScan(true);
         setDetectedMedCode(barCd);
 
@@ -497,8 +506,10 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
             console.error("Barcode lookup error:", err);
             setShowScanStatus({ show: true, msg: "Scan Error", isError: true });
         } finally {
+            const wasInCameraMode = isScannerOpen;
+
             // RELEASE HARDWARE LOCK IMMEDIATELY
-            if (!isScannerOpen) {
+            if (!wasInCameraMode) {
                 setIsProcessingScan(false);
                 isProcessingRef.current = false;
                 lastDetectedRef.current = null;
@@ -514,7 +525,7 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
             // HIDE MSG AND RELEASE CAMERA LOCK AFTER 4 SECONDS
             setTimeout(() => {
                 setShowScanStatus({ show: false, msg: '', isError: false });
-                if (isScannerOpen) {
+                if (wasInCameraMode) {
                     setIsProcessingScan(false);
                     isProcessingRef.current = false;
                     lastDetectedRef.current = null;
