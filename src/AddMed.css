@@ -2219,17 +2219,40 @@
     white-space: nowrap;
 }
 
-.indicator-status-msg {
-    margin-left: 4px;
-    font-weight: 800;
-    transition: all 0.3s;
+.bg-scanner-indicator.stacked {
+    flex-direction: column;
+    padding: 10px 18px;
+    border-radius: 20px;
+    min-width: 180px;
+    align-items: center;
+    gap: 6px;
 }
 
-.indicator-status-msg.ok {
+.bg-indicator-top-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+}
+
+.indicator-msg-row {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: none;
+    letter-spacing: 0.2px;
+    text-align: center;
+    animation: fadeInSlideDown 0.3s ease-out;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    width: 100%;
+}
+
+.indicator-msg-row.ok {
     color: #10b981;
 }
 
-.indicator-status-msg.err {
+.indicator-msg-row.err {
     color: #ef4444;
 }
 

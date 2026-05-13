@@ -1177,26 +1177,27 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
 
             {isHardwareActive && !isScannerOpen && (
                 <div className="background-scanner-wrap" onClick={() => hiddenInputRef.current?.focus()}>
-                    <div className="bg-scanner-indicator">
-                        <span className="pulse-dot"></span>
-                        <span className="indicator-text">
-                            Scanner Active
-                            {showScanStatus.show && (
-                                <span className={`indicator-status-msg ${showScanStatus.isError ? 'err' : 'ok'}`}>
-                                    : {showScanStatus.msg}
-                                </span>
-                            )}
-                        </span>
-                        <button 
-                            className="bg-scanner-stop-btn"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsHardwareActive(false);
-                            }}
-                            title="Stop Scanner"
-                        >
-                            <span className="stop-icon"></span>
-                        </button>
+                    <div className="bg-scanner-indicator stacked">
+                        <div className="bg-indicator-top-row">
+                            <span className="pulse-dot"></span>
+                            <span className="indicator-text">Scanner Active</span>
+                            <button 
+                                className="bg-scanner-stop-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsHardwareActive(false);
+                                }}
+                                title="Stop Scanner"
+                            >
+                                <span className="stop-icon"></span>
+                            </button>
+                        </div>
+                        
+                        {showScanStatus.show && (
+                            <div className={`indicator-msg-row ${showScanStatus.isError ? 'err' : 'ok'}`}>
+                                {showScanStatus.msg}
+                            </div>
+                        )}
                     </div>
                     <input 
                         ref={hiddenInputRef}
