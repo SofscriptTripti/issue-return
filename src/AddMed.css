@@ -2216,6 +2216,21 @@
     letter-spacing: 0.5px;
     text-transform: uppercase;
     pointer-events: auto;
+    white-space: nowrap;
+}
+
+.indicator-status-msg {
+    margin-left: 4px;
+    font-weight: 800;
+    transition: all 0.3s;
+}
+
+.indicator-status-msg.ok {
+    color: #10b981;
+}
+
+.indicator-status-msg.err {
+    color: #ef4444;
 }
 
 .pulse-dot {
