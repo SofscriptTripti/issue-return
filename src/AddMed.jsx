@@ -188,7 +188,9 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                     lastDetectedRef.current = decodedText;
                     setDetectedMedCode(decodedText);
                     isProcessingRef.current = true;
-                    handleBarcodeScan(decodedText);
+                    if (handleBarcodeScanRef.current) {
+                        handleBarcodeScanRef.current(decodedText);
+                    }
                 },
                 () => { }
             );
@@ -425,11 +427,14 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
     };
 
     const handleBarcodeScan = async (rawBarCd) => {
-        if (isProcessingScan) return;
-
+        // SYNCHRONOUS LOCK CHECK
+        if (isProcessingRef.current && isProcessingScan) return;
+        
         const barCd = rawBarCd?.trim().replace(/^\*|\*$/g, ''); // Strip leading/trailing *
         if (!barCd) return;
 
+        // SET LOCKS
+        isProcessingRef.current = true;
         setIsProcessingScan(true);
         setDetectedMedCode(barCd);
 
