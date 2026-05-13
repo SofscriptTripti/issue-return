@@ -487,9 +487,15 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
             console.error("Barcode lookup error:", err);
             setShowScanStatus({ show: true, msg: "Scan Error", isError: true });
         } finally {
-            // Release processing lock immediately to allow next scan
-            setIsProcessingScan(false);
-            isProcessingRef.current = false;
+            // For Hardware (background): Release lock immediately to allow next scan
+            // For Camera (modal): Wait for status message to clear before allowing next scan
+            const isCameraMode = isScannerOpen;
+
+            if (!isCameraMode) {
+                setIsProcessingScan(false);
+                isProcessingRef.current = false;
+            }
+
             lastDetectedRef.current = null;
             setNoScanTimer(0);
             setDetectedMedCode('');
@@ -499,9 +505,13 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                 hiddenInputRef.current.focus();
             }
 
-            // Hide the status message after 3 seconds
+            // Hide the status message and release lock for camera after 3 seconds
             setTimeout(() => {
                 setShowScanStatus({ show: false, msg: '', isError: false });
+                if (isCameraMode) {
+                    setIsProcessingScan(false);
+                    isProcessingRef.current = false;
+                }
             }, 3000);
         }
     };
@@ -1180,7 +1190,7 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                     <div className="bg-scanner-indicator stacked">
                         <div className="bg-indicator-top-row">
                             <span className="pulse-dot"></span>
-                            <span className="indicator-text">Scanner Active</span>
+                            {!showScanStatus.show && <span className="indicator-text">Scanner Active</span>}
                             <button 
                                 className="bg-scanner-stop-btn"
                                 onClick={(e) => {
