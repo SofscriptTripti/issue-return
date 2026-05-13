@@ -433,6 +433,11 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
         setIsProcessingScan(true);
         setDetectedMedCode(barCd);
 
+        // PHYSICALLY PAUSE CAMERA if in modal mode
+        if (isScannerOpen && html5QrCodeRef.current) {
+            try { html5QrCodeRef.current.pause(); } catch(e){}
+        }
+
         try {
             console.log(`Starting lookup for Barcode: "${barCd}" in Store: ${storeCd}, CCCd: ${ccCd}`);
             const response = await authService.getItemByBarcode(barCd, storeCd, ccCd);
@@ -501,15 +506,19 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                 hiddenInputRef.current.focus();
             }
 
-            // HIDE MSG AND RELEASE CAMERA LOCK AFTER 3 SECONDS
+            // HIDE MSG AND RELEASE CAMERA LOCK AFTER 4 SECONDS
             setTimeout(() => {
                 setShowScanStatus({ show: false, msg: '', isError: false });
                 if (isScannerOpen) {
                     setIsProcessingScan(false);
                     isProcessingRef.current = false;
                     lastDetectedRef.current = null;
+                    // RESUME CAMERA
+                    if (html5QrCodeRef.current) {
+                        try { html5QrCodeRef.current.resume(); } catch(e){}
+                    }
                 }
-            }, 3000);
+            }, 4000);
         }
     };
 
