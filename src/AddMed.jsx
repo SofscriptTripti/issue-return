@@ -53,6 +53,8 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
     const lastDetectedRef = useRef(null);
     const [noScanTimer, setNoScanTimer] = useState(0); // Timer to detect "no result"
     const [detectedMedCode, setDetectedMedCode] = useState('');
+    const [showScannerChoiceModal, setShowScannerChoiceModal] = useState(false);
+    const [isHardwareActive, setIsHardwareActive] = useState(false);
 
     const showToast = (message) => {
         setToasts(prev => {
@@ -380,11 +382,22 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
         }
     };
 
-    const handleScannerClick = async () => {
-        // FORCE UNLOCK: If we were stuck, reset now
-        scannerLockRef.current = false;
-        
+    const handleScannerClick = () => {
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+        setShowScannerChoiceModal(true);
+    };
+
+    const handleChoiceHardware = () => {
+        setShowScannerChoiceModal(false);
+        setIsHardwareActive(true);
+        setScannerError('');
+        setIsScannerOpen(false); // Stay on AddMed screen
+        setSelectedAddMedCameraId('hardware_wedge');
+    };
+
+    const handleChoiceCamera = async () => {
+        setShowScannerChoiceModal(false);
+        setIsHardwareActive(false);
         setScannerError('');
         
         try {
@@ -397,12 +410,9 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                 const hardwareOption = { id: 'hardware_wedge', label: 'Scanner' };
                 setCameras([hardwareOption, cameraOption]);
 
-                const configVal = window.APP_CONFIG?.defaultScanner;
-                const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
-                
                 setIsScannerOpen(true);
                 // Call switchAddMedScannerMode in next tick to allow DOM to render
-                setTimeout(() => switchAddMedScannerMode(defaultScanner), 50);
+                setTimeout(() => switchAddMedScannerMode(backCam.id), 50);
             } else {
                 setIsScannerOpen(true);
                 setSelectedAddMedCameraId('hardware_wedge');
@@ -498,10 +508,10 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
         setDetectedMedCode('');
         setShowScanStatus({ show: false, msg: '', isError: false });
 
-        if (selectedAddMedCameraId === 'hardware_wedge' && hiddenInputRef.current) {
+        if ((selectedAddMedCameraId === 'hardware_wedge' || isHardwareActive) && hiddenInputRef.current) {
             hiddenInputRef.current.focus();
         }
-    }, [selectedAddMedCameraId, isScannerOpen]);
+    }, [selectedAddMedCameraId, isScannerOpen, isHardwareActive]);
 
     const updateQuantity = (id, change) => {
         setMedicines(prev => {
@@ -819,6 +829,35 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                 </div>
             </div>
 
+            {/* Scanner Choice Modal */}
+            {showScannerChoiceModal && (
+                <div className="scanner-choice-overlay" onClick={() => setShowScannerChoiceModal(false)}>
+                    <div className="scanner-choice-modal" onClick={e => e.stopPropagation()}>
+                        <div className="choice-options">
+                            <button className="choice-card" onClick={handleChoiceHardware}>
+                                <div className="choice-icon-bg">
+                                    <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Hardware" className="choice-gif" />
+                                </div>
+                                <div className="choice-info">
+                                    <span className="choice-title">Scanner</span>
+                                </div>
+                                <div className="choice-arrow">›</div>
+                            </button>
+
+                            <button className="choice-card" onClick={handleChoiceCamera}>
+                                <div className="choice-icon-bg camera">
+                                    <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" className="choice-gif" />
+                                </div>
+                                <div className="choice-info">
+                                    <span className="choice-title">Camera</span>
+                                </div>
+                                <div className="choice-arrow">›</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* QR Scanner Modal - Redesigned to be a Modal with Background Transparency */}
             {isScannerOpen && (
                 <div className="scanner-fullscreen-overlay">
@@ -834,77 +873,16 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                         </div>
 
                         <div className="scanner-viewport-container" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                            {selectedAddMedCameraId === 'hardware_wedge' ? (
-                                <div 
-                                    style={{ width: '280px', margin: '0 auto', height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: 'none', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', cursor: 'pointer' }}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        hiddenInputRef.current?.focus();
-                                    }}
-                                >
-                                    <p style={{ color: '#f8fafc', fontSize: '16px', fontWeight: '500' }}>Press the physical scanner button</p>
-                                    <input 
-                                        ref={hiddenInputRef}
-                                        type="text" 
-                                        autoComplete="off"
-                                        spellCheck="false"
-                                        style={{ opacity: 0, position: 'absolute', zIndex: -10, width: '1px', height: '1px' }} 
-                                        autoFocus
-                                        onFocus={(e) => {
-                                            // Hack to prevent virtual keyboard from popping up immediately on focus
-                                            e.target.readOnly = true;
-                                            setTimeout(() => {
-                                                e.target.readOnly = false;
-                                            }, 50);
-                                        }}
-                                        onBlur={(e) => {
-                                            if (selectedAddMedCameraId === 'hardware_wedge') {
-                                                setTimeout(() => hiddenInputRef.current?.focus(), 100);
-                                            }
-                                        }}
-                                        onChange={(e) => {
-                                            const val = e.target.value.trim();
-                                            if (val.length > 0) {
-                                                if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
-                                                timeoutIdRef.current = setTimeout(() => {
-                                                    if (!isProcessingRef.current && hiddenInputRef.current) {
-                                                        isProcessingRef.current = true;
-                                                        handleBarcodeScanRef.current(hiddenInputRef.current.value.trim());
-                                                        hiddenInputRef.current.value = '';
-                                                    }
-                                                }, 300);
-                                            }
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                const val = e.target.value.trim();
-                                                if (val.length > 0 && !isProcessingRef.current) {
-                                                    if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
-                                                    isProcessingRef.current = true;
-                                                    handleBarcodeScanRef.current(val);
-                                                }
-                                                e.target.value = '';
-                                            }
-                                        }}
-                                    />
-                                </div>
-                            ) : (
-                                <>
-                                    <div id="reader" className="full-qr-reader"></div>
+                            <div id="reader" className="full-qr-reader"></div>
 
-                                    {/* Centered QR code with Frame */}
-                                    <div className="scanning-frame">
-                                        <div className="corner top-left"></div>
-                                        <div className="corner top-right"></div>
-                                        <div className="corner bottom-left"></div>
-                                        <div className="corner bottom-right"></div>
-                                        {!showScanStatus.show && <div className="scanning-laser"></div>}
-                                    </div>
-                                </>
-                            )}
-
-
+                            {/* Centered QR code with Frame */}
+                            <div className="scanning-frame">
+                                <div className="corner top-left"></div>
+                                <div className="corner top-right"></div>
+                                <div className="corner bottom-left"></div>
+                                <div className="corner bottom-right"></div>
+                                {!showScanStatus.show && <div className="scanning-laser"></div>}
+                            </div>
 
                             {/* Centered Status Message Overlay */}
                             {showScanStatus.show && (
@@ -933,34 +911,6 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                             )}
                         </div>
 
-                        {/* Clean Dual-Button UI - No 'back box' background */}
-                        <div className="scanner-mode-tabs">
-                            <button 
-                                className={`mode-tab ${selectedAddMedCameraId === 'hardware_wedge' ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (selectedAddMedCameraId !== 'hardware_wedge') {
-                                        switchAddMedScannerMode('hardware_wedge');
-                                    }
-                                }}
-                            >
-                                <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '20px', height: '20px' }} />
-                                <span>SCANNER</span>
-                            </button>
-                            <button 
-                                className={`mode-tab ${selectedAddMedCameraId !== 'hardware_wedge' ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (selectedAddMedCameraId === 'hardware_wedge') {
-                                        const camId = cameras.find(c => c.id !== 'hardware_wedge')?.id || 'camera';
-                                        switchAddMedScannerMode(camId);
-                                    }
-                                }}
-                            >
-                                <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '20px', height: '20px' }} />
-                                <span>CAMERA</span>
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}
@@ -1214,6 +1164,69 @@ function AddMed({ patient, onBack, storeCd, ccCd, ptnTypFlg = "O" }) {
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {isHardwareActive && !isScannerOpen && (
+                <div className="background-scanner-wrap" onClick={() => hiddenInputRef.current?.focus()}>
+                    <div className="bg-scanner-indicator">
+                        <span className="pulse-dot"></span>
+                        <span className="indicator-text">Scanner Active</span>
+                        <button 
+                            className="bg-scanner-stop-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsHardwareActive(false);
+                            }}
+                            title="Stop Scanner"
+                        >
+                            <span className="stop-icon"></span>
+                        </button>
+                    </div>
+                    <input 
+                        ref={hiddenInputRef}
+                        type="text" 
+                        autoComplete="off"
+                        spellCheck="false"
+                        className="hidden-bg-input"
+                        autoFocus
+                        onFocus={(e) => {
+                            e.target.readOnly = true;
+                            setTimeout(() => {
+                                e.target.readOnly = false;
+                            }, 50);
+                        }}
+                        onBlur={(e) => {
+                            if (isHardwareActive && !isScannerOpen && document.activeElement !== medSearchInputRef.current) {
+                                setTimeout(() => hiddenInputRef.current?.focus(), 150);
+                            }
+                        }}
+                        onChange={(e) => {
+                            const val = e.target.value.trim();
+                            if (val.length > 0) {
+                                if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+                                timeoutIdRef.current = setTimeout(() => {
+                                    if (!isProcessingRef.current && hiddenInputRef.current) {
+                                        isProcessingRef.current = true;
+                                        handleBarcodeScanRef.current(hiddenInputRef.current.value.trim());
+                                        hiddenInputRef.current.value = '';
+                                    }
+                                }, 300);
+                            }
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const val = e.target.value.trim();
+                                if (val.length > 0 && !isProcessingRef.current) {
+                                    if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+                                    isProcessingRef.current = true;
+                                    handleBarcodeScanRef.current(val);
+                                }
+                                e.target.value = '';
+                            }
+                        }}
+                    />
                 </div>
             )}
         </div>

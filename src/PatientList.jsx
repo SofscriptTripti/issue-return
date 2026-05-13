@@ -78,6 +78,10 @@ function PatientList({
     const [capturedPtn, setCapturedPtn] = useState('');
     const lastDetectedRef = useRef(null);
 
+    // New Scanner Choice States
+    const [showScannerChoiceModal, setShowScannerChoiceModal] = useState(false);
+    const [isHardwareActive, setIsHardwareActive] = useState(false);
+
     // Modal Selection States
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [tempStore, setTempStore] = useState(null);
@@ -268,10 +272,10 @@ function PatientList({
     useEffect(() => {
         setScannedPtnCode('');
 
-        if (selectedCameraId === 'hardware_wedge' && hiddenInputRef.current) {
+        if ((selectedCameraId === 'hardware_wedge' || isHardwareActive) && hiddenInputRef.current) {
             hiddenInputRef.current.focus();
         }
-    }, [selectedCameraId, isScannerOpen]);
+    }, [selectedCameraId, isScannerOpen, isHardwareActive]);
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -359,36 +363,49 @@ function PatientList({
         setCostCenters([]);
     };
 
-    const openScanner = async () => {
-        scannerLockRef.current = false;
+    const handleScannerClick = () => {
+        setShowScannerChoiceModal(true);
+    };
 
-        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    const handleChoiceHardware = () => {
+        setShowScannerChoiceModal(false);
+        setIsHardwareActive(true);
         setScannerError('');
+        setIsScannerOpen(false);
+        setSelectedCameraId('hardware_wedge');
+    };
 
+    const handleChoiceCamera = async () => {
+        setShowScannerChoiceModal(false);
+        setIsHardwareActive(false);
+        setScannerError('');
+        
         try {
             const devices = await Html5Qrcode.getCameras();
             if (devices && devices.length > 0) {
                 const validCameras = devices.filter(d => !d.label.toLowerCase().includes('front') && !d.label.toLowerCase().includes('facing front'));
                 const backCam = validCameras.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment') || d.label.toLowerCase().includes('facing back')) || validCameras[0] || devices[devices.length - 1];
-
+                
                 const cameraOption = { id: backCam?.id || 'camera', label: 'Camera' };
                 const hardwareOption = { id: 'hardware_wedge', label: 'Scanner' };
                 setCameras([hardwareOption, cameraOption]);
 
-                const configVal = window.APP_CONFIG?.defaultScanner;
-                const defaultScanner = (configVal === 2 && backCam) ? backCam.id : 'hardware_wedge';
-
                 setIsScannerOpen(true);
-                setTimeout(() => switchScannerMode(defaultScanner), 50);
+                setTimeout(() => switchScannerMode(backCam.id), 50);
             } else {
                 setIsScannerOpen(true);
                 setSelectedCameraId('hardware_wedge');
             }
         } catch (err) {
-            console.error("Camera detection failed", err);
+            console.error("Camera access failed", err);
             setIsScannerOpen(true);
             setSelectedCameraId('hardware_wedge');
         }
+    };
+
+    const openScanner = async () => {
+        // This is now replaced by handleScannerClick
+        handleScannerClick();
     };
 
     const handleIdentifyPatient = async (rawBarCd) => {
@@ -396,6 +413,7 @@ function PatientList({
         const barCd = rawBarCd?.trim().replace(/^\*|\*$/g, '');
         if (!barCd) return;
 
+        setIsHardwareActive(false); // Deactivate background scanner immediately on hit
         isProcessingRef.current = true;
         setIsProcessingScan(true);
         setScannedPtnCode(barCd);
@@ -569,71 +587,16 @@ function PatientList({
                         </div>
 
                         <div className="scanner-viewport-container" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                            {selectedCameraId === 'hardware_wedge' ? (
-                                <div
-                                    style={{ width: '280px', margin: '0 auto', height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', background: '#0f172a', borderRadius: '16px', border: 'none', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', cursor: 'pointer' }}
-                                    onClick={() => hiddenInputRef.current?.focus()}
-                                >
-                                    <p style={{ color: '#f8fafc', fontSize: '16px', fontWeight: '500' }}>Press the physical scanner button</p>
-                                    <input
-                                        ref={hiddenInputRef}
-                                        type="text"
-                                        autoComplete="off"
-                                        spellCheck="false"
-                                        style={{ opacity: 0, position: 'absolute', zIndex: -10, width: '1px', height: '1px' }}
-                                        autoFocus
-                                        onFocus={(e) => {
-                                            e.target.readOnly = true;
-                                            setTimeout(() => {
-                                                e.target.readOnly = false;
-                                            }, 50);
-                                        }}
-                                        onBlur={(e) => {
-                                            if (selectedCameraId === 'hardware_wedge') {
-                                                setTimeout(() => hiddenInputRef.current?.focus(), 100);
-                                            }
-                                        }}
-                                        onChange={async (e) => {
-                                            const val = e.target.value.trim();
-                                            if (val.length > 0) {
-                                                if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
-                                                timeoutIdRef.current = setTimeout(async () => {
-                                                    if (!isProcessingRef.current && hiddenInputRef.current) {
-                                                        setScannedPtnCode(val);
-                                                        await handleIdentifyPatientRef.current(val);
-                                                        hiddenInputRef.current.value = '';
-                                                    }
-                                                }, 300);
-                                            }
-                                        }}
-                                        onKeyDown={async (e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                const val = e.target.value.trim();
-                                                if (val.length > 0 && !isProcessingRef.current) {
-                                                    setScannedPtnCode(val); // UI Feedback
-                                                    if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
-                                                    await handleIdentifyPatientRef.current(val);
-                                                }
-                                                e.target.value = '';
-                                            }
-                                        }}
-                                    />
-                                </div>
-                            ) : (
-                                <>
-                                    <div id="patient-reader" className="full-qr-reader"></div>
+                            <div id="patient-reader" className="full-qr-reader"></div>
 
-                                    {/* Centered QR code with Frame */}
-                                    <div className="scanning-frame">
-                                        <div className="corner top-left"></div>
-                                        <div className="corner top-right"></div>
-                                        <div className="corner bottom-left"></div>
-                                        <div className="corner bottom-right"></div>
-                                        <div className="scanning-laser"></div>
-                                    </div>
-                                </>
-                            )}
+                            {/* Centered QR code with Frame */}
+                            <div className="scanning-frame">
+                                <div className="corner top-left"></div>
+                                <div className="corner top-right"></div>
+                                <div className="corner bottom-left"></div>
+                                <div className="corner bottom-right"></div>
+                                <div className="scanning-laser"></div>
+                            </div>
                         </div>
 
                         <div className="scanner-footer-msg" style={{ minHeight: '40px', paddingBottom: '10px' }}>
@@ -645,38 +608,9 @@ function PatientList({
                                 </div>
                             ) : (
                                 <p className="status-msg" style={{ color: '#64748b', opacity: 0.8 }}>
-                                    {selectedCameraId === 'hardware_wedge' ? 'Ready for input' : 'Focus PTN barcode in frame'}
+                                    Focus PTN barcode in frame
                                 </p>
                             )}
-                        </div>
-
-                        {/* Clean Dual-Button UI - No 'back box' background */}
-                        <div className="scanner-mode-tabs">
-                            <button
-                                className={`mode-tab ${selectedCameraId === 'hardware_wedge' ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (selectedCameraId !== 'hardware_wedge') {
-                                        switchScannerMode('hardware_wedge');
-                                    }
-                                }}
-                            >
-                                <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Scanner" style={{ width: '20px', height: '20px' }} />
-                                <span>SCANNER</span>
-                            </button>
-                            <button
-                                className={`mode-tab ${selectedCameraId !== 'hardware_wedge' ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (selectedCameraId === 'hardware_wedge') {
-                                        const camId = cameras.find(c => c.id !== 'hardware_wedge')?.id || 'camera';
-                                        switchScannerMode(camId);
-                                    }
-                                }}
-                            >
-                                <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" style={{ width: '20px', height: '20px' }} />
-                                <span>CAMERA</span>
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -816,6 +750,100 @@ function PatientList({
                             OK
                         </button>
                     </div>
+                </div>
+            )}
+
+            {/* Scanner Choice Modal */}
+            {showScannerChoiceModal && (
+                <div className="scanner-choice-overlay" onClick={() => setShowScannerChoiceModal(false)}>
+                    <div className="scanner-choice-modal" onClick={e => e.stopPropagation()}>
+                        <div className="choice-options">
+                            <button className="choice-card" onClick={handleChoiceHardware}>
+                                <div className="choice-icon-bg">
+                                    <img src={`${import.meta.env.BASE_URL}barcode1.gif`} alt="Hardware" className="choice-gif" />
+                                </div>
+                                <div className="choice-info">
+                                    <span className="choice-title">Scanner</span>
+                                </div>
+                                <div className="choice-arrow">›</div>
+                            </button>
+
+                            <button className="choice-card" onClick={handleChoiceCamera}>
+                                <div className="choice-icon-bg camera">
+                                    <img src={`${import.meta.env.BASE_URL}camera1.gif`} alt="Camera" className="choice-gif" />
+                                </div>
+                                <div className="choice-info">
+                                    <span className="choice-title">Camera</span>
+                                </div>
+                                <div className="choice-arrow">›</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Background Scanner for Patient List */}
+            {isHardwareActive && !isScannerOpen && (
+                <div className="background-scanner-wrap" onClick={() => hiddenInputRef.current?.focus()}>
+                    <div className="bg-scanner-indicator">
+                        <span className="pulse-dot"></span>
+                        <span className="indicator-text">Scanner Active</span>
+                        <button 
+                            className="bg-scanner-stop-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsHardwareActive(false);
+                            }}
+                            title="Stop Scanner"
+                        >
+                            <span className="stop-icon"></span>
+                        </button>
+                    </div>
+                    <input 
+                        ref={hiddenInputRef}
+                        type="text" 
+                        autoComplete="off"
+                        spellCheck="false"
+                        className="hidden-bg-input"
+                        autoFocus
+                        onFocus={(e) => {
+                            e.target.readOnly = true;
+                            setTimeout(() => {
+                                e.target.readOnly = false;
+                            }, 50);
+                        }}
+                        onBlur={(e) => {
+                            // Re-focus unless we are in the search input or modal is open
+                            if (isHardwareActive && !isScannerOpen && document.activeElement?.tagName !== 'INPUT') {
+                                setTimeout(() => hiddenInputRef.current?.focus(), 150);
+                            }
+                        }}
+                        onChange={(e) => {
+                            const val = e.target.value.trim();
+                            if (val.length > 0) {
+                                if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+                                timeoutIdRef.current = setTimeout(() => {
+                                    if (!isProcessingRef.current && hiddenInputRef.current) {
+                                        setScannedPtnCode(val);
+                                        handleIdentifyPatientRef.current(val);
+                                        hiddenInputRef.current.value = '';
+                                    }
+                                }, 300);
+                            }
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const val = e.target.value.trim();
+                                if (val.length > 0 && !isProcessingRef.current) {
+                                    setScannedPtnCode(val);
+                                    if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+                                    handleIdentifyPatientRef.current(val);
+                                }
+                                e.target.value = '';
+                            }
+                        }}
+                    />
                 </div>
             )}
         </div>
