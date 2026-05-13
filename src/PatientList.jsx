@@ -496,7 +496,7 @@ function PatientList({
             )}
 
             <div className="patient-list-content">
-                <div className="search-container">
+                <div className="search-scanner-row">
                     <form className="search-box" onSubmit={handleSearchSubmit}>
                         <button type="submit" className="search-icon-btn" onClick={handleSearchSubmit}>🔍</button>
                         <input
@@ -509,10 +509,10 @@ function PatientList({
                         {isPatientsLoading && (
                             <div className="search-circle-loader"></div>
                         )}
-                        <button type="button" className="search-scanner-btn" onClick={openScanner}>
-                            {QR_ICON}
-                        </button>
                     </form>
+                    <button type="button" className="search-scanner-btn" onClick={openScanner}>
+                        {QR_ICON}
+                    </button>
                 </div>
 
                 {hasActiveFilter && (
@@ -785,19 +785,29 @@ function PatientList({
             {/* Background Scanner for Patient List */}
             {isHardwareActive && !isScannerOpen && (
                 <div className="background-scanner-wrap" onClick={() => hiddenInputRef.current?.focus()}>
-                    <div className="bg-scanner-indicator">
-                        <span className="pulse-dot"></span>
-                        <span className="indicator-text">Scanner Active</span>
-                        <button 
-                            className="bg-scanner-stop-btn"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsHardwareActive(false);
-                            }}
-                            title="Stop Scanner"
-                        >
-                            <span className="stop-icon"></span>
-                        </button>
+                    <div className="bg-scanner-indicator stacked">
+                        {!showScanStatus.show && (
+                            <div className="bg-indicator-top-row">
+                                <span className="pulse-dot"></span>
+                                <span className="indicator-text">Scanner Active</span>
+                                <button 
+                                    className="bg-scanner-stop-btn"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsHardwareActive(false);
+                                    }}
+                                    title="Stop Scanner"
+                                >
+                                    <span className="stop-icon"></span>
+                                </button>
+                            </div>
+                        )}
+                        
+                        {showScanStatus.show && (
+                            <div className={`indicator-msg-row ${showScanStatus.isError ? 'err' : 'ok'}`}>
+                                {showScanStatus.msg}
+                            </div>
+                        )}
                     </div>
                     <input 
                         ref={hiddenInputRef}
