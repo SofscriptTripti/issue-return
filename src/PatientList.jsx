@@ -81,6 +81,7 @@ function PatientList({
     // New Scanner Choice States
     const [showScannerChoiceModal, setShowScannerChoiceModal] = useState(false);
     const [isHardwareActive, setIsHardwareActive] = useState(false);
+    const [showScanStatus, setShowScanStatus] = useState({ show: false, msg: '', isError: false });
 
     // Modal Selection States
     const [showLocationModal, setShowLocationModal] = useState(false);
@@ -423,9 +424,15 @@ function PatientList({
             if (onSearch) {
                 await onSearch(barCd);
             }
-            await closeScanner();
+            setShowScanStatus({ show: true, msg: "Patient Identified!", isError: false });
+            setTimeout(async () => {
+                await closeScanner();
+                setShowScanStatus({ show: false, msg: '', isError: false });
+            }, 1500);
         } catch (e) {
             console.error(e);
+            setShowScanStatus({ show: true, msg: "Search failed", isError: true });
+            setTimeout(() => setShowScanStatus({ show: false, msg: '', isError: false }), 3000);
         } finally {
             setTimeout(() => {
                 setIsProcessingScan(false);
@@ -595,8 +602,15 @@ function PatientList({
                                 <div className="corner top-right"></div>
                                 <div className="corner bottom-left"></div>
                                 <div className="corner bottom-right"></div>
-                                <div className="scanning-laser"></div>
+                                {!showScanStatus.show && <div className="scanning-laser"></div>}
                             </div>
+
+                            {/* Centered Status Message Overlay */}
+                            {showScanStatus.show && (
+                                <div className={`center-status-overlay ${showScanStatus.isError ? 'err' : 'ok'}`}>
+                                    {showScanStatus.msg}
+                                </div>
+                            )}
                         </div>
 
                         <div className="scanner-footer-msg" style={{ minHeight: '40px', paddingBottom: '10px' }}>
